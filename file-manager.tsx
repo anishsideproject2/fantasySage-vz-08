@@ -153,7 +153,8 @@ export function FileManager({
 
       {/* Instructions */}
       <div className="text-xs space-y-1" style={{ color: colors.textSecondary }}>
-        <p>• Upload FantasyPros ECR or any CSV with Player, Position, Team, and ADP/Rank columns</p>
+        <p>• Upload Underdog, FantasyPros ECR, or any CSV with player data</p>
+        <p>• Supports Underdog format (firstName, lastName, slotName, adp columns)</p>
         <p>• Compare different ranking sources by uploading to both slots</p>
         <p>• Toggle between rankings to see different perspectives on player values</p>
       </div>
