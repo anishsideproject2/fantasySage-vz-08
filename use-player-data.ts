@@ -58,6 +58,61 @@ export function usePlayerData() {
               return null
             }
 
+            // Check for Underdog format first (has firstName, lastName, slotName columns)
+            const firstNameHeader = findHeader(["firstName", "first_name", "First Name"])
+            const lastNameHeader = findHeader(["lastName", "last_name", "Last Name"])
+            const slotNameHeader = findHeader(["slotName", "slot_name", "Slot Name", "slot"])
+            const teamNameHeader = findHeader(["teamName", "team_name", "Team Name"])
+            const underdogAdpHeader = findHeader(["adp", "ADP"])
+            const underdogIdHeader = findHeader(["id", "ID", "playerId", "player_id"])
+            const projectedPointsHeader = findHeader(["projectedPoints", "projected_points", "Projected Points", "fpts", "FPTS"])
+
+            const isUnderdogFormat = firstNameHeader && lastNameHeader && slotNameHeader
+
+            if (isUnderdogFormat) {
+              // Parse Underdog format
+              players = results.data
+                .filter((row) => row[firstNameHeader] && row[lastNameHeader] && row[slotNameHeader])
+                .map((row, index) => {
+                  const firstName = (row[firstNameHeader] || "").trim()
+                  const lastName = (row[lastNameHeader] || "").trim()
+                  const name = `${firstName} ${lastName}`.trim()
+                  const position = (row[slotNameHeader] || "").replace(/\d/g, "").toUpperCase()
+                  const adpValue = underdogAdpHeader ? Number.parseFloat(row[underdogAdpHeader]) : index + 1
+                  const projectedPoints = projectedPointsHeader ? Number.parseFloat(row[projectedPointsHeader]) : 0
+
+                  return {
+                    id: underdogIdHeader ? row[underdogIdHeader] : `row-${index}`,
+                    name: name,
+                    firstName: firstName,
+                    lastName: lastName,
+                    position: position,
+                    team: teamNameHeader ? row[teamNameHeader] : "N/A",
+                    adp: !isNaN(adpValue) ? adpValue : 999,
+                    projectedPoints: !isNaN(projectedPoints) ? projectedPoints : 0,
+                    value: 0,
+                    drafted: false,
+                  }
+                })
+
+              // Update the specific ranking
+              setRankings((prev) => {
+                const newRankings = [...prev]
+                newRankings[rankingIndex] = {
+                  data: players,
+                  name: file.name.replace(".csv", ""),
+                }
+                return newRankings
+              })
+
+              // Set as active if it's the first ranking or if current active is empty
+              if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {
+                setActiveRankingIndex(rankingIndex)
+              }
+              return
+            }
+
+            // Fall back to generic format (FantasyPros, etc.)
             const genericPlayerHeader = findHeader(["Player", "Player Name"])
             const genericPosHeader = findHeader(["Pos", "Position"])
 
