@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { DEFAULT_RANKINGS, DEFAULT_RANKINGS_NAME } from "./default-rankings"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
-    { data: [], name: null },
+    { data: DEFAULT_RANKINGS, name: DEFAULT_RANKINGS_NAME, isDefault: true },
     { data: [], name: null },
   ])
   const [activeRankingIndex, setActiveRankingIndex] = useState(0)
