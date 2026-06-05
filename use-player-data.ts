@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { DEFAULT_RANKINGS, DEFAULT_RANKINGS_NAME } from "./default-rankings"
+import { findPresetById } from "./ranking-presets"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
-    { data: DEFAULT_RANKINGS, name: DEFAULT_RANKINGS_NAME, isDefault: true },
+    { data: [], name: null },
     { data: [], name: null },
   ])
   const [activeRankingIndex, setActiveRankingIndex] = useState(0)
@@ -185,6 +185,29 @@ export function usePlayerData() {
     [isPapaParseLoaded, rankings, activeRankingIndex],
   )
 
+  const loadPreset = useCallback(
+    (presetId, rankingIndex = 0) => {
+      const preset = findPresetById(presetId)
+      if (!preset) return
+
+      // Clone players so drafted state stays independent per load
+      const players = preset.players.map((p) => ({ ...p, drafted: false }))
+
+      setRankings((prev) => {
+        const newRankings = [...prev]
+        newRankings[rankingIndex] = {
+          data: players,
+          name: `${preset.analyst} (${preset.updated})`,
+          presetId: preset.id,
+        }
+        return newRankings
+      })
+
+      setActiveRankingIndex(rankingIndex)
+    },
+    [],
+  )
+
   const getActiveRankingData = useCallback(() => {
     return rankings[activeRankingIndex]?.data || []
   }, [rankings, activeRankingIndex])
@@ -232,6 +255,7 @@ export function usePlayerData() {
     setActiveRankingIndex,
     csvData: getActiveRankingData(), // For backward compatibility
     handleFileUpload,
+    loadPreset,
     isPapaParseLoaded,
     searchTerm,
     setSearchTerm,
