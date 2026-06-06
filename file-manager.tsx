@@ -1,8 +1,7 @@
 "use client"
 import { useState } from "react"
-import { Upload, FileText, ToggleLeft, ToggleRight, Trash2, TrendingUp, Award } from "lucide-react"
+import { Upload, FileText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
 export function FileManager({
   colors,
@@ -11,7 +10,6 @@ export function FileManager({
   activeRankingIndex,
   setActiveRankingIndex,
   handleFileUpload,
-  loadPreset,
   isPapaParseLoaded,
 }) {
   const [dragOver, setDragOver] = useState(false)
@@ -54,89 +52,16 @@ export function FileManager({
 
   const hasMultipleRankings = rankings[0].data.length > 0 && rankings[1].data.length > 0
 
-  const activePresetId = rankings[activeRankingIndex]?.presetId
-
   return (
     <div className="space-y-6">
-      {/* Expert Ranking Presets, grouped by scoring format */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
-            Load Expert Rankings
-          </h3>
-          <p className="text-xs" style={{ color: colors.textSecondary }}>
-            Pick a ranking set to load instantly. Uploading your own CSV below replaces it.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {RANKING_PRESET_GROUPS.map((group) => (
-            <div
-              key={group.id}
-              className="rounded-lg border p-3 space-y-3"
-              style={{ borderColor: colors.cardBorder, backgroundColor: colors.card }}
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
-                  {group.label}
-                </span>
-                <span className="text-xs" style={{ color: colors.textSecondary }}>
-                  {group.description}
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {group.presets.map((preset) => {
-                  const isActive = activePresetId === preset.id
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="w-full text-left rounded-md border p-2 transition-colors"
-                      style={{
-                        borderColor: isActive ? colors.purple : colors.cardBorder,
-                        backgroundColor: isActive ? `${colors.purple}1a` : "transparent",
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <TrendingUp size={16} style={{ color: colors.purple }} className="shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>
-                              {preset.analyst}
-                            </div>
-                            <div className="text-xs truncate" style={{ color: colors.textSecondary }}>
-                              {preset.source} · Updated {preset.updated}
-                            </div>
-                          </div>
-                        </div>
-                        <span
-                          className="flex items-center gap-1 text-xs font-medium whitespace-nowrap"
-                          style={{ color: colors.purple }}
-                        >
-                          <Award size={12} />#{preset.accuracyRank}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>
-                        {preset.accuracyNote}
-                        {isActive ? " · Loaded" : ""}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Upload Your Own Rankings */}
       <div>
         <h3 className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
-          Upload Your Own
+          Upload Your Own CSV
         </h3>
         <p className="text-xs" style={{ color: colors.textSecondary }}>
-          Drop a CSV into a slot. This replaces the loaded rankings for that slot.
+          Prefer the one-click expert rankings above? Use those. To bring your own, drop a CSV into a slot below. This
+          replaces whatever is loaded in that slot. You can load two sources and toggle between them.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,10 +162,10 @@ export function FileManager({
 
       {/* Instructions */}
       <div className="text-xs space-y-1" style={{ color: colors.textSecondary }}>
+        <p>• Don't have a CSV? Use the one-click expert rankings at the top of the page</p>
         <p>• Upload Underdog, FantasyPros ECR, or any CSV with player data</p>
         <p>• Supports Underdog format (firstName, lastName, slotName, adp columns)</p>
-        <p>• Compare different ranking sources by uploading to both slots</p>
-        <p>• Toggle between rankings to see different perspectives on player values</p>
+        <p>• Load a different source into each slot, then toggle to compare perspectives</p>
       </div>
     </div>
   )
