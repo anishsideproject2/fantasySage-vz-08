@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react"
-import { Moon, Sun, Copy, Twitter, MessageSquare, CheckCircle, AlertCircle } from "lucide-react"
+import { Moon, Sun, Copy, Twitter, MessageSquare, CheckCircle, AlertCircle, TrendingUp, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { FileManager } from "./file-manager"
 import { RedditPostCard } from "./reddit-post-card"
+import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
 const SageLogo = () => (
   <img src="https://imgur.com/TKUdYzv.png" alt="FantasySage Logo" className="w-32 h-36 sm:w-44 sm:h-48" />
@@ -20,6 +21,7 @@ export function Header({
   activeRankingIndex,
   setActiveRankingIndex,
   handleFileUpload,
+  loadPreset,
   isPapaParseLoaded,
   platform,
   setPlatform,
@@ -176,11 +178,12 @@ export function Header({
                 1
               </div>
               <h3 className="font-bold text-lg" style={{ color: colors.textPrimary }}>
-                Upload Rankings
+                Load Rankings
               </h3>
             </div>
             <p className="text-sm" style={{ color: colors.textSecondary }}>
-              Download CSV rankings from{" "}
+              Tap an expert ranking below to load it instantly — no download needed. Want your own? Click "Upload Custom
+              CSV" to import rankings from{" "}
               <a
                 href="https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php"
                 target="_blank"
@@ -200,7 +203,7 @@ export function Header({
               >
                 Underdog
               </a>
-              , then click "Manage Rankings" to upload up to 2 different sources.
+              .
             </p>
             <Button
               onClick={() => setShowFileManager(!showFileManager)}
@@ -211,7 +214,7 @@ export function Header({
                 color: "#000000",
               }}
             >
-              Manage Rankings
+              {showFileManager ? "Hide Custom Upload" : "Upload Custom CSV"}
             </Button>
           </div>
 
@@ -261,30 +264,80 @@ export function Header({
         </div>
       </div>
 
-      {/* Download Rankings Buttons */}
-      <div className="mb-4 flex flex-wrap gap-3 justify-center">
-        <Button
-          onClick={() => window.open("https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php", "_blank")}
-          size="sm"
-          className="flex items-center gap-2 hover:opacity-90"
-          style={{
-            backgroundColor: colors.headingGreen,
-            color: "#000000",
-          }}
-        >
-          📊 Download FantasyPros PPR Rankings
-        </Button>
-        <Button
-          onClick={() => window.open("https://www.4for4.com/underdog/adp", "_blank")}
-          size="sm"
-          className="flex items-center gap-2 hover:opacity-90"
-          style={{
-            backgroundColor: colors.headingGreen,
-            color: "#000000",
-          }}
-        >
-          🎯 Download Underdog Rankings
-        </Button>
+      {/* Preset Expert Rankings - One Click Load */}
+      <div
+        className="mb-6 p-6 rounded-lg border"
+        style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}
+      >
+        <div className="mb-4">
+          <h2 className="text-xl font-bold" style={{ color: colors.headingGreen }}>
+            ⚡ Load Expert Rankings Instantly
+          </h2>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
+            Click any analyst below to load their full board into the active slot. No CSV needed. Prefer your own?
+            Scroll down to upload a custom CSV.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {RANKING_PRESET_GROUPS.map((group) => (
+            <div
+              key={group.id}
+              className="rounded-lg border p-3 space-y-3"
+              style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
+                  {group.label}
+                </span>
+                <span className="text-xs" style={{ color: colors.textSecondary }}>
+                  {group.description}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {group.presets.map((preset) => {
+                  const isActive = rankings[activeRankingIndex]?.presetId === preset.id
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => loadPreset(preset.id, activeRankingIndex)}
+                      className="w-full text-left rounded-md border p-3 transition-colors hover:opacity-90"
+                      style={{
+                        borderColor: isActive ? colors.headingGreen : colors.cardBorder,
+                        backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <TrendingUp size={18} style={{ color: colors.headingGreen }} className="shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold truncate" style={{ color: colors.textPrimary }}>
+                              {preset.analyst}
+                            </div>
+                            <div className="text-xs truncate" style={{ color: colors.textSecondary }}>
+                              {preset.source} · Updated {preset.updated}
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          className="flex items-center gap-1 text-xs font-semibold whitespace-nowrap"
+                          style={{ color: colors.headingGreen }}
+                        >
+                          <Award size={12} />#{preset.accuracyRank}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                        {preset.accuracyNote}
+                        {isActive ? " · Loaded" : " · Click to load"}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* File Manager */}
@@ -300,6 +353,7 @@ export function Header({
             activeRankingIndex={activeRankingIndex}
             setActiveRankingIndex={setActiveRankingIndex}
             handleFileUpload={handleFileUpload}
+            loadPreset={loadPreset}
             isPapaParseLoaded={isPapaParseLoaded}
           />
         </div>
