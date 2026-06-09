@@ -56,6 +56,25 @@ export function FantasyDraftAssistant() {
   const [showCopiedMessage, setShowCopiedMessage] = useState(false)
   const [isPhoneMode, setIsPhoneMode] = useState(false)
 
+  // Per-position queue of planned players (drag & drop from Best Value)
+  const [queues, setQueues] = useState({ QB: [], RB: [], WR: [], TE: [], FLEX: [] })
+
+  const addToQueue = (position, player) => {
+    if (!position || !player) return
+    setQueues((prev) => {
+      const list = prev[position] || []
+      if (list.some((p) => p.id === player.id)) return prev
+      return { ...prev, [position]: [...list, player] }
+    })
+  }
+
+  const removeFromQueue = (position, playerId) => {
+    setQueues((prev) => ({
+      ...prev,
+      [position]: (prev[position] || []).filter((p) => p.id !== playerId),
+    }))
+  }
+
   // Calculate draft pick counts
   const totalPossiblePicks = draftData?.rounds && draftData?.numTeams ? draftData.rounds * draftData.numTeams : 0
   const draftedCount = draftedPlayers?.length || 0
@@ -78,6 +97,27 @@ export function FantasyDraftAssistant() {
       }))
       setRankings(updatedRankings)
     }
+  }, [draftedPlayers])
+
+  // Remove queued players once they've been drafted
+  useEffect(() => {
+    if (!draftedPlayers || draftedPlayers.length === 0) return
+    const isDrafted = (player) =>
+      draftedPlayers.some(
+        (drafted) =>
+          drafted.name.toLowerCase().includes(player.name.toLowerCase()) ||
+          player.name.toLowerCase().includes(drafted.name.toLowerCase()),
+      )
+    setQueues((prev) => {
+      let changed = false
+      const next = {}
+      for (const pos of Object.keys(prev)) {
+        const filtered = prev[pos].filter((p) => !isDrafted(p))
+        if (filtered.length !== prev[pos].length) changed = true
+        next[pos] = filtered
+      }
+      return changed ? next : prev
+    })
   }, [draftedPlayers])
 
   const handleCopyLink = () => {
@@ -205,6 +245,7 @@ export function FantasyDraftAssistant() {
                 lastUpdate={lastUpdate}
                 timeSinceUpdate={timeSinceUpdate}
                 getAvailablePlayers={getAvailablePlayers}
+                addToQueue={addToQueue}
               />
 
               <TeamRosterSection
@@ -214,6 +255,9 @@ export function FantasyDraftAssistant() {
                 setSelectedTeamRosterId={setSelectedTeamRosterId}
                 draftedPlayers={draftedPlayers}
                 platform={platform}
+                queues={queues}
+                addToQueue={addToQueue}
+                removeFromQueue={removeFromQueue}
               />
             </div>
           ) : (
@@ -230,6 +274,7 @@ export function FantasyDraftAssistant() {
                   lastUpdate={lastUpdate}
                   timeSinceUpdate={timeSinceUpdate}
                   getAvailablePlayers={getAvailablePlayers}
+                  addToQueue={addToQueue}
                 />
 
                 <AvailablePlayersSection
@@ -257,6 +302,9 @@ export function FantasyDraftAssistant() {
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
                   draftedPlayers={draftedPlayers}
                   platform={platform}
+                  queues={queues}
+                  addToQueue={addToQueue}
+                  removeFromQueue={removeFromQueue}
                 />
 
                 <ScoreboardSection
@@ -281,6 +329,7 @@ export function FantasyDraftAssistant() {
                     lastUpdate={lastUpdate}
                     timeSinceUpdate={timeSinceUpdate}
                     getAvailablePlayers={getAvailablePlayers}
+                    addToQueue={addToQueue}
                   />
 
                   <DraftedPlayersSection
@@ -309,6 +358,9 @@ export function FantasyDraftAssistant() {
                     setSelectedTeamRosterId={setSelectedTeamRosterId}
                     draftedPlayers={draftedPlayers}
                     platform={platform}
+                    queues={queues}
+                    addToQueue={addToQueue}
+                    removeFromQueue={removeFromQueue}
                   />
                 </div>
 

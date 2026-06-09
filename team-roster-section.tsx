@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useCallback } from "react"
-import { User } from "lucide-react"
+import { useMemo, useCallback, useState } from "react"
+import { User, X } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -189,6 +189,88 @@ function mapPlayersToRosterSlots(players, settings) {
 
 const getSleeperAvatarUrl = (avatar) => (avatar ? `https://sleepercdn.com/avatars/thumbs/${avatar}` : null)
 
+const QUEUE_POSITIONS = ["QB", "RB", "WR", "TE", "FLEX"]
+
+function QueueDropZone({ position, players, colors, addToQueue, removeFromQueue }) {
+  const [isOver, setIsOver] = useState(false)
+  const slotColors = getBubbleColorsForSlot(position, colors)
+
+  const accepts = (playerPos) => {
+    if (position === "FLEX") return FLEX_POSITIONS.includes(playerPos)
+    return playerPos === position
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsOver(false)
+    try {
+      const player = JSON.parse(e.dataTransfer.getData("application/json"))
+      if (player && accepts(player.position)) {
+        addToQueue(position, player)
+      }
+    } catch {
+      // ignore malformed drops
+    }
+  }
+
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = "copy"
+        if (!isOver) setIsOver(true)
+      }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={handleDrop}
+      className="rounded-lg border-2 p-2 transition-colors"
+      style={{
+        borderStyle: "dashed",
+        borderColor: isOver ? colors.headingGreen : colors.cardBorder,
+        background: isOver ? `${colors.headingGreen}1a` : colors.tableRow,
+        minHeight: "64px",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          className="w-7 h-7 rounded flex items-center justify-center font-bold text-xs flex-shrink-0"
+          style={{ background: slotColors.bg, color: slotColors.text }}
+        >
+          {POSITION_LABELS[position] || position}
+        </div>
+        <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+          {players.length > 0 ? `${players.length} queued` : "Drag players here"}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {players.map((player) => (
+          <div
+            key={player.id}
+            className="flex items-center justify-between gap-2 px-2 py-1 rounded text-sm"
+            style={{ background: colors.card, color: colors.textPrimary }}
+          >
+            <div className="min-w-0">
+              <div className="truncate font-medium">{player.name}</div>
+              <div className="text-xs" style={{ color: colors.textSecondary }}>
+                {player.position}
+                {player.team ? ` - ${getTeamAbbr(player.team)}` : ""}
+                {player.adp ? ` · ADP ${player.adp}` : ""}
+              </div>
+            </div>
+            <button
+              onClick={() => removeFromQueue(position, player.id)}
+              className="flex-shrink-0 rounded p-1 hover:opacity-70"
+              style={{ color: colors.adpNegative }}
+              aria-label={`Remove ${player.name} from ${position} queue`}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function TeamRosterSection({
   colors,
   draftData,
@@ -196,6 +278,9 @@ export function TeamRosterSection({
   setSelectedTeamRosterId,
   draftedPlayers,
   platform,
+  queues,
+  addToQueue,
+  removeFromQueue,
 }) {
   const getSelectedTeamRosterPlayers = useCallback(() => {
     if (!selectedTeamRosterId || !draftedPlayers?.length) return []

@@ -16,6 +16,7 @@ export function BestValueSection({
   lastUpdate,
   timeSinceUpdate,
   getAvailablePlayers,
+  addToQueue,
 }) {
   const getBestValuePicks = () => {
     let available = getAvailablePlayers()
@@ -144,7 +145,12 @@ export function BestValueSection({
                 return (
                   <div
                     key={player.id}
-                    className="grid grid-cols-12 gap-2 px-2 py-1 rounded text-sm best-value-row transition-colors duration-150 hover:cursor-pointer"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/json", JSON.stringify(player))
+                      e.dataTransfer.effectAllowed = "copy"
+                    }}
+                    className="grid grid-cols-12 gap-2 px-2 py-1 rounded text-sm best-value-row transition-colors duration-150 hover:cursor-grab active:cursor-grabbing"
                     style={{
                       background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
                       color: colors.textPrimary,
