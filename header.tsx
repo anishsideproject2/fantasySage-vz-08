@@ -68,6 +68,14 @@ export function Header({
                   <br />
                   Draft Assistant
                 </h1>
+                <div className="mt-2 flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold"
+                    style={{ backgroundColor: colors.headingGreen, color: "#000000" }}
+                  >
+                    Updated 6/9
+                  </span>
+                </div>
                 <p className="text-sm sm:text-base mt-2 max-w-md font-medium" style={{ color: colors.purple }}>
                   Combine rankings from top FantasyPros experts or use Underdog's ADP rankings to see the best available
                   player, live, during your Sleeper draft.
