@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState } from "react"
 import { User, X } from "lucide-react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const POSITION_LABELS = {
@@ -370,6 +370,34 @@ export function TeamRosterSection({
               ))}
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      {/* Player Queue - drag players here from Best Value */}
+      <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-bold tracking-wide" style={{ color: colors.gold }}>
+              PLAYER QUEUE
+            </CardTitle>
+            <span className="text-xs" style={{ color: colors.textSecondary }}>
+              Drag from Best Value
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 px-3 pb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {QUEUE_POSITIONS.map((position) => (
+              <QueueDropZone
+                key={position}
+                position={position}
+                players={queues?.[position] || []}
+                colors={colors}
+                addToQueue={addToQueue}
+                removeFromQueue={removeFromQueue}
+              />
+            ))}
+          </div>
         </CardContent>
       </Card>
 
