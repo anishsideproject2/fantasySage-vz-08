@@ -112,6 +112,7 @@ export function BestValueSection({
         // Sort by highest positive value first (best value picks)
         return Number.parseFloat(b.valueDiff) - Number.parseFloat(a.valueDiff)
       })
+      .slice(0, 60) // Only load 60 players to keep rendering fast
   }
 
   const getValueDiffColor = (diff) => {
