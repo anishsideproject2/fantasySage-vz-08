@@ -1,16 +1,27 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  pointerWithin,
+} from "@dnd-kit/core"
 import { Header } from "./header"
 import { BestValueSection } from "./best-value-section"
 import { DraftedPlayersSection } from "./drafted-players-section"
 import { ScoreboardSection } from "./scoreboard-section"
 import { TeamRosterSection } from "./team-roster-section"
 import { AvailablePlayersSection } from "./available-players-section"
+import { PlayerQueueSection } from "./player-queue-section"
 import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
+
+const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
 export function FantasyDraftAssistant() {
   const { theme, toggleTheme } = useTheme()
@@ -74,6 +85,39 @@ export function FantasyDraftAssistant() {
       [position]: (prev[position] || []).filter((p) => p.id !== playerId),
     }))
   }
+
+  // Drag and drop (pointer-based via dnd-kit)
+  const [activePlayer, setActivePlayer] = useState(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // Require a small drag movement so row clicks (open profile) still work
+      activationConstraint: { distance: 6 },
+    }),
+  )
+
+  const accepts = (position, playerPos) => {
+    if (!playerPos) return false
+    if (position === "FLEX") return FLEX_POSITIONS.includes(playerPos)
+    return playerPos === position
+  }
+
+  const handleDragStart = (event) => {
+    const player = event.active?.data?.current?.player
+    if (player) setActivePlayer(player)
+  }
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    setActivePlayer(null)
+    if (!over) return
+    const player = active?.data?.current?.player
+    const position = over?.data?.current?.position
+    if (player && position && accepts(position, player.position)) {
+      addToQueue(position, player)
+    }
+  }
+
+  const handleDragCancel = () => setActivePlayer(null)
 
   // Calculate draft pick counts
   const totalPossiblePicks = draftData?.rounds && draftData?.numTeams ? draftData.rounds * draftData.numTeams : 0
@@ -231,7 +275,14 @@ export function FantasyDraftAssistant() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid gap-4 lg:gap-6">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={pointerWithin}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <div className="grid gap-4 lg:gap-6">
           {isPhoneMode ? (
             /* Phone Mode: Only Best Value and Team Roster side by side */
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -245,7 +296,6 @@ export function FantasyDraftAssistant() {
                 lastUpdate={lastUpdate}
                 timeSinceUpdate={timeSinceUpdate}
                 getAvailablePlayers={getAvailablePlayers}
-                addToQueue={addToQueue}
               />
 
               <TeamRosterSection
@@ -255,9 +305,6 @@ export function FantasyDraftAssistant() {
                 setSelectedTeamRosterId={setSelectedTeamRosterId}
                 draftedPlayers={draftedPlayers}
                 platform={platform}
-                queues={queues}
-                addToQueue={addToQueue}
-                removeFromQueue={removeFromQueue}
               />
             </div>
           ) : (
@@ -274,7 +321,13 @@ export function FantasyDraftAssistant() {
                   lastUpdate={lastUpdate}
                   timeSinceUpdate={timeSinceUpdate}
                   getAvailablePlayers={getAvailablePlayers}
-                  addToQueue={addToQueue}
+                />
+
+                <PlayerQueueSection
+                  colors={colors}
+                  queues={queues}
+                  removeFromQueue={removeFromQueue}
+                  activePlayer={activePlayer}
                 />
 
                 <AvailablePlayersSection
@@ -302,9 +355,6 @@ export function FantasyDraftAssistant() {
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
                   draftedPlayers={draftedPlayers}
                   platform={platform}
-                  queues={queues}
-                  addToQueue={addToQueue}
-                  removeFromQueue={removeFromQueue}
                 />
 
                 <ScoreboardSection
@@ -329,7 +379,6 @@ export function FantasyDraftAssistant() {
                     lastUpdate={lastUpdate}
                     timeSinceUpdate={timeSinceUpdate}
                     getAvailablePlayers={getAvailablePlayers}
-                    addToQueue={addToQueue}
                   />
 
                   <DraftedPlayersSection
@@ -358,14 +407,18 @@ export function FantasyDraftAssistant() {
                     setSelectedTeamRosterId={setSelectedTeamRosterId}
                     draftedPlayers={draftedPlayers}
                     platform={platform}
-                    queues={queues}
-                    addToQueue={addToQueue}
-                    removeFromQueue={removeFromQueue}
                   />
                 </div>
 
                 {/* Right Column */}
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-4 space-y-4">
+                  <PlayerQueueSection
+                    colors={colors}
+                    queues={queues}
+                    removeFromQueue={removeFromQueue}
+                    activePlayer={activePlayer}
+                  />
+
                   <AvailablePlayersSection
                     colors={colors}
                     searchTerm={searchTerm}
@@ -379,6 +432,28 @@ export function FantasyDraftAssistant() {
             </>
           )}
         </div>
+
+          <DragOverlay dropAnimation={null}>
+            {activePlayer ? (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg text-sm font-semibold"
+                style={{
+                  background: colors.card,
+                  color: colors.textPrimary,
+                  border: `2px solid ${colors.headingGreen}`,
+                }}
+              >
+                <span>{activePlayer.name}</span>
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ background: colors.darkBlue, color: colors.gold }}
+                >
+                  {activePlayer.position}
+                </span>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   )
