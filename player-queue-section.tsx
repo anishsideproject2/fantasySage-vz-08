@@ -140,7 +140,7 @@ function PositionGroup({ position, players, colors, removeFromQueue }) {
   )
 }
 
-export function PlayerQueueSection({ colors, queues, removeFromQueue, activePlayer }) {
+export function PlayerQueueSection({ colors, queues, removeFromQueue, clearQueue, activePlayer }) {
   const totalQueued = QUEUE_POSITIONS.reduce((sum, pos) => sum + (queues?.[pos]?.length || 0), 0)
   const activePositions = QUEUE_POSITIONS.filter((pos) => (queues?.[pos]?.length || 0) > 0)
 
@@ -161,15 +161,27 @@ export function PlayerQueueSection({ colors, queues, removeFromQueue, activePlay
               PLAYER QUEUE
             </CardTitle>
           </div>
-          <span
-            className="text-xs font-bold px-2 py-1 rounded-full"
-            style={{
-              background: colors.darkBlue,
-              color: totalQueued > 0 ? colors.headingGreen : colors.textSecondary,
-            }}
-          >
-            {totalQueued > 0 ? `${totalQueued} planned` : "Drag from Best Value"}
-          </span>
+          <div className="flex items-center gap-2">
+            {totalQueued > 0 && (
+              <button
+                onClick={clearQueue}
+                className="text-xs font-bold px-2 py-1 rounded-md transition-colors hover:opacity-80"
+                style={{ background: colors.darkBlue, color: colors.adpNegative }}
+                aria-label="Clear all queued players"
+              >
+                Clear all
+              </button>
+            )}
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-full"
+              style={{
+                background: colors.darkBlue,
+                color: totalQueued > 0 ? colors.headingGreen : colors.textSecondary,
+              }}
+            >
+              {totalQueued > 0 ? `${totalQueued} planned` : "Drag from Best Value"}
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-3 pb-3">

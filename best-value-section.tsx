@@ -1,6 +1,6 @@
 "use client"
 import { useDraggable } from "@dnd-kit/core"
-import { GripVertical } from "lucide-react"
+import { GripVertical, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BubbleSymbol } from "./bubble-symbol"
@@ -8,13 +8,14 @@ import { BubbleSymbol } from "./bubble-symbol"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
-function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `bv-${player.id}`,
     data: { player },
   })
 
-  const handleClick = () => {
+  const handleNameClick = (e) => {
+    e.stopPropagation()
     const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
     const url = `https://www.playerprofiler.com/nfl/${slug}`
     if (url) window.open(url, "_blank", "noopener,noreferrer")
@@ -23,26 +24,27 @@ function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor
   return (
     <div
       ref={setNodeRef}
-      className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150"
+      {...listeners}
+      {...attributes}
+      className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150 touch-none cursor-grab active:cursor-grabbing select-none"
       style={{
         background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
         color: colors.textPrimary,
         opacity: isDragging ? 0.4 : 1,
       }}
+      aria-label={`Drag ${player.name} to queue`}
     >
+      <div className="col-span-1 flex items-center justify-center" style={{ color: colors.textSecondary }}>
+        {isQueued ? (
+          <Check size={16} style={{ color: colors.headingGreen }} aria-label="In queue" />
+        ) : (
+          <GripVertical size={16} className="opacity-50" />
+        )}
+      </div>
       <button
         type="button"
-        {...listeners}
-        {...attributes}
-        className="col-span-1 flex items-center justify-center touch-none cursor-grab active:cursor-grabbing rounded hover:opacity-100 opacity-50"
-        style={{ color: colors.textSecondary }}
-        aria-label={`Drag ${player.name} to queue`}
-      >
-        <GripVertical size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={handleClick}
+        onClick={handleNameClick}
+        onPointerDown={(e) => e.stopPropagation()}
         className="col-span-4 truncate player-name-cell text-left hover:underline"
       >
         {player.name}
@@ -71,6 +73,7 @@ export function BestValueSection({
   lastUpdate,
   timeSinceUpdate,
   getAvailablePlayers,
+  queues = {},
 }) {
   const getBestValuePicks = () => {
     let available = getAvailablePlayers()
@@ -112,6 +115,8 @@ export function BestValueSection({
     const numValue = Number.parseFloat(diff)
     return numValue >= 0 ? "#22c55e" : "#ef4444" // green for positive, red for negative
   }
+
+  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
 
   const round = draftData?.numTeams ? Math.floor((currentPick - 1) / draftData.numTeams) + 1 : "-"
   const pickInRound = draftData?.numTeams ? ((currentPick - 1) % draftData.numTeams) + 1 : "-"
@@ -203,6 +208,7 @@ export function BestValueSection({
                   isBestValue={idx === 0}
                   colors={colors}
                   getValueDiffColor={getValueDiffColor}
+                  isQueued={queuedIds.has(player.id)}
                 />
               ))}
           </div>

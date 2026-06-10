@@ -84,6 +84,8 @@ export function FantasyDraftAssistant() {
     }))
   }
 
+  const clearQueue = () => setQueues({ QB: [], RB: [], WR: [], TE: [] })
+
   // Drag and drop (pointer-based via dnd-kit)
   const [activePlayer, setActivePlayer] = useState(null)
   const sensors = useSensors(
@@ -288,6 +290,7 @@ export function FantasyDraftAssistant() {
                 lastUpdate={lastUpdate}
                 timeSinceUpdate={timeSinceUpdate}
                 getAvailablePlayers={getAvailablePlayers}
+                queues={queues}
               />
 
               <TeamRosterSection
@@ -313,12 +316,14 @@ export function FantasyDraftAssistant() {
                   lastUpdate={lastUpdate}
                   timeSinceUpdate={timeSinceUpdate}
                   getAvailablePlayers={getAvailablePlayers}
+                  queues={queues}
                 />
 
                 <PlayerQueueSection
                   colors={colors}
                   queues={queues}
                   removeFromQueue={removeFromQueue}
+                  clearQueue={clearQueue}
                   activePlayer={activePlayer}
                 />
 
@@ -371,12 +376,14 @@ export function FantasyDraftAssistant() {
                     lastUpdate={lastUpdate}
                     timeSinceUpdate={timeSinceUpdate}
                     getAvailablePlayers={getAvailablePlayers}
+                    queues={queues}
                   />
 
                   <PlayerQueueSection
                     colors={colors}
                     queues={queues}
                     removeFromQueue={removeFromQueue}
+                    clearQueue={clearQueue}
                     activePlayer={activePlayer}
                   />
 
