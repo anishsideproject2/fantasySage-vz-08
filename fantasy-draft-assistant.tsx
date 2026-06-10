@@ -13,6 +13,36 @@ import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
 
+const QUEUE_POSITIONS = ["QB", "RB", "WR", "TE"]
+
+const normalizePlayerName = (name) => {
+  if (!name) return ""
+  return name
+    .toLowerCase()
+    .replace(/(\s|,)+(jr\.?|sr\.?|ii|iii|iv|v)\b/g, "")
+    .replace(/[^a-z]/g, "")
+    .trim()
+}
+
+const getQueueValueDiff = (player, currentPick) => {
+  const adp = Number.parseFloat(player?.adp)
+  const pick = Number.parseFloat(currentPick)
+
+  if (Number.isNaN(adp) || Number.isNaN(pick)) return "--"
+
+  return (pick - adp).toFixed(1)
+}
+
+const areQueuedPlayersEqual = (previousPlayer, nextPlayer) =>
+  previousPlayer.id === nextPlayer.id &&
+  previousPlayer.name === nextPlayer.name &&
+  previousPlayer.firstName === nextPlayer.firstName &&
+  previousPlayer.lastName === nextPlayer.lastName &&
+  previousPlayer.position === nextPlayer.position &&
+  previousPlayer.team === nextPlayer.team &&
+  previousPlayer.adp === nextPlayer.adp &&
+  previousPlayer.valueDiff === nextPlayer.valueDiff
+
 export function FantasyDraftAssistant() {
   const { theme, toggleTheme } = useTheme()
   const colors = useMemo(() => COLORS[theme], [theme])
@@ -65,7 +95,16 @@ export function FantasyDraftAssistant() {
     setQueues((prev) => {
       const list = prev[position] || []
       if (list.some((p) => p.id === player.id)) return prev
-      return { ...prev, [position]: [...list, player] }
+      return {
+        ...prev,
+        [position]: [
+          ...list,
+          {
+            ...player,
+            valueDiff: getQueueValueDiff(player, currentPick),
+          },
+        ],
+      }
     })
   }
 
@@ -101,6 +140,36 @@ export function FantasyDraftAssistant() {
       setRankings(updatedRankings)
     }
   }, [draftedPlayers])
+
+  // Keep queued player details and value synced as the draft pick advances.
+  useEffect(() => {
+    setQueues((prev) => {
+      const playersById = new Map(csvData.map((player) => [String(player.id), player]))
+      const playersByName = new Map(csvData.map((player) => [normalizePlayerName(player.name), player]))
+      let changed = false
+      const next = {}
+
+      for (const pos of QUEUE_POSITIONS) {
+        next[pos] = (prev[pos] || []).map((queuedPlayer) => {
+          const latestPlayer =
+            playersById.get(String(queuedPlayer.id)) || playersByName.get(normalizePlayerName(queuedPlayer.name)) || queuedPlayer
+          const updatedPlayer = {
+            ...queuedPlayer,
+            ...latestPlayer,
+            valueDiff: getQueueValueDiff(latestPlayer, currentPick),
+          }
+
+          if (!areQueuedPlayersEqual(queuedPlayer, updatedPlayer)) {
+            changed = true
+          }
+
+          return updatedPlayer
+        })
+      }
+
+      return changed ? next : prev
+    })
+  }, [csvData, currentPick])
 
   // Remove queued players once they've been drafted
   useEffect(() => {
