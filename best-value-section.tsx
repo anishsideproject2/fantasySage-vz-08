@@ -1,10 +1,65 @@
 "use client"
+import { useDraggable } from "@dnd-kit/core"
+import { GripVertical } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BubbleSymbol } from "./bubble-symbol"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
+
+function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `bv-${player.id}`,
+    data: { player },
+  })
+
+  const handleClick = () => {
+    const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
+    const url = `https://www.playerprofiler.com/nfl/${slug}`
+    if (url) window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150"
+      style={{
+        background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
+        color: colors.textPrimary,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      <button
+        type="button"
+        {...listeners}
+        {...attributes}
+        className="col-span-1 flex items-center justify-center touch-none cursor-grab active:cursor-grabbing rounded hover:opacity-100 opacity-50"
+        style={{ color: colors.textSecondary }}
+        aria-label={`Drag ${player.name} to queue`}
+      >
+        <GripVertical size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={handleClick}
+        className="col-span-4 truncate player-name-cell text-left hover:underline"
+      >
+        {player.name}
+      </button>
+      <div className="col-span-2">
+        <BubbleSymbol pos={player.position} colors={colors} />
+      </div>
+      <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
+        {player.valueDiff !== "--" && Number.parseFloat(player.valueDiff) > 0 ? "+" : ""}
+        {player.valueDiff}
+      </div>
+      <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
+        {player.adp}
+      </div>
+    </div>
+  )
+}
 
 export function BestValueSection({
   colors,
@@ -16,7 +71,6 @@ export function BestValueSection({
   lastUpdate,
   timeSinceUpdate,
   getAvailablePlayers,
-  addToQueue,
 }) {
   const getBestValuePicks = () => {
     let available = getAvailablePlayers()
@@ -131,7 +185,8 @@ export function BestValueSection({
                 borderColor: colors.lightBorder,
               }}
             >
-              <div className="col-span-5">Player</div>
+              <div className="col-span-1" />
+              <div className="col-span-4">Player</div>
               <div className="col-span-2">Pos</div>
               <div className="col-span-3 text-right">Value</div>
               <div className="col-span-2 text-right">ADP</div>
@@ -140,46 +195,16 @@ export function BestValueSection({
             {/* Player Rows */}
             {getBestValuePicks()
               .slice(0, 20)
-              .map((player, idx) => {
-                const isBestValue = idx === 0
-                return (
-                  <div
-                    key={player.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("application/json", JSON.stringify(player))
-                      e.dataTransfer.effectAllowed = "copy"
-                    }}
-                    className="grid grid-cols-12 gap-2 px-2 py-1 rounded text-sm best-value-row transition-colors duration-150 hover:cursor-grab active:cursor-grabbing"
-                    style={{
-                      background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
-                      color: colors.textPrimary,
-                    }}
-                    onClick={() => {
-                      const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
-                      const url = `https://www.playerprofiler.com/nfl/${slug}`
-                      if (url) window.open(url, "_blank", "noopener,noreferrer")
-                    }}
-                  >
-                    <div className="col-span-5 truncate player-name-cell">{player.name}</div>
-                    <div className="col-span-2">
-                      <BubbleSymbol pos={player.position} colors={colors} />
-                    </div>
-                    <div
-                      className="col-span-3 text-right font-bold"
-                      style={{
-                        color: getValueDiffColor(player.valueDiff),
-                      }}
-                    >
-                      {player.valueDiff !== "--" && Number.parseFloat(player.valueDiff) > 0 ? "+" : ""}
-                      {player.valueDiff}
-                    </div>
-                    <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
-                      {player.adp}
-                    </div>
-                  </div>
-                )
-              })}
+              .map((player, idx) => (
+                <DraggableValueRow
+                  key={player.id}
+                  player={player}
+                  idx={idx}
+                  isBestValue={idx === 0}
+                  colors={colors}
+                  getValueDiffColor={getValueDiffColor}
+                />
+              ))}
           </div>
         </div>
       </CardContent>
