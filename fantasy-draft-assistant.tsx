@@ -21,8 +21,6 @@ import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
 
-const FLEX_POSITIONS = ["RB", "WR", "TE"]
-
 export function FantasyDraftAssistant() {
   const { theme, toggleTheme } = useTheme()
   const colors = useMemo(() => COLORS[theme], [theme])
@@ -68,7 +66,7 @@ export function FantasyDraftAssistant() {
   const [isPhoneMode, setIsPhoneMode] = useState(false)
 
   // Per-position queue of planned players (drag & drop from Best Value)
-  const [queues, setQueues] = useState({ QB: [], RB: [], WR: [], TE: [], FLEX: [] })
+  const [queues, setQueues] = useState({ QB: [], RB: [], WR: [], TE: [] })
 
   const addToQueue = (position, player) => {
     if (!position || !player) return
@@ -95,12 +93,6 @@ export function FantasyDraftAssistant() {
     }),
   )
 
-  const accepts = (position, playerPos) => {
-    if (!playerPos) return false
-    if (position === "FLEX") return FLEX_POSITIONS.includes(playerPos)
-    return playerPos === position
-  }
-
   const handleDragStart = (event) => {
     const player = event.active?.data?.current?.player
     if (player) setActivePlayer(player)
@@ -111,9 +103,9 @@ export function FantasyDraftAssistant() {
     setActivePlayer(null)
     if (!over) return
     const player = active?.data?.current?.player
-    const position = over?.data?.current?.position
-    if (player && position && accepts(position, player.position)) {
-      addToQueue(position, player)
+    // Auto-route to the player's own position queue regardless of which zone it lands on
+    if (player && player.position && queues[player.position]) {
+      addToQueue(player.position, player)
     }
   }
 
@@ -381,13 +373,11 @@ export function FantasyDraftAssistant() {
                     getAvailablePlayers={getAvailablePlayers}
                   />
 
-                  <DraftedPlayersSection
+                  <PlayerQueueSection
                     colors={colors}
-                    draftedPlayers={draftedPlayers}
-                    draftData={draftData}
-                    totalPossiblePicks={totalPossiblePicks}
-                    draftedCount={draftedCount}
-                    remainingCount={remainingCount}
+                    queues={queues}
+                    removeFromQueue={removeFromQueue}
+                    activePlayer={activePlayer}
                   />
 
                   <ScoreboardSection
@@ -412,11 +402,13 @@ export function FantasyDraftAssistant() {
 
                 {/* Right Column */}
                 <div className="lg:col-span-4 space-y-4">
-                  <PlayerQueueSection
+                  <DraftedPlayersSection
                     colors={colors}
-                    queues={queues}
-                    removeFromQueue={removeFromQueue}
-                    activePlayer={activePlayer}
+                    draftedPlayers={draftedPlayers}
+                    draftData={draftData}
+                    totalPossiblePicks={totalPossiblePicks}
+                    draftedCount={draftedCount}
+                    remainingCount={remainingCount}
                   />
 
                   <AvailablePlayersSection

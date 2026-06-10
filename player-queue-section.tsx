@@ -4,17 +4,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { X, ListPlus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const POSITION_LABELS = {
-  FLEX: "FLX",
-  QB: "QB",
-  RB: "RB",
-  WR: "WR",
-  TE: "TE",
-}
-
-const FLEX_POSITIONS = ["RB", "WR", "TE"]
-
-const QUEUE_POSITIONS = ["QB", "RB", "WR", "TE", "FLEX"]
+const QUEUE_POSITIONS = ["QB", "RB", "WR", "TE"]
 
 const TEAM_ABBREVIATIONS = {
   "Arizona Cardinals": "ARI",
@@ -63,100 +53,87 @@ const getBubbleColorsForSlot = (pos, colors) => {
       return { bg: colors.pillWR, text: colors.pillTextWR }
     case "TE":
       return { bg: colors.pillTE, text: colors.pillTextTE }
-    case "FLEX":
-      return { bg: colors.pillWR, text: colors.pillTextWR }
     default:
       return { bg: "#333", text: colors.white }
   }
 }
 
-function QueueDropZone({ position, players, colors, removeFromQueue, activePlayer }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `queue-${position}`,
-    data: { position },
-  })
+const getValueColor = (valueDiff, colors) => {
+  if (valueDiff === undefined || valueDiff === "--") return colors.textSecondary
+  return Number.parseFloat(valueDiff) >= 0 ? "#22c55e" : "#ef4444"
+}
 
-  const slotColors = getBubbleColorsForSlot(position, colors)
+const formatValue = (valueDiff) => {
+  if (valueDiff === undefined || valueDiff === "--") return null
+  const num = Number.parseFloat(valueDiff)
+  return `${num > 0 ? "+" : ""}${valueDiff}`
+}
 
-  const accepts = (playerPos) => {
-    if (!playerPos) return false
-    if (position === "FLEX") return FLEX_POSITIONS.includes(playerPos)
-    return playerPos === position
-  }
-
-  // Is the currently dragged player eligible for this zone?
-  const isEligibleTarget = activePlayer ? accepts(activePlayer.position) : false
-  const isActiveOver = isOver && isEligibleTarget
-  const isRejecting = isOver && activePlayer && !isEligibleTarget
-
-  let borderColor = colors.cardBorder
-  let background = colors.tableRow
-  if (isActiveOver) {
-    borderColor = colors.headingGreen
-    background = `${colors.headingGreen}26`
-  } else if (isRejecting) {
-    borderColor = colors.adpNegative
-    background = `${colors.adpNegative}1a`
-  } else if (isEligibleTarget) {
-    // Highlight all valid drop targets while dragging
-    borderColor = `${colors.headingGreen}99`
-    background = `${colors.headingGreen}0d`
-  }
-
+function QueuedPlayerRow({ position, player, idx, colors, removeFromQueue }) {
+  const value = formatValue(player.valueDiff)
   return (
     <div
-      ref={setNodeRef}
-      className="rounded-xl border-2 border-dashed p-2.5 transition-all duration-150"
-      style={{
-        borderColor,
-        background,
-        minHeight: "76px",
-        boxShadow: isActiveOver ? `0 0 0 3px ${colors.headingGreen}33` : "none",
-      }}
+      className="flex items-center gap-2 px-2 py-2 rounded-lg"
+      style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}
     >
+      <div
+        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+        style={{ background: colors.darkBlue, color: colors.gold }}
+      >
+        {idx + 1}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold whitespace-normal break-words" style={{ color: colors.textPrimary }}>
+          {player.name}
+        </div>
+        <div className="text-xs" style={{ color: colors.textSecondary }}>
+          {player.position}
+          {player.team ? ` · ${getTeamAbbr(player.team)}` : ""}
+          {player.adp ? ` · ADP ${player.adp}` : ""}
+        </div>
+      </div>
+      {value && (
+        <span className="text-sm font-bold flex-shrink-0" style={{ color: getValueColor(player.valueDiff, colors) }}>
+          {value}
+        </span>
+      )}
+      <button
+        onClick={() => removeFromQueue(position, player.id)}
+        className="flex-shrink-0 rounded-md p-1 transition-colors hover:opacity-70"
+        style={{ color: colors.adpNegative }}
+        aria-label={`Remove ${player.name} from ${position} queue`}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+function PositionGroup({ position, players, colors, removeFromQueue }) {
+  const slotColors = getBubbleColorsForSlot(position, colors)
+  return (
+    <div>
       <div className="flex items-center gap-2 mb-2">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0"
+          className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0"
           style={{ background: slotColors.bg, color: slotColors.text }}
         >
-          {POSITION_LABELS[position] || position}
+          {position}
         </div>
         <span className="text-xs font-bold tracking-wide" style={{ color: colors.textSecondary }}>
-          {players.length > 0 ? `${players.length} QUEUED` : "Drop here"}
+          {players.length} QUEUED
         </span>
       </div>
       <div className="space-y-1.5">
         {players.map((player, idx) => (
-          <div
+          <QueuedPlayerRow
             key={player.id}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
-            style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}
-          >
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: colors.darkBlue, color: colors.gold }}
-            >
-              {idx + 1}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold" style={{ color: colors.textPrimary }}>
-                {player.name}
-              </div>
-              <div className="text-xs truncate" style={{ color: colors.textSecondary }}>
-                {player.position}
-                {player.team ? ` · ${getTeamAbbr(player.team)}` : ""}
-                {player.adp ? ` · ADP ${player.adp}` : ""}
-              </div>
-            </div>
-            <button
-              onClick={() => removeFromQueue(position, player.id)}
-              className="flex-shrink-0 rounded-md p-1 transition-colors hover:opacity-70"
-              style={{ color: colors.adpNegative }}
-              aria-label={`Remove ${player.name} from ${position} queue`}
-            >
-              <X size={14} />
-            </button>
-          </div>
+            position={position}
+            player={player}
+            idx={idx}
+            colors={colors}
+            removeFromQueue={removeFromQueue}
+          />
         ))}
       </div>
     </div>
@@ -165,6 +142,14 @@ function QueueDropZone({ position, players, colors, removeFromQueue, activePlaye
 
 export function PlayerQueueSection({ colors, queues, removeFromQueue, activePlayer }) {
   const totalQueued = QUEUE_POSITIONS.reduce((sum, pos) => sum + (queues?.[pos]?.length || 0), 0)
+  const activePositions = QUEUE_POSITIONS.filter((pos) => (queues?.[pos]?.length || 0) > 0)
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: "player-queue-dropzone",
+    data: { position: "QUEUE" },
+  })
+
+  const isEmpty = totalQueued === 0
 
   return (
     <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
@@ -188,17 +173,38 @@ export function PlayerQueueSection({ colors, queues, removeFromQueue, activePlay
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-3 pb-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {QUEUE_POSITIONS.map((position) => (
-            <QueueDropZone
-              key={position}
-              position={position}
-              players={queues?.[position] || []}
-              colors={colors}
-              removeFromQueue={removeFromQueue}
-              activePlayer={activePlayer}
-            />
-          ))}
+        <div
+          ref={setNodeRef}
+          className="rounded-xl border-2 border-dashed p-3 transition-all duration-150"
+          style={{
+            borderColor: activePlayer ? colors.headingGreen : colors.cardBorder,
+            background: isOver && activePlayer ? `${colors.headingGreen}1a` : "transparent",
+            minHeight: isEmpty ? "120px" : undefined,
+          }}
+        >
+          {isEmpty ? (
+            <div className="flex flex-col items-center justify-center text-center gap-1 py-6">
+              <ListPlus size={22} style={{ color: colors.textSecondary }} />
+              <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
+                Drag players here to queue them
+              </span>
+              <span className="text-xs" style={{ color: colors.textSecondary }}>
+                Pull from Best Value — they&apos;ll auto-sort by position
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activePositions.map((position) => (
+                <PositionGroup
+                  key={position}
+                  position={position}
+                  players={queues[position]}
+                  colors={colors}
+                  removeFromQueue={removeFromQueue}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
