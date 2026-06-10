@@ -1,6 +1,6 @@
 "use client"
 import { useDraggable } from "@dnd-kit/core"
-import { GripVertical, Check } from "lucide-react"
+import { Plus, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BubbleSymbol } from "./bubble-symbol"
@@ -8,7 +8,7 @@ import { BubbleSymbol } from "./bubble-symbol"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
-function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued }) {
+function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `bv-${player.id}`,
     data: { player },
@@ -19,6 +19,11 @@ function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor
     const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
     const url = `https://www.playerprofiler.com/nfl/${slug}`
     if (url) window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const handleToggleClick = (e) => {
+    e.stopPropagation()
+    onToggleQueue(player, isQueued)
   }
 
   return (
@@ -32,14 +37,23 @@ function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor
         color: colors.textPrimary,
         opacity: isDragging ? 0.4 : 1,
       }}
-      aria-label={`Drag ${player.name} to queue`}
     >
-      <div className="col-span-1 flex items-center justify-center" style={{ color: colors.textSecondary }}>
-        {isQueued ? (
-          <Check size={16} style={{ color: colors.headingGreen }} aria-label="In queue" />
-        ) : (
-          <GripVertical size={16} className="opacity-50" />
-        )}
+      <div className="col-span-1 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={handleToggleClick}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 rounded-md transition-colors"
+          style={{
+            background: isQueued ? colors.headingGreen : colors.darkBlue,
+            color: isQueued ? "#000000" : colors.gold,
+            border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
+          }}
+          aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
+          title={isQueued ? "Remove from queue" : "Add to queue"}
+        >
+          {isQueued ? <Check size={14} /> : <Plus size={14} />}
+        </button>
       </div>
       <button
         type="button"
@@ -74,6 +88,8 @@ export function BestValueSection({
   timeSinceUpdate,
   getAvailablePlayers,
   queues = {},
+  addToQueue,
+  removeFromQueue,
 }) {
   const getBestValuePicks = () => {
     let available = getAvailablePlayers()
@@ -117,6 +133,14 @@ export function BestValueSection({
   }
 
   const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
+
+  const handleToggleQueue = (player, isQueued) => {
+    if (isQueued) {
+      removeFromQueue?.(player.position, player.id)
+    } else {
+      addToQueue?.(player.position, player)
+    }
+  }
 
   const round = draftData?.numTeams ? Math.floor((currentPick - 1) / draftData.numTeams) + 1 : "-"
   const pickInRound = draftData?.numTeams ? ((currentPick - 1) % draftData.numTeams) + 1 : "-"
@@ -209,6 +233,7 @@ export function BestValueSection({
                   colors={colors}
                   getValueDiffColor={getValueDiffColor}
                   isQueued={queuedIds.has(player.id)}
+                  onToggleQueue={handleToggleQueue}
                 />
               ))}
           </div>

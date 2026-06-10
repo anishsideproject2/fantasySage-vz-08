@@ -291,6 +291,8 @@ export function FantasyDraftAssistant() {
                 timeSinceUpdate={timeSinceUpdate}
                 getAvailablePlayers={getAvailablePlayers}
                 queues={queues}
+                addToQueue={addToQueue}
+                removeFromQueue={removeFromQueue}
               />
 
               <TeamRosterSection
@@ -317,6 +319,8 @@ export function FantasyDraftAssistant() {
                   timeSinceUpdate={timeSinceUpdate}
                   getAvailablePlayers={getAvailablePlayers}
                   queues={queues}
+                  addToQueue={addToQueue}
+                  removeFromQueue={removeFromQueue}
                 />
 
                 <PlayerQueueSection
@@ -377,6 +381,8 @@ export function FantasyDraftAssistant() {
                     timeSinceUpdate={timeSinceUpdate}
                     getAvailablePlayers={getAvailablePlayers}
                     queues={queues}
+                    addToQueue={addToQueue}
+                    removeFromQueue={removeFromQueue}
                   />
 
                   <PlayerQueueSection
