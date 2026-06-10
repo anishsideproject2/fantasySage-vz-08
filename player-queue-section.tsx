@@ -1,6 +1,5 @@
 "use client"
 
-import { useDroppable } from "@dnd-kit/core"
 import { X, ListPlus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -140,14 +139,9 @@ function PositionGroup({ position, players, colors, removeFromQueue }) {
   )
 }
 
-export function PlayerQueueSection({ colors, queues, removeFromQueue, clearQueue, activePlayer }) {
+export function PlayerQueueSection({ colors, queues, removeFromQueue, clearQueue }) {
   const totalQueued = QUEUE_POSITIONS.reduce((sum, pos) => sum + (queues?.[pos]?.length || 0), 0)
   const activePositions = QUEUE_POSITIONS.filter((pos) => (queues?.[pos]?.length || 0) > 0)
-
-  const { setNodeRef, isOver } = useDroppable({
-    id: "player-queue-dropzone",
-    data: { position: "QUEUE" },
-  })
 
   const isEmpty = totalQueued === 0
 
@@ -179,18 +173,16 @@ export function PlayerQueueSection({ colors, queues, removeFromQueue, clearQueue
                 color: totalQueued > 0 ? colors.headingGreen : colors.textSecondary,
               }}
             >
-              {totalQueued > 0 ? `${totalQueued} planned` : "Drag from Best Value"}
+              {totalQueued > 0 ? `${totalQueued} planned` : "Tap + to add"}
             </span>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-3 pb-3">
         <div
-          ref={setNodeRef}
           className="rounded-xl border-2 border-dashed p-3 transition-all duration-150"
           style={{
-            borderColor: activePlayer ? colors.headingGreen : colors.cardBorder,
-            background: isOver && activePlayer ? `${colors.headingGreen}1a` : "transparent",
+            borderColor: colors.cardBorder,
             minHeight: isEmpty ? "120px" : undefined,
           }}
         >
@@ -198,10 +190,10 @@ export function PlayerQueueSection({ colors, queues, removeFromQueue, clearQueue
             <div className="flex flex-col items-center justify-center text-center gap-1 py-6">
               <ListPlus size={22} style={{ color: colors.textSecondary }} />
               <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
-                Drag players here to queue them
+                No players queued yet
               </span>
               <span className="text-xs" style={{ color: colors.textSecondary }}>
-                Pull from Best Value — they&apos;ll auto-sort by position
+                Tap the + on any player to queue them — they&apos;ll auto-sort by position
               </span>
             </div>
           ) : (

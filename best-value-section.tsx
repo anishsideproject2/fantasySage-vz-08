@@ -1,5 +1,4 @@
 "use client"
-import { useDraggable } from "@dnd-kit/core"
 import { Plus, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,12 +7,7 @@ import { BubbleSymbol } from "./bubble-symbol"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
-function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `bv-${player.id}`,
-    data: { player },
-  })
-
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
   const handleNameClick = (e) => {
     e.stopPropagation()
     const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
@@ -28,21 +22,16 @@ function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor
 
   return (
     <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150 touch-none cursor-grab active:cursor-grabbing select-none"
+      className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150"
       style={{
         background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
         color: colors.textPrimary,
-        opacity: isDragging ? 0.4 : 1,
       }}
     >
       <div className="col-span-1 flex items-center justify-center">
         <button
           type="button"
           onClick={handleToggleClick}
-          onPointerDown={(e) => e.stopPropagation()}
           className="flex items-center justify-center w-6 h-6 rounded-md transition-colors"
           style={{
             background: isQueued ? colors.headingGreen : colors.darkBlue,
@@ -58,7 +47,6 @@ function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor
       <button
         type="button"
         onClick={handleNameClick}
-        onPointerDown={(e) => e.stopPropagation()}
         className="col-span-4 truncate player-name-cell text-left hover:underline"
       >
         {player.name}
@@ -204,7 +192,7 @@ export function BestValueSection({
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-2">
-        <div className="overflow-y-auto max-h-80">
+        <div className="overflow-y-auto max-h-[32rem]">
           <div className="space-y-1">
             {/* Header */}
             <div
@@ -222,20 +210,18 @@ export function BestValueSection({
             </div>
 
             {/* Player Rows */}
-            {getBestValuePicks()
-              .slice(0, 20)
-              .map((player, idx) => (
-                <DraggableValueRow
-                  key={player.id}
-                  player={player}
-                  idx={idx}
-                  isBestValue={idx === 0}
-                  colors={colors}
-                  getValueDiffColor={getValueDiffColor}
-                  isQueued={queuedIds.has(player.id)}
-                  onToggleQueue={handleToggleQueue}
-                />
-              ))}
+            {getBestValuePicks().map((player, idx) => (
+              <ValueRow
+                key={player.id}
+                player={player}
+                idx={idx}
+                isBestValue={idx === 0}
+                colors={colors}
+                getValueDiffColor={getValueDiffColor}
+                isQueued={queuedIds.has(player.id)}
+                onToggleQueue={handleToggleQueue}
+              />
+            ))}
           </div>
         </div>
       </CardContent>

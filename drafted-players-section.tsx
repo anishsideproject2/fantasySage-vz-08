@@ -13,7 +13,7 @@ export function DraftedPlayersSection({
 }) {
   const getRecentPicks = () => {
     if (!draftedPlayers || draftedPlayers.length === 0) return []
-    return [...draftedPlayers].sort((a, b) => b.pick_no - a.pick_no).slice(0, 10)
+    return [...draftedPlayers].sort((a, b) => b.pick_no - a.pick_no).slice(0, 5)
   }
 
   const getTeamName = (rosterId) => {
