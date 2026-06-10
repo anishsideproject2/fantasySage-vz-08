@@ -1,6 +1,5 @@
 "use client"
-import { useDraggable } from "@dnd-kit/core"
-import { GripVertical } from "lucide-react"
+import { Plus, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BubbleSymbol } from "./bubble-symbol"
@@ -8,41 +7,46 @@ import { BubbleSymbol } from "./bubble-symbol"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
-function DraggableValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `bv-${player.id}`,
-    data: { player },
-  })
-
-  const handleClick = () => {
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
+  const handleNameClick = (e) => {
+    e.stopPropagation()
     const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
     const url = `https://www.playerprofiler.com/nfl/${slug}`
     if (url) window.open(url, "_blank", "noopener,noreferrer")
   }
 
+  const handleToggleClick = (e) => {
+    e.stopPropagation()
+    onToggleQueue(player, isQueued)
+  }
+
   return (
     <div
-      ref={setNodeRef}
       className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 rounded-lg text-sm best-value-row transition-colors duration-150"
       style={{
         background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
         color: colors.textPrimary,
-        opacity: isDragging ? 0.4 : 1,
       }}
     >
+      <div className="col-span-1 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={handleToggleClick}
+          className="flex items-center justify-center w-6 h-6 rounded-md transition-colors"
+          style={{
+            background: isQueued ? colors.headingGreen : colors.darkBlue,
+            color: isQueued ? "#000000" : colors.gold,
+            border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
+          }}
+          aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
+          title={isQueued ? "Remove from queue" : "Add to queue"}
+        >
+          {isQueued ? <Check size={14} /> : <Plus size={14} />}
+        </button>
+      </div>
       <button
         type="button"
-        {...listeners}
-        {...attributes}
-        className="col-span-1 flex items-center justify-center touch-none cursor-grab active:cursor-grabbing rounded hover:opacity-100 opacity-50"
-        style={{ color: colors.textSecondary }}
-        aria-label={`Drag ${player.name} to queue`}
-      >
-        <GripVertical size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={handleClick}
+        onClick={handleNameClick}
         className="col-span-4 truncate player-name-cell text-left hover:underline"
       >
         {player.name}
@@ -71,6 +75,9 @@ export function BestValueSection({
   lastUpdate,
   timeSinceUpdate,
   getAvailablePlayers,
+  queues = {},
+  addToQueue,
+  removeFromQueue,
 }) {
   const getBestValuePicks = () => {
     let available = getAvailablePlayers()
@@ -105,12 +112,23 @@ export function BestValueSection({
         // Sort by highest positive value first (best value picks)
         return Number.parseFloat(b.valueDiff) - Number.parseFloat(a.valueDiff)
       })
+      .slice(0, 60) // Only load 60 players to keep rendering fast
   }
 
   const getValueDiffColor = (diff) => {
     if (diff === "--") return colors.textSecondary
     const numValue = Number.parseFloat(diff)
     return numValue >= 0 ? "#22c55e" : "#ef4444" // green for positive, red for negative
+  }
+
+  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
+
+  const handleToggleQueue = (player, isQueued) => {
+    if (isQueued) {
+      removeFromQueue?.(player.position, player.id)
+    } else {
+      addToQueue?.(player.position, player)
+    }
   }
 
   const round = draftData?.numTeams ? Math.floor((currentPick - 1) / draftData.numTeams) + 1 : "-"
@@ -175,7 +193,7 @@ export function BestValueSection({
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-2">
-        <div className="overflow-y-auto max-h-80">
+        <div className="overflow-y-auto max-h-[32rem]">
           <div className="space-y-1">
             {/* Header */}
             <div
@@ -193,18 +211,18 @@ export function BestValueSection({
             </div>
 
             {/* Player Rows */}
-            {getBestValuePicks()
-              .slice(0, 20)
-              .map((player, idx) => (
-                <DraggableValueRow
-                  key={player.id}
-                  player={player}
-                  idx={idx}
-                  isBestValue={idx === 0}
-                  colors={colors}
-                  getValueDiffColor={getValueDiffColor}
-                />
-              ))}
+            {getBestValuePicks().map((player, idx) => (
+              <ValueRow
+                key={player.id}
+                player={player}
+                idx={idx}
+                isBestValue={idx === 0}
+                colors={colors}
+                getValueDiffColor={getValueDiffColor}
+                isQueued={queuedIds.has(player.id)}
+                onToggleQueue={handleToggleQueue}
+              />
+            ))}
           </div>
         </div>
       </CardContent>
