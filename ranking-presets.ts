@@ -823,6 +823,120 @@ const EMRICK_WILSON_TE_RAW: RawPlayer[] = [
   [281, "Jake Tonges", "SF", "TE"],
 ]
 
+
+const EMRICK_WILSON_HALF_PPR_RAW: RawPlayer[] = [
+  [1, "Bijan Robinson", "ATL", "RB"],
+  [2, "Ja'Marr Chase", "CIN", "WR"],
+  [3, "Jahmyr Gibbs", "DET", "RB"],
+  [4, "Puka Nacua", "LAR", "WR"],
+  [5, "Jaxon Smith-Njigba", "SEA", "WR"],
+  [6, "Christian McCaffrey", "SF", "RB"],
+  [7, "Amon-Ra St. Brown", "DET", "WR"],
+  [8, "Justin Jefferson", "MIN", "WR"],
+  [9, "CeeDee Lamb", "DAL", "WR"],
+  [10, "Jonathan Taylor", "IND", "RB"],
+  [11, "Ashton Jeanty", "LV", "RB"],
+  [12, "Omarion Hampton", "LAC", "RB"],
+  [13, "Rashee Rice", "KC", "WR"],
+  [14, "James Cook III", "BUF", "RB"],
+  [15, "Trey McBride", "ARI", "TE"],
+  [16, "Saquon Barkley", "PHI", "RB"],
+  [17, "Drake London", "ATL", "WR"],
+  [18, "Nico Collins", "HOU", "WR"],
+  [19, "De'Von Achane", "MIA", "RB"],
+  [20, "Chase Brown", "CIN", "RB"],
+  [21, "Malik Nabers", "NYG", "WR"],
+  [22, "Chris Olave", "NO", "WR"],
+  [23, "George Pickens", "DAL", "WR"],
+  [24, "Brock Bowers", "LV", "TE"],
+  [25, "Kenneth Walker III", "KC", "RB"],
+  [26, "Josh Allen", "BUF", "QB"],
+  [27, "Lamar Jackson", "BAL", "QB"],
+  [28, "A.J. Brown", "NE", "WR"],
+  [29, "Drake Maye", "NE", "QB"],
+  [30, "Breece Hall", "NYJ", "RB"],
+  [31, "Tee Higgins", "CIN", "WR"],
+  [32, "Tetairoa McMillan", "CAR", "WR"],
+  [33, "Jeremiyah Love", "ARI", "RB"],
+  [34, "Travis Etienne Jr.", "NO", "RB"],
+  [35, "Colston Loveland", "CHI", "TE"],
+  [36, "Luther Burden III", "CHI", "WR"],
+  [37, "Joe Burrow", "CIN", "QB"],
+  [38, "Josh Jacobs", "GB", "RB"],
+  [39, "Michael Wilson", "ARI", "WR"],
+  [40, "Garrett Wilson", "NYJ", "WR"],
+  [41, "Davante Adams", "LAR", "WR"],
+  [42, "Derrick Henry", "BAL", "RB"],
+  [43, "Jameson Williams", "DET", "WR"],
+  [44, "Christian Watson", "GB", "WR"],
+  [45, "Ladd McConkey", "LAC", "WR"],
+  [46, "Javonte Williams", "DAL", "RB"],
+  [47, "Kyren Williams", "LAR", "RB"],
+  [48, "David Montgomery", "HOU", "RB"],
+  [49, "Jaylen Waddle", "DEN", "WR"],
+  [50, "Makai Lemon", "PHI", "WR"],
+  [51, "Zay Flowers", "BAL", "WR"],
+  [52, "Terry McLaurin", "WAS", "WR"],
+  [53, "Bhayshul Tuten", "JAC", "RB"],
+  [54, "Bucky Irving", "TB", "RB"],
+  [55, "Jayden Daniels", "WAS", "QB"],
+  [56, "Quinshon Judkins", "CLE", "RB"],
+  [57, "Tucker Kraft", "GB", "TE"],
+  [58, "Cam Skattebo", "NYG", "RB"],
+  [59, "DeVonta Smith", "PHI", "WR"],
+  [60, "Jalen Hurts", "PHI", "QB"],
+  [61, "Mike Evans", "SF", "WR"],
+  [62, "TreVeyon Henderson", "NE", "RB"],
+  [63, "Jaxson Dart", "NYG", "QB"],
+  [64, "Emeka Egbuka", "TB", "WR"],
+  [65, "Tony Pollard", "TEN", "RB"],
+  [66, "D'Andre Swift", "CHI", "RB"],
+  [67, "Harold Fannin Jr.", "CLE", "TE"],
+  [68, "J.K. Dobbins", "DEN", "RB"],
+  [69, "DJ Moore", "BUF", "WR"],
+  [70, "Justin Herbert", "LAC", "QB"],
+  [71, "Parker Washington", "JAC", "WR"],
+  [72, "Rico Dowdle", "PIT", "RB"],
+  [73, "Chuba Hubbard", "CAR", "RB"],
+  [74, "Trevor Lawrence", "JAC", "QB"],
+  [75, "Courtland Sutton", "DEN", "WR"],
+  [76, "Alec Pierce", "IND", "WR"],
+  [77, "Tyler Warren", "IND", "TE"],
+  [78, "Tyler Allgeier", "ARI", "RB"],
+  [79, "Caleb Williams", "CHI", "QB"],
+  [80, "RJ Harvey", "DEN", "RB"],
+  [81, "Rome Odunze", "CHI", "WR"],
+  [82, "DK Metcalf", "PIT", "WR"],
+  [83, "Carnell Tate", "TEN", "WR"],
+  [84, "Sam LaPorta", "DET", "TE"],
+  [85, "Jaylen Warren", "PIT", "RB"],
+  [86, "Kyle Pitts Sr.", "ATL", "TE"],
+  [87, "Marvin Harrison Jr.", "ARI", "WR"],
+  [88, "Kyle Monangai", "CHI", "RB"],
+  [89, "Jakobi Meyers", "JAC", "WR"],
+  [90, "Brock Purdy", "SF", "QB"],
+  [91, "Chris Godwin Jr.", "TB", "WR"],
+  [92, "Jadarian Price", "SEA", "RB"],
+  [93, "Jordan Addison", "MIN", "WR"],
+  [94, "Oronde Gadsden II", "LAC", "TE"],
+  [95, "Brian Thomas Jr.", "JAC", "WR"],
+  [96, "Jake Ferguson", "DAL", "TE"],
+  [97, "Bo Nix", "DEN", "QB"],
+  [98, "Rhamondre Stevenson", "NE", "RB"],
+  [99, "Kenneth Gainwell", "TB", "RB"],
+  [100, "Dak Prescott", "DAL", "QB"],
+]
+
+function extendRawWithFallback(primaryRaw: RawPlayer[], fallbackRaw: RawPlayer[]): RawPlayer[] {
+  const primaryNames = new Set(primaryRaw.map(([, name]) => name))
+  return [
+    ...primaryRaw,
+    ...fallbackRaw
+      .filter(([, name]) => !primaryNames.has(name))
+      .map(([, name, team, position], index): RawPlayer => [primaryRaw.length + index + 1, name, team, position]),
+  ]
+}
+
 function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
   const teByName = new Map(teRaw.map(([rank, name, team, position]) => [name, { rank, team, position }]))
   const baseNames = new Set(baseRaw.map(([, name]) => name))
@@ -839,6 +953,7 @@ function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
     .map(([, name, team, position], index): RawPlayer => [index + 1, name, team, position])
 }
 
+const HYBRID_HALF_PPR_RAW: RawPlayer[] = extendRawWithFallback(EMRICK_WILSON_HALF_PPR_RAW, BOONE_RAW)
 const HYBRID_FULL_PPR_RAW: RawPlayer[] = buildHybridRaw(DEL_DON_RAW, EMRICK_WILSON_TE_RAW)
 
 export type AccuracyRanks = Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST" | "IDP", number | "-">>
@@ -853,6 +968,7 @@ export type RankingPreset = {
   accuracyRanks?: AccuracyRanks
   accuracyNote: string
   methodology?: string
+  sourceByPosition?: Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST", string>>
   players: ReturnType<typeof buildPlayers>
 }
 
@@ -869,6 +985,20 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
     label: "Half PPR",
     description: "0.5 points per reception",
     presets: [
+      {
+        id: "hybrid-half-ppr",
+        analyst: "Hybrid Accuracy Board",
+        source: "Best analyst by position",
+        updated: "6/15",
+        accuracyRank: 1,
+        accuracyType: "Hybrid",
+        accuracyRanks: { QB: 6, RB: 5, WR: 1, TE: 5, K: 11, DST: 28, IDP: "-" },
+        accuracyNote: "James Emrick-Wilson's 2026 Overall Half Point PPR board, extended with Boone depth where needed.",
+        methodology:
+          "Uses James Emrick-Wilson's dedicated 2026 Half PPR rankings for the top of the board, then extends with Boone depth where needed.",
+        sourceByPosition: { QB: "James Emrick-Wilson", RB: "James Emrick-Wilson", WR: "James Emrick-Wilson", TE: "James Emrick-Wilson", K: "Justin Boone", DST: "Justin Boone" },
+        players: buildPlayers("hybrid-half", HYBRID_HALF_PPR_RAW),
+      },
       {
         id: "boone-half-ppr",
         analyst: "Justin Boone",
@@ -908,12 +1038,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 5, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "Hybrid board: Dalton Del Don in-season baseline with James Emrick-Wilson's #5 TE accuracy input.",
         methodology:
-          "Uses Dalton Del Don's in-season board for non-TE positions, swaps in James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
-        analyst: "Hybrid Accuracy Board",
-        source: "Position specialists",
-        updated: "6/15",
-        accuracyRank: 1,
-        accuracyNote: "Accuracy blend: Dalton Del Don baseline with #5 TE accuracy input for tight ends",
+          "Uses Dalton Del Don's in-season board for QB/RB/WR and James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
+        sourceByPosition: { QB: "Dalton Del Don", RB: "Dalton Del Don", WR: "Dalton Del Don", TE: "James Emrick-Wilson", K: "Dalton Del Don", DST: "Dalton Del Don" },
         players: buildPlayers("hybrid-full", HYBRID_FULL_PPR_RAW),
       },
       {
