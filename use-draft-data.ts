@@ -104,16 +104,6 @@ export function useDraftData(csvData) {
           })
           .filter(Boolean)
 
-        // Update csvData to mark drafted players
-        const updatedCsvData = csvData.map((player) => {
-          const isDrafted = updatedDrafted.some(
-            (drafted) =>
-              normalizeName(`${drafted.firstName} ${drafted.lastName}`) ===
-              normalizeName(`${player.firstName} ${player.lastName}`),
-          )
-          return { ...player, drafted: isDrafted }
-        })
-
         setDraftedPlayers(updatedDrafted)
         setCurrentPick(picks.length + 1)
         setDraftData({
@@ -125,7 +115,11 @@ export function useDraftData(csvData) {
         })
         setError("")
         setLastUpdate(Date.now())
-        if (!selectedTeamRosterId && teams.length > 0) setSelectedTeamRosterId(teams[0].roster_id)
+        setSelectedTeamRosterId((previousRosterId) =>
+          teams.some((team) => String(team.roster_id) === String(previousRosterId))
+            ? previousRosterId
+            : teams[0]?.roster_id || null,
+        )
       } catch (err) {
         setError(`Sleeper Error: ${err.message}`)
       } finally {
@@ -133,7 +127,7 @@ export function useDraftData(csvData) {
         else setIsLoading(false)
       }
     },
-    [sleeperUrl, csvData, selectedTeamRosterId],
+    [sleeperUrl, csvData],
   )
 
   const fetchEspnData = useCallback(
@@ -196,7 +190,11 @@ export function useDraftData(csvData) {
         })
         setError("")
         setLastUpdate(Date.now())
-        if (!selectedTeamRosterId && teams.length > 0) setSelectedTeamRosterId(teams[0].roster_id)
+        setSelectedTeamRosterId((previousRosterId) =>
+          teams.some((team) => String(team.roster_id) === String(previousRosterId))
+            ? previousRosterId
+            : teams[0]?.roster_id || null,
+        )
       } catch (err) {
         setError(`ESPN Error: ${err.message}`)
       } finally {
@@ -204,8 +202,23 @@ export function useDraftData(csvData) {
         else setIsLoading(false)
       }
     },
-    [espnLeagueId, csvData, selectedTeamRosterId],
+    [espnLeagueId, csvData],
   )
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    setDraftData(null)
+    setDraftedPlayers([])
+    setCurrentPick(1)
+    setSelectedTeamRosterId(null)
+    setLastUpdate(null)
+    setTimeSinceUpdate(0)
+    setError("")
+  }, [platform, sleeperUrl, espnLeagueId])
 
   const handleSync = useCallback(
     (isManual = false) => {

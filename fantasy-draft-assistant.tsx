@@ -122,24 +122,28 @@ export function FantasyDraftAssistant() {
   const draftedCount = draftedPlayers?.length || 0
   const remainingCount = totalPossiblePicks - draftedCount
 
-  // Update drafted players when draftedPlayers changes
+  // Keep ranking drafted flags in sync with the active draft. This must also
+  // clear flags when switching to a new draft with no picks yet.
   useEffect(() => {
-    if (draftedPlayers && draftedPlayers.length > 0) {
-      // Mark drafted players in CSV data
-      const updatedRankings = rankings.map((ranking) => ({
+    const draftedNames = new Set((draftedPlayers || []).map((drafted) => normalizePlayerName(drafted.name)))
+
+    setRankings((prevRankings) => {
+      let changed = false
+      const nextRankings = prevRankings.map((ranking) => ({
         ...ranking,
-        data: ranking.data.map((player) => ({
-          ...player,
-          drafted: draftedPlayers.some(
-            (drafted) =>
-              drafted.name.toLowerCase().includes(player.name.toLowerCase()) ||
-              player.name.toLowerCase().includes(drafted.name.toLowerCase()),
-          ),
-        })),
+        data: ranking.data.map((player) => {
+          const drafted = draftedNames.has(normalizePlayerName(player.name))
+          if (player.drafted !== drafted) changed = true
+          return {
+            ...player,
+            drafted,
+          }
+        }),
       }))
-      setRankings(updatedRankings)
-    }
-  }, [draftedPlayers])
+
+      return changed ? nextRankings : prevRankings
+    })
+  }, [draftedPlayers, setRankings])
 
   // Keep queued player details and value synced as the draft pick advances.
   useEffect(() => {
