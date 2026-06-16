@@ -59,6 +59,38 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
         >
           {isQueued ? <Check size={14} /> : <Plus size={14} />}
         </button>
+        </div>
+        <div className="col-span-4 min-w-0">
+        <button
+          type="button"
+          onClick={handleNameClick}
+          className="block max-w-full truncate player-name-cell text-left hover:underline"
+        >
+          {player.name}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsExpanded((value) => !value)
+          }}
+          className="mt-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
+          style={{ color: colors.textSecondary }}
+          aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
+        >
+          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          Why
+        </button>
+        </div>
+        <div className="col-span-2">
+          <BubbleSymbol pos={player.position} colors={colors} />
+        </div>
+        <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
+          {player.hybridScore}
+        </div>
+        <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
+          {player.adp}
+        </div>
       </div>
       <button
         type="button"

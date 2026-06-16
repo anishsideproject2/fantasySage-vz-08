@@ -8,8 +8,6 @@ import { FileManager } from "./file-manager"
 import { RedditPostCard } from "./reddit-post-card"
 import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
-const ACCURACY_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST", "IDP"] as const
-
 const getAccuracyTypeStyle = (type: string, colors: any) => ({
   backgroundColor: type === "Draft" ? `${colors.purple}30` : type === "Hybrid" ? `${colors.headingGreen}26` : `${colors.gold}26`,
   color: type === "Draft" ? colors.purple : type === "Hybrid" ? colors.headingGreen : colors.gold,
@@ -290,8 +288,7 @@ export function Header({
             ⚡ Load Expert Rankings Instantly
           </h2>
           <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
-            Click any analyst below to load their full board into the active slot. Use the accuracy badges to compare
-            in-season results, draft results, and the Sage hybrid board before loading a ranking.
+            Pick a scoring format, then click one card to load that board into the active ranking slot.
           </p>
         </div>
 
@@ -299,7 +296,7 @@ export function Header({
           {RANKING_PRESET_GROUPS.map((group) => (
             <div
               key={group.id}
-              className="rounded-lg border p-3 space-y-3"
+              className="rounded-lg border p-3 space-y-3 h-full"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
               <div className="flex items-baseline justify-between">
@@ -318,7 +315,7 @@ export function Header({
                     <button
                       key={preset.id}
                       onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="w-full text-left rounded-md border p-3 transition-colors hover:opacity-90"
+                      className="flex min-h-[8.75rem] w-full flex-col text-left rounded-md border p-3 transition-colors hover:opacity-90"
                       style={{
                         borderColor: isActive ? colors.headingGreen : colors.cardBorder,
                         backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
@@ -332,7 +329,10 @@ export function Header({
                               {preset.analyst}
                             </div>
                             <div className="text-xs truncate" style={{ color: colors.textSecondary }}>
-                              {preset.source} · Updated {preset.updated}
+                              {preset.source}
+                            </div>
+                            <div className="text-[10px] uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+                              Updated {preset.updated}
                             </div>
                           </div>
                         </div>
@@ -343,30 +343,30 @@ export function Header({
                           <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
                         </span>
                       </div>
-                      <div className="mt-2 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>
+                      <div className="mt-2 line-clamp-2 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>
                         {preset.accuracyNote}
-                        {isActive ? " · Loaded" : " · Click to load"}
                       </div>
-                      {preset.methodology && (
-                        <div className="mt-2 rounded-md border p-2 text-[11px] leading-snug" style={{ borderColor: colors.cardBorder, color: colors.textSecondary }}>
-                          <span className="font-semibold" style={{ color: colors.headingGreen }}>Methodology: </span>
-                          {preset.methodology}
-                        </div>
-                      )}
-                      {preset.accuracyRanks && (
-                        <div className="mt-3 overflow-x-auto">
-                          <div className="grid min-w-[25rem] grid-cols-7 gap-1 text-center text-[10px]">
-                            {ACCURACY_POSITIONS.map((position) => (
+                      <div className="mt-auto pt-3">
+                        {preset.accuracyRanks ? (
+                          <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
+                            {["QB", "RB", "WR", "TE"].map((position) => (
                               <div key={position} className="rounded border px-1.5 py-1" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
-                                <div className="font-bold" style={{ color: colors.gold }}>{position}</div>
-                                <div style={{ color: colors.textPrimary }}>
+                                <span className="font-bold" style={{ color: colors.gold }}>{position}</span>{" "}
+                                <span style={{ color: colors.textPrimary }}>
                                   {preset.accuracyRanks?.[position] ? `#${preset.accuracyRanks[position]}` : "—"}
-                                </div>
+                                </span>
                               </div>
                             ))}
                           </div>
+                        ) : (
+                          <div className="rounded border px-2 py-1 text-center text-[10px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
+                            Overall draft accuracy board
+                          </div>
+                        )}
+                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
+                          {isActive ? "Loaded" : "Click to load"}
                         </div>
-                      )}
+                      </div>
                     </button>
                   )
                 })}
