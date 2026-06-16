@@ -9,7 +9,7 @@ const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
 function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(idx === 0)
   const handleNameClick = (e) => {
     e.stopPropagation()
     const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
@@ -31,7 +31,20 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
       }}
     >
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
-        <div className="col-span-1 flex items-center justify-center">
+      <div className="col-span-1 flex items-center justify-center gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsExpanded((value) => !value)
+          }}
+          className="flex items-center justify-center w-5 h-5 rounded transition-colors"
+          style={{ color: colors.textSecondary }}
+          aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
+          title="Why this player?"
+        >
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
         <button
           type="button"
           onClick={handleToggleClick}
@@ -79,9 +92,26 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
           {player.adp}
         </div>
       </div>
+      <button
+        type="button"
+        onClick={handleNameClick}
+        className="col-span-4 truncate player-name-cell text-left hover:underline"
+      >
+        {player.name}
+      </button>
+      <div className="col-span-2">
+        <BubbleSymbol pos={player.position} colors={colors} />
+      </div>
+      <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
+        {player.hybridScore}
+      </div>
+      <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
+        {player.adp}
+      </div>
+      </div>
       {isExpanded && (
-        <div className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.background }}>
-          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+        <div className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
+          <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded px-2 py-0.5 font-bold" style={{ background: colors.purple, color: colors.white }}>
               {player.confidence} confidence
             </span>
@@ -116,15 +146,15 @@ export function BestValueSection({
   draftedPlayers = [],
   selectedTeamRosterId,
 }) {
+
   const selectedRosterCounts = draftedPlayers
-    .filter((player) => selectedTeamRosterId && String(player.roster_id) === String(selectedTeamRosterId))
+    .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
       counts[player.position] = (counts[player.position] || 0) + 1
       return counts
     }, {})
 
   const getRosterNeedBonus = (position) => {
-    if (!selectedTeamRosterId) return 0
     const count = selectedRosterCounts[position] || 0
     const starterTargets = { QB: 1, RB: 2, WR: 2, TE: 1 }
     if (!starterTargets[position]) return 0
@@ -311,7 +341,7 @@ export function BestValueSection({
               <div className="col-span-1" />
               <div className="col-span-4">Player</div>
               <div className="col-span-2">Pos</div>
-              <div className="col-span-3 text-right">Score</div>
+              <div className="col-span-3 text-right">Hybrid</div>
               <div className="col-span-2 text-right">ADP</div>
             </div>
 

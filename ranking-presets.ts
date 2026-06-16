@@ -953,7 +953,7 @@ function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
     .map(([, name, team, position], index): RawPlayer => [index + 1, name, team, position])
 }
 
-const HYBRID_HALF_PPR_RAW: RawPlayer[] = extendRawWithFallback(EMRICK_WILSON_HALF_PPR_RAW, BOONE_RAW)
+const HYBRID_HALF_PPR_RAW: RawPlayer[] = buildHybridRaw(BOONE_RAW, EMRICK_WILSON_TE_RAW)
 const HYBRID_FULL_PPR_RAW: RawPlayer[] = buildHybridRaw(DEL_DON_RAW, EMRICK_WILSON_TE_RAW)
 
 export type AccuracyRanks = Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST" | "IDP", number | "-">>
@@ -993,10 +993,10 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         accuracyRank: 1,
         accuracyType: "Hybrid",
         accuracyRanks: { QB: 6, RB: 5, WR: 1, TE: 5, K: 11, DST: 28, IDP: "-" },
-        accuracyNote: "James Emrick-Wilson's 2026 Overall Half Point PPR board, extended with Boone depth where needed.",
+        accuracyNote: "Position-aware board: Boone baseline with James Emrick-Wilson's #5 TE accuracy input.",
         methodology:
-          "Uses James Emrick-Wilson's dedicated 2026 Half PPR rankings for the top of the board, then extends with Boone depth where needed.",
-        sourceByPosition: { QB: "James Emrick-Wilson", RB: "James Emrick-Wilson", WR: "James Emrick-Wilson", TE: "James Emrick-Wilson", K: "Justin Boone", DST: "Justin Boone" },
+          "Uses the strongest available position specialists: Justin Boone for QB/RB/WR and James Emrick-Wilson for TE, then re-sorts into one actionable draft board.",
+        sourceByPosition: { QB: "Justin Boone", RB: "Justin Boone", WR: "Justin Boone", TE: "James Emrick-Wilson", K: "Justin Boone", DST: "Justin Boone" },
         players: buildPlayers("hybrid-half", HYBRID_HALF_PPR_RAW),
       },
       {
