@@ -778,13 +778,81 @@ const DEL_DON_RAW: RawPlayer[] = [
   ),
 ]
 
+
+// ---------------------------------------------------------------------------
+// HYBRID FULL PPR — accuracy-weighted by position
+// Non-TE ranks start from Dalton Del Don; TE ranks use James Emrick-Wilson
+// because his 2025 in-season TE accuracy rank was #5.
+// James is intentionally not exposed as a standalone preset.
+// ---------------------------------------------------------------------------
+const EMRICK_WILSON_TE_RAW: RawPlayer[] = [
+  [16, "Trey McBride", "ARI", "TE"],
+  [22, "Brock Bowers", "LV", "TE"],
+  [32, "Colston Loveland", "CHI", "TE"],
+  [57, "Harold Fannin Jr.", "CLE", "TE"],
+  [66, "Tucker Kraft", "GB", "TE"],
+  [73, "Tyler Warren", "IND", "TE"],
+  [85, "Sam LaPorta", "DET", "TE"],
+  [87, "Kyle Pitts Sr.", "ATL", "TE"],
+  [95, "Jake Ferguson", "DAL", "TE"],
+  [97, "Oronde Gadsden II", "LAC", "TE"],
+  [106, "Brenton Strange", "JAC", "TE"],
+  [111, "Travis Kelce", "KC", "TE"],
+  [112, "Isaiah Likely", "NYG", "TE"],
+  [124, "Juwan Johnson", "NO", "TE"],
+  [131, "Mark Andrews", "BAL", "TE"],
+  [138, "Dalton Schultz", "HOU", "TE"],
+  [144, "Dallas Goedert", "PHI", "TE"],
+  [155, "Dalton Kincaid", "BUF", "TE"],
+  [158, "Hunter Henry", "NE", "TE"],
+  [173, "AJ Barner", "SEA", "TE"],
+  [181, "T.J. Hockenson", "MIN", "TE"],
+  [196, "Kenyon Sadiq", "NYJ", "TE"],
+  [203, "Mason Taylor", "NYJ", "TE"],
+  [209, "George Kittle", "SF", "TE"],
+  [226, "Terrance Ferguson", "LAR", "TE"],
+  [229, "Theo Johnson", "NYG", "TE"],
+  [236, "Gunnar Helm", "TEN", "TE"],
+  [246, "David Njoku", "LAC", "TE"],
+  [254, "Chig Okonkwo", "WAS", "TE"],
+  [256, "Evan Engram", "DEN", "TE"],
+  [259, "Colby Parkinson", "LAR", "TE"],
+  [261, "Cade Otton", "TB", "TE"],
+  [268, "Pat Freiermuth", "PIT", "TE"],
+  [274, "Mike Gesicki", "CIN", "TE"],
+  [281, "Jake Tonges", "SF", "TE"],
+]
+
+function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
+  const teByName = new Map(teRaw.map(([rank, name, team, position]) => [name, { rank, team, position }]))
+  const baseNames = new Set(baseRaw.map(([, name]) => name))
+  const hybridEntries: RawPlayer[] = [
+    ...baseRaw.map(([rank, name, team, position]): RawPlayer => {
+      const teOverride = teByName.get(name)
+      return teOverride ? [teOverride.rank, name, teOverride.team || team, teOverride.position] : [rank, name, team, position]
+    }),
+    ...teRaw.filter(([, name]) => !baseNames.has(name)),
+  ]
+
+  return hybridEntries
+    .sort(([rankA, nameA], [rankB, nameB]) => rankA - rankB || nameA.localeCompare(nameB))
+    .map(([, name, team, position], index): RawPlayer => [index + 1, name, team, position])
+}
+
+const HYBRID_FULL_PPR_RAW: RawPlayer[] = buildHybridRaw(DEL_DON_RAW, EMRICK_WILSON_TE_RAW)
+
+export type AccuracyRanks = Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST" | "IDP", number | "-">>
+
 export type RankingPreset = {
   id: string
   analyst: string
   source: string
   updated: string
   accuracyRank: number
+  accuracyType: "In-season" | "Draft" | "Hybrid"
+  accuracyRanks?: AccuracyRanks
   accuracyNote: string
+  methodology?: string
   players: ReturnType<typeof buildPlayers>
 }
 
@@ -807,6 +875,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "Yahoo Sports",
         updated: "6/3",
         accuracyRank: 1,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 6, RB: 5, WR: 1, TE: 18, K: 11, DST: 28, IDP: "-" },
         accuracyNote: "#1 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("boone", BOONE_RAW),
       },
@@ -816,6 +886,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "The Deep Shot",
         updated: "6/15",
         accuracyRank: 6,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 10, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "#6 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("del-don-half", DEL_DON_HALF_PPR_RAW),
       },
@@ -827,11 +899,25 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
     description: "1 point per reception",
     presets: [
       {
+        id: "hybrid-full-ppr",
+        analyst: "Sage Rankings",
+        source: "Hybrid: Dalton Del Don + James Emrick-Wilson TE",
+        updated: "6/15",
+        accuracyRank: 1,
+        accuracyType: "Hybrid",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 5, K: 31, DST: 30, IDP: "-" },
+        accuracyNote: "Hybrid board: Dalton Del Don in-season baseline with James Emrick-Wilson's #5 TE accuracy input.",
+        methodology:
+          "Uses Dalton Del Don's in-season board for non-TE positions, swaps in James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
+        players: buildPlayers("hybrid-full", HYBRID_FULL_PPR_RAW),
+      },
+      {
         id: "erickson-full-ppr",
         analyst: "Andrew Erickson",
         source: "FantasyPros",
         updated: "6/12",
         accuracyRank: 5,
+        accuracyType: "Draft",
         accuracyNote: "#5 in FantasyPros 2024 draft accuracy",
         players: buildPlayers("erickson", ERICKSON_RAW),
       },
@@ -841,6 +927,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "The Deep Shot",
         updated: "6/15",
         accuracyRank: 6,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 10, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "#6 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("del-don", DEL_DON_RAW),
       },
