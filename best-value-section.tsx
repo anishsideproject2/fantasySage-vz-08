@@ -33,6 +33,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
         color: colors.textPrimary,
       }}
     >
+      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1 text-sm">
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
         <div className="col-span-1 flex items-center justify-center">
           <button
@@ -72,7 +73,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
           <BubbleSymbol pos={player.position} colors={colors} />
         </div>
         <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
-          {player.hybridScore}
+          {player.valueDiff === "--" ? "--" : `${Number.parseFloat(player.valueDiff) >= 0 ? "+" : ""}${player.valueDiff}`}
         </div>
         <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
           {player.adp}
@@ -466,7 +467,7 @@ export function BestValueSection({
               <div className="col-span-1" />
               <div className="col-span-4">Player</div>
               <div className="col-span-2">Pos</div>
-              <div className="col-span-3 text-right">Hybrid</div>
+              <div className="col-span-3 text-right">Value</div>
               <div className="col-span-2 text-right">ADP</div>
             </div>
 
