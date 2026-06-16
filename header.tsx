@@ -8,6 +8,14 @@ import { FileManager } from "./file-manager"
 import { RedditPostCard } from "./reddit-post-card"
 import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
+const ACCURACY_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST", "IDP"] as const
+
+const getAccuracyTypeStyle = (type: string, colors: any) => ({
+  backgroundColor: type === "Draft" ? `${colors.purple}30` : type === "Hybrid" ? `${colors.headingGreen}26` : `${colors.gold}26`,
+  color: type === "Draft" ? colors.purple : type === "Hybrid" ? colors.headingGreen : colors.gold,
+  borderColor: type === "Draft" ? colors.purple : type === "Hybrid" ? colors.headingGreen : colors.gold,
+})
+
 const SageLogo = () => (
   <img src="https://imgur.com/TKUdYzv.png" alt="FantasySage Logo" className="w-32 h-36 sm:w-44 sm:h-48" />
 )
@@ -282,8 +290,8 @@ export function Header({
             ⚡ Load Expert Rankings Instantly
           </h2>
           <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
-            Click any analyst below to load their full board into the active slot. No CSV needed. Prefer your own?
-            Use the Upload Custom CSV button above to import your file.
+            Click any analyst below to load their full board into the active slot. Use the accuracy badges to compare
+            in-season results, draft results, and the Sage hybrid board before loading a ranking.
           </p>
         </div>
 
@@ -329,16 +337,36 @@ export function Header({
                           </div>
                         </div>
                         <span
-                          className="flex items-center gap-1 text-xs font-semibold whitespace-nowrap"
-                          style={{ color: colors.headingGreen }}
+                          className="flex items-center gap-1 text-xs font-semibold whitespace-nowrap rounded-full border px-2 py-1"
+                          style={getAccuracyTypeStyle(preset.accuracyType, colors)}
                         >
-                          <Award size={12} />#{preset.accuracyRank}
+                          <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
                         </span>
                       </div>
-                      <div className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                      <div className="mt-2 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>
                         {preset.accuracyNote}
                         {isActive ? " · Loaded" : " · Click to load"}
                       </div>
+                      {preset.methodology && (
+                        <div className="mt-2 rounded-md border p-2 text-[11px] leading-snug" style={{ borderColor: colors.cardBorder, color: colors.textSecondary }}>
+                          <span className="font-semibold" style={{ color: colors.headingGreen }}>Methodology: </span>
+                          {preset.methodology}
+                        </div>
+                      )}
+                      {preset.accuracyRanks && (
+                        <div className="mt-3 overflow-x-auto">
+                          <div className="grid min-w-[25rem] grid-cols-7 gap-1 text-center text-[10px]">
+                            {ACCURACY_POSITIONS.map((position) => (
+                              <div key={position} className="rounded border px-1.5 py-1" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+                                <div className="font-bold" style={{ color: colors.gold }}>{position}</div>
+                                <div style={{ color: colors.textPrimary }}>
+                                  {preset.accuracyRanks?.[position] ? `#${preset.accuracyRanks[position]}` : "—"}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </button>
                   )
                 })}

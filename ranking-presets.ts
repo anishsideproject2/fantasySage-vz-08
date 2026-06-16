@@ -841,13 +841,18 @@ function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
 
 const HYBRID_FULL_PPR_RAW: RawPlayer[] = buildHybridRaw(DEL_DON_RAW, EMRICK_WILSON_TE_RAW)
 
+export type AccuracyRanks = Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST" | "IDP", number | "-">>
+
 export type RankingPreset = {
   id: string
   analyst: string
   source: string
   updated: string
   accuracyRank: number
+  accuracyType: "In-season" | "Draft" | "Hybrid"
+  accuracyRanks?: AccuracyRanks
   accuracyNote: string
+  methodology?: string
   players: ReturnType<typeof buildPlayers>
 }
 
@@ -870,6 +875,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "Yahoo Sports",
         updated: "6/3",
         accuracyRank: 1,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 6, RB: 5, WR: 1, TE: 18, K: 11, DST: 28, IDP: "-" },
         accuracyNote: "#1 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("boone", BOONE_RAW),
       },
@@ -879,6 +886,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "The Deep Shot",
         updated: "6/15",
         accuracyRank: 6,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 10, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "#6 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("del-don-half", DEL_DON_HALF_PPR_RAW),
       },
@@ -891,6 +900,15 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
     presets: [
       {
         id: "hybrid-full-ppr",
+        analyst: "Sage Rankings",
+        source: "Hybrid: Dalton Del Don + James Emrick-Wilson TE",
+        updated: "6/15",
+        accuracyRank: 1,
+        accuracyType: "Hybrid",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 5, K: 31, DST: 30, IDP: "-" },
+        accuracyNote: "Hybrid board: Dalton Del Don in-season baseline with James Emrick-Wilson's #5 TE accuracy input.",
+        methodology:
+          "Uses Dalton Del Don's in-season board for non-TE positions, swaps in James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
         analyst: "Hybrid Accuracy Board",
         source: "Position specialists",
         updated: "6/15",
@@ -904,6 +922,7 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "FantasyPros",
         updated: "6/12",
         accuracyRank: 5,
+        accuracyType: "Draft",
         accuracyNote: "#5 in FantasyPros 2024 draft accuracy",
         players: buildPlayers("erickson", ERICKSON_RAW),
       },
@@ -913,6 +932,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         source: "The Deep Shot",
         updated: "6/15",
         accuracyRank: 6,
+        accuracyType: "In-season",
+        accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 10, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "#6 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("del-don", DEL_DON_RAW),
       },
