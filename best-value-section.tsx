@@ -92,23 +92,6 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
           {player.adp}
         </div>
       </div>
-      <button
-        type="button"
-        onClick={handleNameClick}
-        className="col-span-4 truncate player-name-cell text-left hover:underline"
-      >
-        {player.name}
-      </button>
-      <div className="col-span-2">
-        <BubbleSymbol pos={player.position} colors={colors} />
-      </div>
-      <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
-        {player.hybridScore}
-      </div>
-      <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
-        {player.adp}
-      </div>
-      </div>
       {isExpanded && (
         <div className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
           <div className="mb-1 flex flex-wrap items-center gap-2">
