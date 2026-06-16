@@ -283,7 +283,7 @@ export function Header({
           </h2>
           <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
             Click any analyst below to load their full board into the active slot. No CSV needed. Prefer your own?
-            Scroll down to upload a custom CSV.
+            Use the Upload Custom CSV button above to import your file.
           </p>
         </div>
 
