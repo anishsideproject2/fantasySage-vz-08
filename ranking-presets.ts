@@ -909,6 +909,11 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         accuracyNote: "Hybrid board: Dalton Del Don in-season baseline with James Emrick-Wilson's #5 TE accuracy input.",
         methodology:
           "Uses Dalton Del Don's in-season board for non-TE positions, swaps in James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
+        analyst: "Hybrid Accuracy Board",
+        source: "Position specialists",
+        updated: "6/15",
+        accuracyRank: 1,
+        accuracyNote: "Accuracy blend: Dalton Del Don baseline with #5 TE accuracy input for tight ends",
         players: buildPlayers("hybrid-full", HYBRID_FULL_PPR_RAW),
       },
       {
