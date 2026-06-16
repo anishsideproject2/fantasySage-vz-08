@@ -324,6 +324,8 @@ export function FantasyDraftAssistant() {
                 queues={queues}
                 addToQueue={addToQueue}
                 removeFromQueue={removeFromQueue}
+                draftedPlayers={draftedPlayers}
+                selectedTeamRosterId={selectedTeamRosterId}
               />
 
               <TeamRosterSection
@@ -352,6 +354,8 @@ export function FantasyDraftAssistant() {
                   queues={queues}
                   addToQueue={addToQueue}
                   removeFromQueue={removeFromQueue}
+                  draftedPlayers={draftedPlayers}
+                  selectedTeamRosterId={selectedTeamRosterId}
                 />
 
                 <PlayerQueueSection
@@ -416,6 +420,8 @@ export function FantasyDraftAssistant() {
                     queues={queues}
                     addToQueue={addToQueue}
                     removeFromQueue={removeFromQueue}
+                    draftedPlayers={draftedPlayers}
+                    selectedTeamRosterId={selectedTeamRosterId}
                   />
 
                   <PlayerQueueSection

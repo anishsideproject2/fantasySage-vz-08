@@ -839,6 +839,7 @@ function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
     .map(([, name, team, position], index): RawPlayer => [index + 1, name, team, position])
 }
 
+const HYBRID_HALF_PPR_RAW: RawPlayer[] = buildHybridRaw(BOONE_RAW, EMRICK_WILSON_TE_RAW)
 const HYBRID_FULL_PPR_RAW: RawPlayer[] = buildHybridRaw(DEL_DON_RAW, EMRICK_WILSON_TE_RAW)
 
 export type AccuracyRanks = Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST" | "IDP", number | "-">>
@@ -853,6 +854,7 @@ export type RankingPreset = {
   accuracyRanks?: AccuracyRanks
   accuracyNote: string
   methodology?: string
+  sourceByPosition?: Partial<Record<"QB" | "RB" | "WR" | "TE" | "K" | "DST", string>>
   players: ReturnType<typeof buildPlayers>
 }
 
@@ -869,6 +871,20 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
     label: "Half PPR",
     description: "0.5 points per reception",
     presets: [
+      {
+        id: "hybrid-half-ppr",
+        analyst: "Hybrid Accuracy Board",
+        source: "Best analyst by position",
+        updated: "6/15",
+        accuracyRank: 1,
+        accuracyType: "Hybrid",
+        accuracyRanks: { QB: 6, RB: 5, WR: 1, TE: 5, K: 11, DST: 28, IDP: "-" },
+        accuracyNote: "Position-aware board: Boone baseline with James Emrick-Wilson's #5 TE accuracy input.",
+        methodology:
+          "Uses the strongest available position specialists: Justin Boone for QB/RB/WR and James Emrick-Wilson for TE, then re-sorts into one actionable draft board.",
+        sourceByPosition: { QB: "Justin Boone", RB: "Justin Boone", WR: "Justin Boone", TE: "James Emrick-Wilson", K: "Justin Boone", DST: "Justin Boone" },
+        players: buildPlayers("hybrid-half", HYBRID_HALF_PPR_RAW),
+      },
       {
         id: "boone-half-ppr",
         analyst: "Justin Boone",
@@ -908,12 +924,8 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 5, K: 31, DST: 30, IDP: "-" },
         accuracyNote: "Hybrid board: Dalton Del Don in-season baseline with James Emrick-Wilson's #5 TE accuracy input.",
         methodology:
-          "Uses Dalton Del Don's in-season board for non-TE positions, swaps in James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
-        analyst: "Hybrid Accuracy Board",
-        source: "Position specialists",
-        updated: "6/15",
-        accuracyRank: 1,
-        accuracyNote: "Accuracy blend: Dalton Del Don baseline with #5 TE accuracy input for tight ends",
+          "Uses Dalton Del Don's in-season board for QB/RB/WR and James Emrick-Wilson's TE ordering, then re-sorts the board into one Sage draft list.",
+        sourceByPosition: { QB: "Dalton Del Don", RB: "Dalton Del Don", WR: "Dalton Del Don", TE: "James Emrick-Wilson", K: "Dalton Del Don", DST: "Dalton Del Don" },
         players: buildPlayers("hybrid-full", HYBRID_FULL_PPR_RAW),
       },
       {

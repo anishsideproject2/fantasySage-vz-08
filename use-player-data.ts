@@ -191,7 +191,13 @@ export function usePlayerData() {
       if (!preset) return
 
       // Clone players so drafted state stays independent per load
-      const players = preset.players.map((p) => ({ ...p, drafted: false }))
+      const players = preset.players.map((p) => ({
+        ...p,
+        expertRank: p.adp,
+        marketAdp: p.marketAdp || p.adp,
+        hybridSource: preset.sourceByPosition?.[p.position] || preset.analyst,
+        drafted: false,
+      }))
 
       setRankings((prev) => {
         const newRankings = [...prev]
