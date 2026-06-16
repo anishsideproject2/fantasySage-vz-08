@@ -1,5 +1,5 @@
 "use client"
-import { Plus, Check, ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,18 +8,21 @@ import { BubbleSymbol } from "./bubble-symbol"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
-function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
-  const [isExpanded, setIsExpanded] = useState(idx === 0)
-  const handleNameClick = (e) => {
-    e.stopPropagation()
-    const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
-    const url = `https://www.playerprofiler.com/nfl/${slug}`
-    if (url) window.open(url, "_blank", "noopener,noreferrer")
-  }
+const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-  const handleToggleClick = (e) => {
-    e.stopPropagation()
-    onToggleQueue(player, isQueued)
+const getSignalColor = (score) => {
+  if (score >= 75) return "#22c55e"
+  if (score >= 60) return "#84cc16"
+  if (score >= 45) return "#facc15"
+  if (score >= 30) return "#fb923c"
+  return "#ef4444"
+}
+
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+  const [isExpanded, setIsExpanded] = useState(idx === 0)
+  const toggleDetails = () => {
+    setIsExpanded((value) => !value)
   }
 
   return (
@@ -30,77 +33,71 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
         color: colors.textPrimary,
       }}
     >
-      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
-      <div className="col-span-1 flex items-center justify-center gap-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsExpanded((value) => !value)
-          }}
-          className="flex items-center justify-center w-5 h-5 rounded transition-colors"
-          style={{ color: colors.textSecondary }}
-          aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
-          title="Why this player?"
-        >
-          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-        <button
-          type="button"
-          onClick={handleToggleClick}
-          className="flex items-center justify-center w-6 h-6 rounded-md transition-colors"
-          style={{
-            background: isQueued ? colors.headingGreen : colors.darkBlue,
-            color: isQueued ? "#000000" : colors.gold,
-            border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
-          }}
-          aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
-          title={isQueued ? "Remove from queue" : "Add to queue"}
-        >
-          {isQueued ? <Check size={14} /> : <Plus size={14} />}
-        </button>
+      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1 text-sm">
+        <div className="col-span-1 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={toggleDetails}
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+            style={{ color: colors.textSecondary }}
+            aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
+            title="Show recommendation details"
+          >
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
         </div>
         <div className="col-span-4 min-w-0">
-        <button
-          type="button"
-          onClick={handleNameClick}
-          className="block max-w-full truncate player-name-cell text-left hover:underline"
-        >
-          {player.name}
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsExpanded((value) => !value)
-          }}
-          className="mt-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
-          style={{ color: colors.textSecondary }}
-          aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
-        >
-          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          Why
-        </button>
+          <button
+            type="button"
+            onClick={toggleDetails}
+            className="block max-w-full truncate player-name-cell text-left hover:underline"
+            aria-expanded={isExpanded}
+            aria-controls={`best-value-details-${player.id}`}
+            title="Show confidence score and recommendation details"
+          >
+            {player.name}
+          </button>
         </div>
         <div className="col-span-2">
           <BubbleSymbol pos={player.position} colors={colors} />
         </div>
         <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
-          {player.hybridScore}
+          {player.valueDiff === "--" ? "--" : `${Number.parseFloat(player.valueDiff) >= 0 ? "+" : ""}${player.valueDiff}`}
         </div>
         <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
           {player.adp}
         </div>
       </div>
       {isExpanded && (
-        <div className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded px-2 py-0.5 font-bold" style={{ background: colors.purple, color: colors.white }}>
-              {player.confidence} confidence
+        <div id={`best-value-details-${player.id}`} className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span
+              className="rounded px-2 py-0.5 font-bold"
+              style={{ background: player.confidenceColor, color: player.confidenceTextColor }}
+            >
+              {player.confidence} confidence · {player.confidenceScore}/100
             </span>
-            <span style={{ color: colors.gold }}>Hybrid score: {player.hybridScore}</span>
+            <span style={{ color: colors.gold }}>Hybrid: {player.hybridScore}</span>
+            <span style={{ color: colors.textSecondary }}>Value: {player.valueDiff}</span>
             <span style={{ color: colors.textSecondary }}>Expert rank: {player.expertRank}</span>
             {player.hybridSource && <span style={{ color: colors.textSecondary }}>Source: {player.hybridSource}</span>}
+          </div>
+          <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {player.confidenceBreakdown.map((item) => (
+              <div key={item.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold" style={{ color: colors.textPrimary }}>{item.label}</span>
+                  <span className="font-bold" style={{ color: item.color }}>{item.score}</span>
+                </div>
+                <div className="mt-1 h-1.5 rounded-full" style={{ background: colors.background }}>
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{ background: item.color, width: `${item.score}%` }}
+                  />
+                </div>
+                <div className="mt-1 leading-tight" style={{ color: colors.textSecondary }}>{item.detail}</div>
+              </div>
+            ))}
           </div>
           <ul className="list-disc pl-4 space-y-0.5" style={{ color: colors.textSecondary }}>
             {player.reasons.map((reason) => (
@@ -134,17 +131,97 @@ export function BestValueSection({
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
       counts[player.position] = (counts[player.position] || 0) + 1
+      counts.total += 1
       return counts
-    }, {})
+    }, { QB: 0, RB: 0, WR: 0, TE: 0, total: 0 })
 
-  const getRosterNeedBonus = (position) => {
-    const count = selectedRosterCounts[position] || 0
-    const starterTargets = { QB: 1, RB: 2, WR: 2, TE: 1 }
-    if (!starterTargets[position]) return 0
-    if (count === 0) return position === "RB" || position === "WR" ? 6 : 4
-    if (count < starterTargets[position]) return 3
-    if (position === "QB" && count >= 2) return -6
+  const getRosterPlan = () => {
+    const settings = draftData?.slotSettings || DEFAULT_SLOT_SETTINGS
+    const starterTargets = {
+      QB: Number(settings.slots_qb ?? 1),
+      RB: Number(settings.slots_rb ?? 2),
+      WR: Number(settings.slots_wr ?? 2),
+      TE: Number(settings.slots_te ?? 1),
+    }
+    const flexSlots = Number(settings.slots_flex ?? settings.slots_wrt ?? 1)
+    const superFlexSlots = Number(settings.slots_super_flex ?? 0)
+    const benchSlots = Number(settings.slots_bn ?? 5)
+    const starterCount = Object.values(starterTargets).reduce((sum, count) => sum + count, 0) + flexSlots + superFlexSlots
+
+    return { starterTargets, flexSlots, superFlexSlots, benchSlots, rosterSize: starterCount + benchSlots }
+  }
+
+  const rosterPlan = getRosterPlan()
+
+  const getScoringFormat = () => {
+    const settings = draftData?.slotSettings || {}
+    const rawFormat = String(
+      draftData?.scoringFormat || settings.scoring_type || settings.type || settings.reception_type || settings.ppr || "",
+    ).toLowerCase()
+
+    if (rawFormat.includes("half") || rawFormat === "0.5") return "Half PPR"
+    if (rawFormat.includes("ppr") || rawFormat === "1" || Number(settings.rec) >= 1) return "Full PPR"
+    if (rawFormat.includes("standard") || rawFormat === "0" || Number(settings.rec) === 0) return "Standard"
+    return "Unknown"
+  }
+
+  const scoringFormat = getScoringFormat()
+
+  const getFormatBonus = (position) => {
+    if (scoringFormat === "Full PPR") {
+      if (position === "WR") return 4
+      if (position === "RB") return 2
+      if (position === "TE") return 1
+    }
+    if (scoringFormat === "Half PPR") {
+      if (position === "WR" || position === "RB") return 2
+      if (position === "TE") return 1
+    }
+    if (scoringFormat === "Standard") {
+      if (position === "RB") return 4
+      if (position === "WR") return -2
+      if (position === "TE") return -1
+    }
     return 0
+  }
+
+  const getRosterNeedProfile = (position) => {
+    const count = selectedRosterCounts[position] || 0
+    const directTarget = rosterPlan.starterTargets[position] || 0
+    const directOpen = Math.max(directTarget - count, 0)
+    const flexEligibleCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (selectedRosterCounts[pos] || 0), 0)
+    const flexEligibleTarget = rosterPlan.starterTargets.RB + rosterPlan.starterTargets.WR + rosterPlan.starterTargets.TE + rosterPlan.flexSlots
+    const flexOpen = FLEX_POSITIONS.includes(position) ? Math.max(flexEligibleTarget - flexEligibleCount, 0) : 0
+    const superFlexOpen = position === "QB" ? Math.max(rosterPlan.starterTargets.QB + rosterPlan.superFlexSlots - count, 0) : 0
+    const totalAtPositionTarget = directTarget + (FLEX_POSITIONS.includes(position) ? rosterPlan.flexSlots : 0) + (position === "QB" ? rosterPlan.superFlexSlots : 0)
+    const rosterFull = selectedRosterCounts.total >= rosterPlan.rosterSize
+
+    let bonus = 0
+    let detail = "Depth pick"
+
+    if (directOpen > 0) {
+      bonus = position === "RB" || position === "WR" ? 10 : 8
+      detail = `${directOpen} starting ${position} slot${directOpen === 1 ? "" : "s"} open`
+    } else if (superFlexOpen > 0) {
+      bonus = 7
+      detail = `${superFlexOpen} superflex QB slot${superFlexOpen === 1 ? "" : "s"} open`
+    } else if (flexOpen > 0) {
+      bonus = 6
+      detail = `${flexOpen} flex slot${flexOpen === 1 ? "" : "s"} still open`
+    } else if (count < totalAtPositionTarget + 1) {
+      bonus = 2
+      detail = `Adds usable ${position} depth`
+    } else {
+      bonus = position === "QB" || position === "TE" ? -8 : -4
+      detail = `Roster already has ${count} ${position}${count === 1 ? "" : "s"}`
+    }
+
+    if (rosterFull) {
+      bonus -= 4
+      detail = `Roster is full; ${detail.toLowerCase()}`
+    }
+
+    return { bonus, detail }
   }
 
   const getScarcityBonus = (player, available) => {
@@ -158,11 +235,66 @@ export function BestValueSection({
     return gap >= 12 ? 4 : gap >= 8 ? 2 : 0
   }
 
-  const getConfidence = (expertEdge, rosterNeedBonus, scarcityBonus) => {
-    const confidenceScore = expertEdge + rosterNeedBonus + scarcityBonus
-    if (confidenceScore >= 10) return "High"
-    if (confidenceScore >= 4) return "Medium"
-    return "Low"
+  const getConfidenceProfile = (valueDiff, expertEdge, rosterNeedBonus, formatBonus, scarcityBonus) => {
+    const valueScore = clamp(50 + valueDiff * 4, 0, 100)
+    const expertScore = clamp(50 + expertEdge * 3, 0, 100)
+    const needScore = clamp(50 + rosterNeedBonus * 4, 0, 100)
+    const formatScore = clamp(50 + formatBonus * 5, 0, 100)
+    const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
+    const confidenceScore = Math.round(
+      clamp(valueScore * 0.38 + expertScore * 0.22 + needScore * 0.25 + formatScore * 0.08 + scarcityScore * 0.07, 0, 100),
+    )
+    const confidence =
+      confidenceScore >= 85
+        ? "Elite"
+        : confidenceScore >= 72
+          ? "High"
+          : confidenceScore >= 58
+            ? "Medium"
+            : confidenceScore >= 44
+              ? "Low"
+              : "Fade"
+    const confidenceColor = getSignalColor(confidenceScore)
+    const confidenceTextColor = confidenceScore >= 45 && confidenceScore < 60 ? "#000000" : colors.white
+
+    return {
+      confidence,
+      confidenceScore,
+      confidenceColor,
+      confidenceTextColor,
+      confidenceBreakdown: [
+        {
+          label: "Value",
+          score: Math.round(valueScore),
+          color: getSignalColor(valueScore),
+          detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP`,
+        },
+        {
+          label: "Expert",
+          score: Math.round(expertScore),
+          color: getSignalColor(expertScore),
+          detail: `${expertEdge >= 0 ? "+" : ""}${expertEdge.toFixed(1)} rank edge`,
+        },
+        {
+          label: "Need",
+          score: Math.round(needScore),
+          color: getSignalColor(needScore),
+          detail: `${rosterNeedBonus >= 0 ? "+" : ""}${rosterNeedBonus} roster fit`,
+        },
+        {
+          label: "Format",
+          score: Math.round(formatScore),
+          color: getSignalColor(formatScore),
+          detail: `${scoringFormat}: ${formatBonus >= 0 ? "+" : ""}${formatBonus}`,
+        },
+        {
+          label: "Scarcity",
+          score: Math.round(scarcityScore),
+          color: getSignalColor(scarcityScore),
+          detail: `${scarcityBonus >= 0 ? "+" : ""}${scarcityBonus} tier cliff`,
+        },
+      ],
+    }
   }
 
   const getBestValuePicks = () => {
@@ -187,19 +319,25 @@ export function BestValueSection({
           const marketAdp = Number.parseFloat(player.marketAdp || player.adp)
           const expertRank = Number.parseFloat(player.expertRank || player.adp)
           const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
-          const rosterNeedBonus = getRosterNeedBonus(player.position)
+          const rosterNeedProfile = getRosterNeedProfile(player.position)
+          const rosterNeedBonus = rosterNeedProfile.bonus
+          const formatBonus = getFormatBonus(player.position)
           const scarcityBonus = getScarcityBonus(player, filteredAvailable)
-          const hybridScore = 0.45 * valueDiff + 0.3 * expertEdge + 0.15 * rosterNeedBonus + 0.1 * scarcityBonus
+          const hybridScore = 0.42 * valueDiff + 0.28 * expertEdge + 0.18 * rosterNeedBonus + 0.07 * formatBonus + 0.05 * scarcityBonus
+          const confidenceProfile = getConfidenceProfile(valueDiff, expertEdge, rosterNeedBonus, formatBonus, scarcityBonus)
           const reasons = [
             `Available ${Math.abs(valueDiff).toFixed(1)} picks ${valueDiff >= 0 ? "after" : "before"} market ADP`,
             expertEdge > 0
               ? `Expert board is ${expertEdge.toFixed(1)} picks ahead of market`
               : `Expert board is aligned with market price`,
             rosterNeedBonus > 0
-              ? `Fits roster need: ${selectedRosterCounts[player.position] || 0} ${player.position} drafted`
+              ? `Roster fit: ${rosterNeedProfile.detail}`
               : rosterNeedBonus < 0
-                ? `Suppressed for roster construction: already have ${selectedRosterCounts[player.position] || 0} ${player.position}s`
+                ? `Roster warning: ${rosterNeedProfile.detail}`
                 : `Neutral roster fit right now`,
+            formatBonus !== 0
+              ? `${scoringFormat} format adjusts ${player.position} by ${formatBonus > 0 ? "+" : ""}${formatBonus}`
+              : `${scoringFormat} scoring has no special ${player.position} adjustment`,
             scarcityBonus > 0 ? `Tier cliff signal: notable gap to the next ${player.position}` : `No major tier cliff detected`,
           ]
           return {
@@ -209,7 +347,7 @@ export function BestValueSection({
             expertRank: expertRank.toFixed(1),
             expertEdge: expertEdge.toFixed(1),
             hybridScore: hybridScore.toFixed(1),
-            confidence: getConfidence(expertEdge, rosterNeedBonus, scarcityBonus),
+            ...confidenceProfile,
             reasons,
           }
         }
@@ -221,6 +359,10 @@ export function BestValueSection({
           expertEdge: "--",
           hybridScore: "--",
           confidence: "Low",
+          confidenceScore: 0,
+          confidenceColor: "#ef4444",
+          confidenceTextColor: colors.white,
+          confidenceBreakdown: [],
           reasons: ["Missing ADP or current pick data."],
         }
       })
@@ -237,16 +379,6 @@ export function BestValueSection({
     if (diff === "--") return colors.textSecondary
     const numValue = Number.parseFloat(diff)
     return numValue >= 0 ? "#22c55e" : "#ef4444" // green for positive, red for negative
-  }
-
-  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
-
-  const handleToggleQueue = (player, isQueued) => {
-    if (isQueued) {
-      removeFromQueue?.(player.position, player.id)
-    } else {
-      addToQueue?.(player.position, player)
-    }
   }
 
   const round = draftData?.numTeams ? Math.floor((currentPick - 1) / draftData.numTeams) + 1 : "-"
@@ -324,7 +456,7 @@ export function BestValueSection({
               <div className="col-span-1" />
               <div className="col-span-4">Player</div>
               <div className="col-span-2">Pos</div>
-              <div className="col-span-3 text-right">Hybrid</div>
+              <div className="col-span-3 text-right">Value</div>
               <div className="col-span-2 text-right">ADP</div>
             </div>
 
@@ -337,8 +469,6 @@ export function BestValueSection({
                 isBestValue={idx === 0}
                 colors={colors}
                 getValueDiffColor={getValueDiffColor}
-                isQueued={queuedIds.has(player.id)}
-                onToggleQueue={handleToggleQueue}
               />
             ))}
           </div>

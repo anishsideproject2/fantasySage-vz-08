@@ -111,6 +111,7 @@ export function useDraftData(csvData) {
           numTeams: draft.settings.teams,
           rounds: draft.settings.rounds,
           slotSettings: draft.settings,
+          scoringFormat: draft.metadata?.scoring_type || draft.settings?.scoring_type || null,
           pickedNamesSet: new Set(updatedDrafted.map((p) => normalizeName(`${p.firstName} ${p.lastName}`))),
         })
         setError("")

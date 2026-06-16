@@ -8,6 +8,7 @@ import { ScoreboardSection } from "./scoreboard-section"
 import { TeamRosterSection } from "./team-roster-section"
 import { AvailablePlayersSection } from "./available-players-section"
 import { PlayerQueueSection } from "./player-queue-section"
+import { SuggestedPicksSection } from "./suggested-picks-section"
 import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
@@ -377,6 +378,15 @@ export function FantasyDraftAssistant() {
                   removeFromQueue={removeFromQueue}
                 />
 
+                <SuggestedPicksSection
+                  colors={colors}
+                  draftData={draftData}
+                  currentPick={currentPick}
+                  getAvailablePlayers={getAvailablePlayers}
+                  draftedPlayers={draftedPlayers}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                />
+
                 <DraftedPlayersSection
                   colors={colors}
                   draftedPlayers={draftedPlayers}
@@ -453,6 +463,15 @@ export function FantasyDraftAssistant() {
 
                 {/* Right Column */}
                 <div className="lg:col-span-4 space-y-4">
+                  <SuggestedPicksSection
+                    colors={colors}
+                    draftData={draftData}
+                    currentPick={currentPick}
+                    getAvailablePlayers={getAvailablePlayers}
+                    draftedPlayers={draftedPlayers}
+                    selectedTeamRosterId={selectedTeamRosterId}
+                  />
+
                   <DraftedPlayersSection
                     colors={colors}
                     draftedPlayers={draftedPlayers}

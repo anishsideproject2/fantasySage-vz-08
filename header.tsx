@@ -171,7 +171,7 @@ export function Header({
 
       {/* Getting Started Steps */}
       <div
-        className="mb-6 p-6 rounded-lg border"
+        className="mb-6 p-4 rounded-lg border"
         style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}
       >
         <h2 className="text-xl font-bold mb-4" style={{ color: colors.headingGreen }}>
@@ -280,10 +280,10 @@ export function Header({
 
       {/* Preset Expert Rankings - One Click Load */}
       <div
-        className="mb-6 p-6 rounded-lg border"
+        className="mb-6 p-4 rounded-lg border"
         style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}
       >
-        <div className="mb-4">
+        <div className="mb-3">
           <h2 className="text-xl font-bold" style={{ color: colors.headingGreen }}>
             ⚡ Load Expert Rankings Instantly
           </h2>
@@ -292,11 +292,11 @@ export function Header({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {RANKING_PRESET_GROUPS.map((group) => (
             <div
               key={group.id}
-              className="rounded-lg border p-3 space-y-3 h-full"
+              className="rounded-lg border p-2.5 space-y-2 h-full"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
               <div className="flex items-baseline justify-between">
@@ -308,24 +308,24 @@ export function Header({
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {group.presets.map((preset) => {
                   const isActive = rankings[activeRankingIndex]?.presetId === preset.id
                   return (
                     <button
                       key={preset.id}
                       onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="flex min-h-[8.75rem] w-full flex-col text-left rounded-md border p-3 transition-colors hover:opacity-90"
+                      className="flex w-full flex-col text-left rounded-md border p-2 transition-colors hover:opacity-90"
                       style={{
                         borderColor: isActive ? colors.headingGreen : colors.cardBorder,
                         backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
                       }}
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <TrendingUp size={18} style={{ color: colors.headingGreen }} className="shrink-0" />
+                          <TrendingUp size={14} style={{ color: colors.headingGreen }} className="shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold truncate" style={{ color: colors.textPrimary }}>
+                            <div className="text-xs font-semibold truncate" style={{ color: colors.textPrimary }}>
                               {preset.analyst}
                             </div>
                             <div className="text-xs truncate" style={{ color: colors.textSecondary }}>
@@ -336,36 +336,36 @@ export function Header({
                             </div>
                           </div>
                         </div>
-                        <span
-                          className="flex items-center gap-1 text-xs font-semibold whitespace-nowrap rounded-full border px-2 py-1"
-                          style={getAccuracyTypeStyle(preset.accuracyType, colors)}
-                        >
-                          <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
-                        </span>
-                      </div>
-                      <div className="mt-2 line-clamp-2 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>
-                        {preset.accuracyNote}
-                      </div>
-                      <div className="mt-auto pt-3">
                         {preset.accuracyRanks ? (
-                          <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
+                          <div className="flex justify-center gap-1.5 text-[11px]">
                             {["QB", "RB", "WR", "TE"].map((position) => (
-                              <div key={position} className="rounded border px-1.5 py-1" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
-                                <span className="font-bold" style={{ color: colors.gold }}>{position}</span>{" "}
+                              <span key={position} className="rounded border px-1.5 py-1 text-center" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+                                <span className="font-bold" style={{ color: colors.gold }}>{position}</span>
                                 <span style={{ color: colors.textPrimary }}>
-                                  {preset.accuracyRanks?.[position] ? `#${preset.accuracyRanks[position]}` : "—"}
+                                  {preset.accuracyRanks?.[position] ? ` ${preset.accuracyRanks[position]}` : " —"}
                                 </span>
-                              </div>
+                              </span>
                             ))}
                           </div>
                         ) : (
-                          <div className="rounded border px-2 py-1 text-center text-[10px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
-                            Overall draft accuracy board
+                          <div className="rounded border px-2 py-1 text-center text-[11px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
+                            Overall draft accuracy
                           </div>
                         )}
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
-                          {isActive ? "Loaded" : "Click to load"}
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
+                            style={getAccuracyTypeStyle(preset.accuracyType, colors)}
+                          >
+                            <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
+                          </span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
+                            {isActive ? "Loaded" : "Load"}
+                          </span>
                         </div>
+                      </div>
+                      <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
+                        {preset.accuracyNote}
                       </div>
                     </button>
                   )
