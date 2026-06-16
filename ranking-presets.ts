@@ -332,6 +332,45 @@ const BOONE_RAW: RawPlayer[] = [
   [301, "Phil Mafah", "DAL", "RB"],
 ]
 
+
+// ---------------------------------------------------------------------------
+// HALF PPR — Dalton Del Don (The Deep Shot), updated 6/15
+// FantasyPros in-season accuracy: #6 in 2025
+// ---------------------------------------------------------------------------
+const DEL_DON_HALF_PPR_TOP_100 = [
+  "Jahmyr Gibbs", "Bijan Robinson", "Ja'Marr Chase", "Puka Nacua", "Jaxon Smith-Njigba",
+  "Jonathan Taylor", "Christian McCaffrey", "Ashton Jeanty", "James Cook III", "Amon-Ra St. Brown",
+  "CeeDee Lamb", "Chase Brown", "Kenneth Walker III", "Drake London", "Justin Jefferson",
+  "Brock Bowers", "A.J. Brown", "Omarion Hampton", "Saquon Barkley", "De'Von Achane",
+  "Derrick Henry", "Jeremiyah Love", "Trey McBride", "Nico Collins", "Rashee Rice",
+  "Garrett Wilson", "George Pickens", "DeVonta Smith", "Kyren Williams", "Travis Etienne Jr.",
+  "Zay Flowers", "Chris Olave", "Lamar Jackson", "Josh Allen", "Breece Hall",
+  "Colston Loveland", "Tee Higgins", "Javonte Williams", "Josh Jacobs", "David Montgomery",
+  "Cam Skattebo", "Luther Burden III", "Malik Nabers", "Terry McLaurin", "Emeka Egbuka",
+  "Tetairoa McMillan", "Ladd McConkey", "Christian Watson", "Mike Evans", "Jaylen Waddle",
+  "Rome Odunze", "Bhayshul Tuten", "TreVeyon Henderson", "D'Andre Swift", "Quinshon Judkins",
+  "Bucky Irving", "Jayden Daniels", "Drake Maye", "Joe Burrow", "Jordyn Tyson",
+  "Davante Adams", "Jameson Williams", "DJ Moore", "Tyler Warren", "Marvin Harrison Jr.",
+  "Parker Washington", "Tucker Kraft", "George Kittle", "Jaylen Warren", "Rhamondre Stevenson",
+  "Caleb Williams", "Jalen Hurts", "Brian Thomas Jr.", "Carnell Tate", "Quentin Johnston",
+  "Chris Godwin Jr.", "Makai Lemon", "Alec Pierce", "DK Metcalf", "Trevor Lawrence",
+  "Tony Pollard", "Jonathon Brooks", "Blake Corum", "Jadarian Price", "Harold Fannin Jr.",
+  "Sam LaPorta", "Jaxson Dart", "Brock Purdy", "Justin Herbert", "RJ Harvey",
+  "Chuba Hubbard", "Dalton Kincaid", "Jayden Reed", "Courtland Sutton", "Dak Prescott",
+  "Kyler Murray", "Michael Wilson", "Josh Downs", "Ricky Pearsall", "Xavier Worthy",
+] as const
+
+const delDonHalfPlayerLookup = new Map(BOONE_RAW.map(([, name, team, position]) => [name, { team, position }] as const))
+const DEL_DON_HALF_PPR_RAW: RawPlayer[] = [
+  ...DEL_DON_HALF_PPR_TOP_100.map((name, index): RawPlayer => {
+    const player = delDonHalfPlayerLookup.get(name)
+    return [index + 1, name, player?.team || "FA", player?.position || "WR"]
+  }),
+  ...BOONE_RAW.filter(([, name]) => !DEL_DON_HALF_PPR_TOP_100.includes(name as (typeof DEL_DON_HALF_PPR_TOP_100)[number])).map(
+    ([, name, team, position], index): RawPlayer => [DEL_DON_HALF_PPR_TOP_100.length + index + 1, name, team, position],
+  ),
+]
+
 // ---------------------------------------------------------------------------
 // FULL PPR — Andrew Erickson (FantasyPros), updated 6/12
 // FantasyPros draft accuracy: #5 in 2024
@@ -770,6 +809,15 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         accuracyRank: 1,
         accuracyNote: "#1 in FantasyPros 2025 in-season accuracy",
         players: buildPlayers("boone", BOONE_RAW),
+      },
+      {
+        id: "del-don-half-ppr",
+        analyst: "Dalton Del Don",
+        source: "The Deep Shot",
+        updated: "6/15",
+        accuracyRank: 6,
+        accuracyNote: "#6 in FantasyPros 2025 in-season accuracy",
+        players: buildPlayers("del-don-half", DEL_DON_HALF_PPR_RAW),
       },
     ],
   },
