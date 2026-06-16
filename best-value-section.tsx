@@ -34,6 +34,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
       }}
     >
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1 text-sm">
+      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
         <div className="col-span-1 flex items-center justify-center">
           <button
             type="button"
@@ -56,6 +57,16 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
             title="Show confidence score and recommendation details"
           >
             {player.name}
+          </button>
+          <button
+            type="button"
+            onClick={toggleDetails}
+            className="mt-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
+            style={{ color: colors.textSecondary }}
+            aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
+          >
+            {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            Confidence details
           </button>
         </div>
         <div className="col-span-2">

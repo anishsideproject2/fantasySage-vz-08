@@ -340,6 +340,21 @@ export function Header({
                           <div className="flex justify-center gap-1.5 text-[11px]">
                             {["QB", "RB", "WR", "TE"].map((position) => (
                               <span key={position} className="rounded border px-1.5 py-1 text-center" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+                        <span
+                          className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
+                          style={getAccuracyTypeStyle(preset.accuracyType, colors)}
+                        >
+                          <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
+                        </span>
+                      </div>
+                      <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
+                        {preset.accuracyNote}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        {preset.accuracyRanks ? (
+                          <div className="flex min-w-0 flex-wrap gap-1 text-[10px]">
+                            {["QB", "RB", "WR", "TE"].map((position) => (
+                              <span key={position} className="rounded border px-1 py-0.5" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
                                 <span className="font-bold" style={{ color: colors.gold }}>{position}</span>
                                 <span style={{ color: colors.textPrimary }}>
                                   {preset.accuracyRanks?.[position] ? ` ${preset.accuracyRanks[position]}` : " —"}
@@ -362,6 +377,12 @@ export function Header({
                           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
                             {isActive ? "Loaded" : "Load"}
                           </span>
+                          <div className="truncate rounded border px-2 py-0.5 text-[10px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
+                            Overall draft accuracy
+                          </div>
+                        )}
+                        <div className="shrink-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
+                          {isActive ? "Loaded" : "Load"}
                         </div>
                       </div>
                       <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
