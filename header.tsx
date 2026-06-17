@@ -299,11 +299,11 @@ export function Header({
               className="rounded-lg border p-2.5 space-y-2 h-full"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
-              <div className="flex items-baseline justify-between">
+              <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
                   {group.label}
                 </span>
-                <span className="text-xs" style={{ color: colors.textSecondary }}>
+                <span className="truncate text-xs" style={{ color: colors.textSecondary }}>
                   {group.description}
                 </span>
               </div>
@@ -315,7 +315,7 @@ export function Header({
                     <button
                       key={preset.id}
                       onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="flex w-full flex-col text-left rounded-md border p-2 transition-colors hover:opacity-90"
+                      className="flex w-full items-center gap-3 rounded-md border p-2 text-left transition-colors hover:opacity-90"
                       style={{
                         borderColor: isActive ? colors.headingGreen : colors.cardBorder,
                         backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
@@ -365,9 +365,6 @@ export function Header({
                             Overall draft accuracy
                           </div>
                         )}
-                      </div>
-                      <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
-                        {preset.accuracyNote}
                       </div>
                     </button>
                   )

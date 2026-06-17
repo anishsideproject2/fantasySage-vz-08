@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
+import { OC_VARIANCE_SYMBOL, getDraftStrategySignal, getTeamOcVariance } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -167,7 +168,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     })
     .filter(Boolean)
     .sort((a, b) => b.hybridScore - a.hybridScore || b.confidenceScore - a.confidenceScore)
-    .slice(0, 2)
+    .slice(0, 5)
 
   return (
     <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
@@ -175,11 +176,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 2 • {scoringFormat}
+            Top 5 • {scoringFormat}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 px-2 pt-0">
+      <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto px-2 pt-0 pr-1">
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
@@ -187,17 +188,18 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         ) : (
           suggestedPicks.map((player, idx) => (
             <div key={player.id} className="rounded-lg border px-2 py-2" style={{ borderColor: colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>{idx + 1}. {player.name}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: colors.textSecondary }}>
-                    <BubbleSymbol pos={player.position} colors={colors} />
-                    <span>ADP {player.adp}</span>
-                    <span>Value {player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)}</span>
-                  </div>
+              <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
+                  <BubbleSymbol pos={player.position} colors={colors} />
+                  <span className="min-w-0 truncate text-sm font-bold" style={{ color: colors.textPrimary }} title={player.name}>
+                    {player.name}{player.ocVariance && <span title={`New OC: ${player.ocVariance.coordinator}. ${player.ocVariance.note}`}> {OC_VARIANCE_SYMBOL}</span>}
+                  </span>
+                  <span className="shrink-0 text-[11px]" style={{ color: colors.textSecondary }}>ADP {player.adp}</span>
                 </div>
-                <div className="shrink-0 rounded px-2 py-1 text-center text-[11px] font-bold" style={{ background: player.confidenceColor, color: player.confidenceScore >= 45 && player.confidenceScore < 60 ? "#000" : colors.white }}>
-                  {player.confidence}<br />{player.confidenceScore}
+                <div className="shrink-0 rounded-full border px-2.5 py-1 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
+                  <div className="text-xs font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
                 </div>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
