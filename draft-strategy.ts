@@ -8,27 +8,27 @@ export const OC_VARIANCE_SYMBOL = "⚡"
 // - CBS Sports 2026 coordinator grades: reports 21 teams hired new offensive coordinators and
 //   identifies Bears OC Press Taylor plus Dolphins OC Bobby Slowik among the new OC hires.
 export const NEW_OC_BY_TEAM = {
-  ARI: { coordinator: "Nathaniel Hackett", note: "new HC/OC; scheme and play-caller assumptions are volatile" },
-  ATL: { coordinator: "Tommy Rees", note: "new HC/OC; Cleveland-style transition creates usage variance" },
-  BAL: { coordinator: "Declan Doyle", note: "new OC and first-time play-caller environment" },
-  BUF: { coordinator: "Pete Carmichael Jr.", note: "new OC under promoted HC Joe Brady" },
-  CHI: { coordinator: "Press Taylor", note: "new OC, but Ben Johnson remains the offensive driver" },
-  CLE: { coordinator: "Travis Switzer", note: "new HC/OC with run-game roots" },
-  DEN: { coordinator: "Davis Webb", note: "promoted OC; possible play-calling shift from Sean Payton" },
-  DET: { coordinator: "Drew Petzing", note: "new OC joining a strong but changing offensive ecosystem" },
-  KC: { coordinator: "Eric Bieniemy", note: "returning OC; familiar system but adjusted roles" },
-  LAC: { coordinator: "Mike McDaniel", note: "major offensive philosophy change" },
-  LAR: { coordinator: "Nathan Scheelhaase", note: "promoted OC/co-OC structure" },
-  LV: { coordinator: "Andrew Janocko", note: "new HC/OC after staff overhaul" },
-  MIA: { coordinator: "Bobby Slowik", note: "new HC/OC environment after Mike McDaniel departure" },
-  NYG: { coordinator: "Matt Nagy", note: "new HC/OC staff with uncertain play-calling translation" },
-  NYJ: { coordinator: "Frank Reich", note: "new OC and veteran play-caller reset" },
-  PHI: { coordinator: "Sean Mannion", note: "new OC with limited play-calling sample" },
-  PIT: { coordinator: "Brian Angelichio", note: "new HC/OC; Mike McCarthy expected to drive the offense" },
-  SEA: { coordinator: "Brian Fleury", note: "new OC replacing Klint Kubiak" },
-  TB: { coordinator: "Zac Robinson", note: "new OC and play-caller adjustment" },
-  TEN: { coordinator: "Brian Daboll", note: "new HC/OC; high-upside but high-variance reset" },
-  WAS: { coordinator: "David Blough", note: "new first-time OC after Kliff Kingsbury departure" },
+  ARI: { coordinator: "Nathaniel Hackett", previousCoordinator: "Drew Petzing", note: "new HC/OC; scheme and play-caller assumptions are volatile" },
+  ATL: { coordinator: "Tommy Rees", previousCoordinator: "Zac Robinson", note: "new HC/OC; Cleveland-style transition creates usage variance" },
+  BAL: { coordinator: "Declan Doyle", previousCoordinator: "Todd Monken", note: "new OC and first-time play-caller environment" },
+  BUF: { coordinator: "Pete Carmichael Jr.", previousCoordinator: "Joe Brady", note: "new OC under promoted HC Joe Brady" },
+  CHI: { coordinator: "Press Taylor", previousCoordinator: "Declan Doyle", note: "new OC, but Ben Johnson remains the offensive driver" },
+  CLE: { coordinator: "Travis Switzer", previousCoordinator: "Tommy Rees", note: "new HC/OC with run-game roots" },
+  DEN: { coordinator: "Davis Webb", previousCoordinator: "Joe Lombardi", note: "promoted OC; possible play-calling shift from Sean Payton", actualChange: false },
+  DET: { coordinator: "Drew Petzing", previousCoordinator: "John Morton", note: "new OC joining a strong but changing offensive ecosystem" },
+  KC: { coordinator: "Eric Bieniemy", previousCoordinator: "Matt Nagy", note: "returning OC; familiar system but adjusted roles", actualChange: false },
+  LAC: { coordinator: "Mike McDaniel", previousCoordinator: "Greg Roman", note: "major offensive philosophy change" },
+  LAR: { coordinator: "Nathan Scheelhaase", previousCoordinator: "Mike LaFleur", note: "promoted OC/co-OC structure", actualChange: false },
+  LV: { coordinator: "Andrew Janocko", previousCoordinator: "Chip Kelly", note: "new HC/OC after staff overhaul" },
+  MIA: { coordinator: "Bobby Slowik", previousCoordinator: "Frank Smith", note: "new HC/OC environment after Mike McDaniel departure" },
+  NYG: { coordinator: "Matt Nagy", previousCoordinator: "Mike Kafka", note: "new HC/OC staff with uncertain play-calling translation" },
+  NYJ: { coordinator: "Frank Reich", previousCoordinator: "Tanner Engstrand", note: "new OC and veteran play-caller reset" },
+  PHI: { coordinator: "Sean Mannion", previousCoordinator: "Kevin Patullo", note: "new OC with limited play-calling sample" },
+  PIT: { coordinator: "Brian Angelichio", previousCoordinator: "Arthur Smith", note: "new HC/OC; Mike McCarthy expected to drive the offense" },
+  SEA: { coordinator: "Brian Fleury", previousCoordinator: "Klint Kubiak", note: "new OC replacing Klint Kubiak" },
+  TB: { coordinator: "Zac Robinson", previousCoordinator: "Josh Grizzard", note: "new OC and play-caller adjustment" },
+  TEN: { coordinator: "Brian Daboll", previousCoordinator: "Nick Holz", note: "new HC/OC; high-upside but high-variance reset" },
+  WAS: { coordinator: "David Blough", previousCoordinator: "Kliff Kingsbury", note: "new first-time OC after Kliff Kingsbury departure" },
 }
 
 export const normalizeTeamAbbr = (team) => {
@@ -50,6 +50,32 @@ export const getTeamOcVariance = (team) => NEW_OC_BY_TEAM[normalizeTeamAbbr(team
 
 const formatRate = (rate) => `${Math.round(rate * 10) / 10}%`
 const formatDelta = (delta) => `${delta >= 0 ? "+" : ""}${Math.round(delta * 10) / 10} pts`
+const normalizePlayerName = (name) => String(name || "").toLowerCase().replace(/[^a-z]/g, "")
+
+const PASS_CATCHING_RBS = new Set([
+  "jahmyrgibbs",
+  "bijanrobinson",
+  "christianmccaffrey",
+  "devonachane",
+  "breecehall",
+  "saquonbarkley",
+  "jonathantaylor",
+  "jamescook",
+  "alvinkamara",
+  "rachaadwhite",
+  "dandre swift",
+].map(normalizePlayerName))
+
+const RUN_SCHEME_RBS = new Set([
+  "derrickhenry",
+  "joshjacobs",
+  "kyrenwilliams",
+  "kennethwalker",
+  "buckyirving",
+  "chasebrown",
+  "omarionhampton",
+  "treveyonhenderson",
+].map(normalizePlayerName))
 
 // Situation-neutral tendencies compare each new OC's most recent 2025 offense sample
 // to the player's 2025 team environment. Rates use neutral-script pass rate where
@@ -80,39 +106,68 @@ export const OC_TENDENCY_CHANGES_BY_TEAM = {
 
 export const getOcTendencyChange = (team) => OC_TENDENCY_CHANGES_BY_TEAM[normalizeTeamAbbr(team)] || null
 
-export const getPlayerNote = (player, fallbackReason = "") => {
+const OC_TENDENCY_NOTE_THRESHOLD = 5
+
+export const getOcTendencyImpact = (player, scoringFormat = "") => {
   const tendency = getOcTendencyChange(player.team)
   const ocVariance = getTeamOcVariance(player.team)
-  if (tendency && ocVariance) {
-    const passDelta = tendency.passRate - tendency.previousPassRate
-    const runDelta = tendency.runRate - tendency.previousRunRate
-    if (player.position === "WR" || player.position === "TE" || player.position === "QB") {
-      const direction = passDelta >= 0 ? "more pass-friendly" : "less pass-heavy"
-      return `${ocVariance.coordinator} shift: ${formatRate(tendency.passRate)} neutral pass vs ${formatRate(tendency.previousPassRate)} last year (${formatDelta(passDelta)}), a ${direction} variance flag.`
-    }
-    if (player.position === "RB") {
-      const direction = runDelta >= 0 ? "more run-friendly" : "more pass-heavy"
-      return `${ocVariance.coordinator} shift: ${formatRate(tendency.runRate)} neutral run vs ${formatRate(tendency.previousRunRate)} last year (${formatDelta(runDelta)}), a ${direction} variance flag.`
-    }
+  if (!tendency || !ocVariance || ocVariance.actualChange === false) return null
+
+  const passDelta = tendency.passRate - tendency.previousPassRate
+  const runDelta = tendency.runRate - tendency.previousRunRate
+  const position = String(player.position || "").toUpperCase()
+  const scoring = String(scoringFormat || "").toLowerCase()
+  const isPpr = scoring.includes("ppr")
+  const playerKey = normalizePlayerName(player.name)
+  const isReceivingRb = PASS_CATCHING_RBS.has(playerKey)
+  const isRunSchemeRb = RUN_SCHEME_RBS.has(playerKey)
+  const isPassCatcher = position === "WR" || position === "TE" || position === "QB"
+  const rbRateType = isReceivingRb && (isPpr || Math.abs(passDelta) > Math.abs(runDelta)) ? "pass" : "run"
+  const relevantDelta = position === "RB" ? (rbRateType === "pass" ? passDelta : runDelta) : isPassCatcher ? passDelta : 0
+  if (Math.abs(relevantDelta) <= OC_TENDENCY_NOTE_THRESHOLD) return null
+
+  const rateType = position === "RB" ? rbRateType : "pass"
+  const nextRate = rateType === "run" ? tendency.runRate : tendency.passRate
+  const previousRate = rateType === "run" ? tendency.previousRunRate : tendency.previousPassRate
+  const favorable = relevantDelta > 0
+  const previousCoordinator = ocVariance.previousCoordinator || "last year's OC"
+  const rbContext = position === "RB" && isReceivingRb && rateType === "pass"
+    ? " Receiving-back profile gets extra PPR relevance."
+    : position === "RB" && isRunSchemeRb && rateType === "run"
+      ? " Run-game profile is more tied to rushing volume."
+      : ""
+  const bonus = favorable ? (position === "RB" && isReceivingRb && rateType === "pass" && isPpr ? 5 : 4) : -4
+
+  return {
+    coordinator: ocVariance.coordinator,
+    previousCoordinator,
+    delta: relevantDelta,
+    bonus,
+    label: favorable ? `OC ${rateType} boost` : `OC ${rateType} drag`,
+    detail: `${ocVariance.coordinator} vs ${previousCoordinator}: ${formatDelta(relevantDelta)} neutral ${rateType} rate (${formatRate(nextRate)} vs ${formatRate(previousRate)}).${rbContext}`,
   }
+}
+
+export const getPlayerNote = (player, scoringFormat = "") => {
+  const ocImpact = getOcTendencyImpact(player, scoringFormat)
+  if (ocImpact) return ocImpact.detail
 
   const adp = Number.parseFloat(player.adp)
   if (player.position === "RB" && adp <= 60) {
     return "RB market is pricey: try to secure a starter in rounds 1-5 before the room locks you into replacement-level backs."
   }
-  if (fallbackReason) return `Suggested because ${fallbackReason.toLowerCase()}.`
-  return "Suggested by ADP value, roster fit, format, and analyst rank."
+  return ""
 }
 
 export const getDraftStrategySignal = ({ player, rosterReason, scoringFormat }) => {
   const adp = Number.parseFloat(player.adp)
-  const ocVariance = getTeamOcVariance(player.team)
+  const ocImpact = getOcTendencyImpact(player, scoringFormat)
 
-  if (ocVariance) {
+  if (ocImpact) {
     return {
-      label: `${OC_VARIANCE_SYMBOL} OC variance`,
-      detail: `${ocVariance.coordinator}: ${ocVariance.note}`,
-      tone: "variance",
+      label: `${OC_VARIANCE_SYMBOL} ${ocImpact.label}`,
+      detail: ocImpact.detail,
+      tone: ocImpact.bonus > 0 ? "value" : "variance",
     }
   }
 

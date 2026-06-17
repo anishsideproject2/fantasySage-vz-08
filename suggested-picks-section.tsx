@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
-import { OC_VARIANCE_SYMBOL, getPlayerNote, getTeamOcVariance } from "./draft-strategy"
+import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getPlayerNote } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -25,6 +25,68 @@ const getPlayerStrategySignal = (player) => {
     return { bonus: 2, label: "WR pocket", detail: "Strong WR range after hero-RB starts; prioritize if roster fit is open." }
   }
   return { bonus: 0, label: "Clean fit", detail: "No special 2026 draft signal beyond value and roster fit." }
+}
+
+// 2026 research themes folded into the suggestion model: stay BPA/balanced early,
+// prioritize scarce RB/WR starters over low-impact QB reaches in 1QB, use the
+// middle rounds for WR depth and selective QB/TE values, and chase RB/WR upside
+// on the bench rather than redundant one-starter positions.
+const getDraftTypeLabel = (draftType) => {
+  const normalizedType = String(draftType || "snake").toLowerCase()
+  if (normalizedType.includes("auction")) return "Auction"
+  if (normalizedType.includes("linear")) return "Linear"
+  if (normalizedType.includes("keeper")) return "Keeper"
+  return "Snake"
+}
+
+const getThematicStrategySignal = ({ player, round, rosterNeed, rosterCounts, starterTargets, flexSlots, superFlexSlots, scoringFormat, draftType }) => {
+  const position = player.position
+  const adp = Number.parseFloat(player.adp)
+  const hasStarter = (rosterCounts[position] || 0) >= (starterTargets[position] || 0)
+  const isSuperFlex = superFlexSlots > 0
+  const isAuction = getDraftTypeLabel(draftType) === "Auction"
+  const flexEligibleCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0)
+  const flexEligibleTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const needsCoreSkillStarter = flexEligibleCount < flexEligibleTarget
+  const isEarly = round <= 3
+  const isMiddle = round >= 4 && round <= 8
+
+  if (isAuction) {
+    if (position === "QB" && !isSuperFlex) return { bonus: -4, label: "Auction QB discipline", detail: "In 1QB auction rooms, save budget leverage for RB/WR/elite-TE difference-makers." }
+    if (position === "QB" && isSuperFlex) return { bonus: 6, label: "Auction QB scarcity", detail: "Superflex auction settings make starting QB scarcity worth paying for." }
+    if ((position === "RB" || position === "WR") && needsCoreSkillStarter) return { bonus: 4, label: "Auction core", detail: `Use Sleeper roster settings to build ${position} starters before chasing bench depth.` }
+    if (position === "TE" && !hasStarter && adp <= 90) return { bonus: 2, label: "Auction TE tier", detail: "Pay for TE only when the tier/price gap is meaningful." }
+    return { bonus: BENCH_TARGET_POSITIONS.includes(position) ? 2 : -1, label: "Auction depth", detail: "Auction depth should emphasize flexible RB/WR upside over redundant starters." }
+  }
+
+  if (position === "QB") {
+    if (isSuperFlex) return { bonus: 7, label: "Superflex QB", detail: "Superflex scarcity makes starting QB value a priority." }
+    if (isEarly) return { bonus: -7, label: "Wait on QB", detail: "1QB depth favors building RB/WR/elite-TE value before chasing quarterback." }
+    if (!hasStarter && isMiddle && adp <= 100) return { bonus: 3, label: "QB value", detail: "Middle-round QB value fits the 2026 late-QB build once core starters are forming." }
+    return { bonus: -2, label: "QB patience", detail: "Avoid forcing QB unless the value clearly beats RB/WR options." }
+  }
+
+  if (position === "TE") {
+    if (hasStarter) return { bonus: -6, label: "No bench TE", detail: "Avoid redundant TE unless settings demand it." }
+    if (adp <= 30) return { bonus: 3, label: "Elite TE edge", detail: "Elite TE is viable when the board gives you a real tier advantage." }
+    if (isMiddle && adp <= 90) return { bonus: 3, label: "TE tier value", detail: "Middle-round TE value is better than forcing the position early." }
+    return { bonus: -1, label: "TE discipline", detail: "Do not reach at TE without a tier or ADP discount." }
+  }
+
+  if (position === "RB") {
+    if (isEarly && rosterNeed.bonus >= 8) return { bonus: 4, label: "Anchor RB", detail: "Secure an RB anchor when value and roster fit line up." }
+    if (isMiddle && needsCoreSkillStarter) return { bonus: 3, label: "RB window", detail: "Committee risk makes useful RB volume worth grabbing before the cliff." }
+    return { bonus: round >= 9 ? 4 : 1, label: "RB upside", detail: "Prioritize contingent RB upside once starters are mostly filled." }
+  }
+
+  if (position === "WR") {
+    const pprBoost = scoringFormat === "Full PPR" ? 1 : 0
+    if (isEarly && rosterNeed.bonus >= 8) return { bonus: 4 + pprBoost, label: "WR core", detail: "Build around high-volume WRs when early-round value is intact." }
+    if (isMiddle) return { bonus: 3 + pprBoost, label: "WR depth", detail: "WR remains a strong middle-round depth pocket, especially in PPR." }
+    return { bonus: round >= 9 ? 3 + pprBoost : 1 + pprBoost, label: "WR upside", detail: "Favor WR spike-week upside over low-ceiling bench fillers." }
+  }
+
+  return { bonus: 0, label: "BPA", detail: "Let value, roster fit, and positional leverage drive the pick." }
 }
 const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
 
@@ -78,6 +140,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       : rawFormat.includes("standard") || rawFormat === "0" || Number(settings.rec) === 0
         ? "Standard"
         : "Format unknown"
+  const draftType = draftData?.draftType || settings.draft_type || "snake"
+  const draftTypeLabel = getDraftTypeLabel(draftType)
 
   const getFormatBonus = (position) => {
     if (scoringFormat === "Full PPR") return position === "WR" ? 4 : position === "RB" ? 2 : position === "TE" ? 1 : 0
@@ -120,6 +184,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   }
 
   const availablePlayers = getAvailablePlayers?.() || []
+  const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
 
   const suggestedPicks = availablePlayers
     .map((player) => {
@@ -133,9 +198,21 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       if (!rosterNeed.eligible) return null
       const scarcityBonus = getScarcityBonus(player, availablePlayers)
       const strategySignal = getPlayerStrategySignal(player)
-      const strategyBonus = strategySignal.bonus
-      const ocVariance = getTeamOcVariance(player.team)
-      const playerNote = getPlayerNote(player, rosterNeed.reason)
+      const ocImpact = getOcTendencyImpact(player, scoringFormat)
+      const thematicSignal = getThematicStrategySignal({
+        player,
+        round: draftRound,
+        rosterNeed,
+        rosterCounts: selectedRosterCounts,
+        starterTargets,
+        flexSlots,
+        superFlexSlots,
+        scoringFormat,
+        draftType,
+      })
+      const primaryStrategySignal = ocImpact || (strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
+      const strategyBonus = strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)
+      const playerNote = getPlayerNote(player, scoringFormat)
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -143,9 +220,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
       const strategyScore = clamp(50 + strategyBonus * 8, 0, 100)
       const confidenceScore = Math.round(
-        clamp(valueScore * 0.34 + expertScore * 0.19 + needScore * 0.27 + formatScore * 0.06 + scarcityScore * 0.06 + strategyScore * 0.08, 0, 100),
+        clamp(valueScore * 0.33 + expertScore * 0.18 + needScore * 0.26 + formatScore * 0.06 + scarcityScore * 0.06 + strategyScore * 0.11, 0, 100),
       )
-      const hybridScore = 0.38 * valueDiff + 0.25 * expertEdge + 0.22 * rosterNeed.bonus + 0.05 * formatBonus + 0.04 * scarcityBonus + 0.06 * strategyBonus
+      const hybridScore = 0.36 * valueDiff + 0.23 * expertEdge + 0.21 * rosterNeed.bonus + 0.05 * formatBonus + 0.04 * scarcityBonus + 0.11 * strategyBonus
 
       return {
         ...player,
@@ -155,12 +232,13 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scarcityBonus,
         strategyBonus,
         strategySignal,
-        ocVariance,
+        thematicSignal,
+        ocImpact,
         playerNote,
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Fit", value: Math.round(needScore), detail: rosterNeed.reason },
-          { label: strategySignal.label, value: Math.round(strategyScore), detail: strategySignal.detail },
+          { label: primaryStrategySignal.label, value: Math.round(strategyScore), detail: primaryStrategySignal.detail },
         ],
         rosterReason: rosterNeed.reason,
         confidenceScore,
@@ -179,7 +257,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 5 • {scoringFormat}
+            Top 5 • {scoringFormat} • {draftTypeLabel}
           </span>
         </CardTitle>
       </CardHeader>
@@ -196,7 +274,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
                   <BubbleSymbol pos={player.position} colors={colors} />
                   <span className="min-w-0 truncate text-sm font-bold" style={{ color: colors.textPrimary }} title={player.name}>
-                    {player.name}{player.ocVariance && <span title={`New OC: ${player.ocVariance.coordinator}. ${player.ocVariance.note}`}> {OC_VARIANCE_SYMBOL}</span>}
+                    {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
                   </span>
                   <span className="shrink-0 text-[11px]" style={{ color: colors.textSecondary }}>ADP {player.adp}</span>
                 </div>
@@ -205,10 +283,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
                 </div>
               </div>
-              <div className="mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                <span className="font-bold" style={{ color: colors.textPrimary }}>Player note: </span>
-                {player.playerNote}
-              </div>
+              {player.playerNote && (
+                <div className="mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                  {player.playerNote}
+                </div>
+              )}
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
                 {player.scoreCards.map((card) => (
                   <div key={card.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
