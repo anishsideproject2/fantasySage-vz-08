@@ -321,7 +321,7 @@ export function Header({
                         backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
                       }}
                     >
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                         <div className="flex items-center gap-2 min-w-0">
                           <TrendingUp size={14} style={{ color: colors.headingGreen }} className="shrink-0" />
                           <div className="min-w-0">
@@ -336,19 +336,17 @@ export function Header({
                             </div>
                           </div>
                         </div>
-                        {preset.accuracyRanks ? (
-                          <div className="flex justify-center gap-1.5 text-[11px]">
-                            {["QB", "RB", "WR", "TE"].map((position) => (
-                              <span key={position} className="rounded border px-1.5 py-1 text-center" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
-                        <span
-                          className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
-                          style={getAccuracyTypeStyle(preset.accuracyType, colors)}
-                        >
-                          <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
-                        </span>
-                      </div>
-                      <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
-                        {preset.accuracyNote}
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
+                            style={getAccuracyTypeStyle(preset.accuracyType, colors)}
+                          >
+                            <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
+                          </span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
+                            {isActive ? "Loaded" : "Load"}
+                          </span>
+                        </div>
                       </div>
                       <div className="mt-1 flex items-center justify-between gap-2">
                         {preset.accuracyRanks ? (
@@ -363,27 +361,10 @@ export function Header({
                             ))}
                           </div>
                         ) : (
-                          <div className="rounded border px-2 py-1 text-center text-[11px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
-                            Overall draft accuracy
-                          </div>
-                        )}
-                        <div className="flex flex-col items-end gap-1">
-                          <span
-                            className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
-                            style={getAccuracyTypeStyle(preset.accuracyType, colors)}
-                          >
-                            <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
-                          </span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
-                            {isActive ? "Loaded" : "Load"}
-                          </span>
                           <div className="truncate rounded border px-2 py-0.5 text-[10px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
                             Overall draft accuracy
                           </div>
                         )}
-                        <div className="shrink-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
-                          {isActive ? "Loaded" : "Load"}
-                        </div>
                       </div>
                       <div className="mt-1 line-clamp-1 text-[10px] leading-snug" style={{ color: colors.textSecondary }}>
                         {preset.accuracyNote}
