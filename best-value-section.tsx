@@ -1,6 +1,4 @@
 "use client"
-import { ChevronDown, ChevronRight } from "lucide-react"
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BubbleSymbol } from "./bubble-symbol"
@@ -20,11 +18,6 @@ const getSignalColor = (score) => {
 }
 
 function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
-  const [isExpanded, setIsExpanded] = useState(idx === 0)
-  const toggleDetails = () => {
-    setIsExpanded((value) => !value)
-  }
-
   return (
     <div
       className="rounded-lg best-value-row transition-colors duration-150"
@@ -33,43 +26,11 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
         color: colors.textPrimary,
       }}
     >
-      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1 text-sm">
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
-        <div className="col-span-1 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={toggleDetails}
-            className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-            style={{ color: colors.textSecondary }}
-            aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
-            title="Show recommendation details"
-          >
-            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </button>
+        <div className="col-span-5 min-w-0 truncate player-name-cell" title={player.name}>
+          {player.name}
         </div>
-        <div className="col-span-4 min-w-0">
-          <button
-            type="button"
-            onClick={toggleDetails}
-            className="block max-w-full truncate player-name-cell text-left hover:underline"
-            aria-expanded={isExpanded}
-            aria-controls={`best-value-details-${player.id}`}
-            title="Show confidence score and recommendation details"
-          >
-            {player.name}
-          </button>
-          <button
-            type="button"
-            onClick={toggleDetails}
-            className="mt-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
-            style={{ color: colors.textSecondary }}
-            aria-label={isExpanded ? `Hide ${player.name} recommendation details` : `Show ${player.name} recommendation details`}
-          >
-            {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            Confidence details
-          </button>
-        </div>
-        <div className="col-span-2">
+        <div className="col-span-2 flex justify-center">
           <BubbleSymbol pos={player.position} colors={colors} />
         </div>
         <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
@@ -79,47 +40,10 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
           {player.adp}
         </div>
       </div>
-      {isExpanded && (
-        <div id={`best-value-details-${player.id}`} className="mx-2 mb-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span
-              className="rounded px-2 py-0.5 font-bold"
-              style={{ background: player.confidenceColor, color: player.confidenceTextColor }}
-            >
-              {player.confidence} confidence · {player.confidenceScore}/100
-            </span>
-            <span style={{ color: colors.gold }}>Hybrid: {player.hybridScore}</span>
-            <span style={{ color: colors.textSecondary }}>Value: {player.valueDiff}</span>
-            <span style={{ color: colors.textSecondary }}>Expert rank: {player.expertRank}</span>
-            {player.hybridSource && <span style={{ color: colors.textSecondary }}>Source: {player.hybridSource}</span>}
-          </div>
-          <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-            {player.confidenceBreakdown.map((item) => (
-              <div key={item.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder }}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold" style={{ color: colors.textPrimary }}>{item.label}</span>
-                  <span className="font-bold" style={{ color: item.color }}>{item.score}</span>
-                </div>
-                <div className="mt-1 h-1.5 rounded-full" style={{ background: colors.background }}>
-                  <div
-                    className="h-1.5 rounded-full"
-                    style={{ background: item.color, width: `${item.score}%` }}
-                  />
-                </div>
-                <div className="mt-1 leading-tight" style={{ color: colors.textSecondary }}>{item.detail}</div>
-              </div>
-            ))}
-          </div>
-          <ul className="list-disc pl-4 space-y-0.5" style={{ color: colors.textSecondary }}>
-            {player.reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }
+
 
 export function BestValueSection({
   colors,

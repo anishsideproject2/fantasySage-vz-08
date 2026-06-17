@@ -2,8 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
+import { OC_VARIANCE_SYMBOL, getDraftStrategySignal, getTeamOcVariance } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
+const BENCH_TARGET_POSITIONS = ["RB", "WR"]
+
 const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
@@ -70,16 +73,20 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     const directOpen = Math.max(directTarget - count, 0)
     const flexEligibleCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (selectedRosterCounts[pos] || 0), 0)
     const flexEligibleTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
-    const flexOpen = FLEX_POSITIONS.includes(position) ? Math.max(flexEligibleTarget - flexEligibleCount, 0) : 0
+    const flexOpen = position === "RB" || position === "WR" ? Math.max(flexEligibleTarget - flexEligibleCount, 0) : 0
     const superFlexOpen = position === "QB" ? Math.max(starterTargets.QB + superFlexSlots - count, 0) : 0
-    const totalTarget = directTarget + (FLEX_POSITIONS.includes(position) ? flexSlots : 0) + (position === "QB" ? superFlexSlots : 0)
+    const benchOpen = selectedRosterCounts.total >= starterCount && selectedRosterCounts.total < rosterSize
     const rosterFull = selectedRosterCounts.total >= rosterSize
 
-    if (directOpen > 0) return { bonus: position === "RB" || position === "WR" ? 10 : 8, reason: `${directOpen} ${position} starter slot${directOpen === 1 ? "" : "s"} open` }
-    if (superFlexOpen > 0) return { bonus: 7, reason: `${superFlexOpen} superflex QB slot${superFlexOpen === 1 ? "" : "s"} open` }
-    if (flexOpen > 0) return { bonus: 6, reason: `${flexOpen} flex slot${flexOpen === 1 ? "" : "s"} open` }
-    if (count < totalTarget + 1) return { bonus: rosterFull ? -2 : 2, reason: `usable ${position} depth` }
-    return { bonus: position === "QB" || position === "TE" ? -8 : -4, reason: `already have ${count} ${position}${count === 1 ? "" : "s"}` }
+    if (directOpen > 0) return { bonus: position === "RB" || position === "WR" ? 10 : 8, reason: `${directOpen} ${position} starter slot${directOpen === 1 ? "" : "s"} open`, eligible: true }
+    if (superFlexOpen > 0) return { bonus: 7, reason: `${superFlexOpen} superflex QB slot${superFlexOpen === 1 ? "" : "s"} open`, eligible: true }
+    if (position === "QB" || position === "TE") {
+      return { bonus: -100, reason: `skip double ${position}; starter slot is covered`, eligible: false }
+    }
+    if (flexOpen > 0) return { bonus: 6, reason: `${flexOpen} flex slot${flexOpen === 1 ? "" : "s"} open`, eligible: true }
+    if (benchOpen && BENCH_TARGET_POSITIONS.includes(position)) return { bonus: 3, reason: `bench upside should be RB/WR only`, eligible: true }
+    if (rosterFull) return { bonus: -10, reason: "roster is full", eligible: false }
+    return { bonus: 1, reason: `usable ${position} depth`, eligible: BENCH_TARGET_POSITIONS.includes(position) }
   }
 
   const getScarcityBonus = (player, available) => {
@@ -104,7 +111,10 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
       const rosterNeed = getRosterNeed(player.position)
       const formatBonus = getFormatBonus(player.position)
+      if (!rosterNeed.eligible) return null
       const scarcityBonus = getScarcityBonus(player, availablePlayers)
+      const strategySignal = getDraftStrategySignal({ player, rosterReason: rosterNeed.reason, scoringFormat })
+      const ocVariance = getTeamOcVariance(player.team)
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -121,6 +131,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         expertEdge,
         formatBonus,
         scarcityBonus,
+        strategySignal,
+        ocVariance,
+        pickNote: `${rosterNeed.reason}; ${strategySignal.detail}`,
         rosterReason: rosterNeed.reason,
         confidenceScore,
         confidence: getConfidenceLabel(confidenceScore),
@@ -130,7 +143,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     })
     .filter(Boolean)
     .sort((a, b) => b.hybridScore - a.hybridScore || b.confidenceScore - a.confidenceScore)
-    .slice(0, 2)
+    .slice(0, 5)
 
   return (
     <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
@@ -138,11 +151,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 2 • {scoringFormat}
+            Top 5 • {scoringFormat}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 px-2 pt-0">
+      <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto px-2 pt-0 pr-1">
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
@@ -150,24 +163,25 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         ) : (
           suggestedPicks.map((player, idx) => (
             <div key={player.id} className="rounded-lg border px-2 py-2" style={{ borderColor: colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>{idx + 1}. {player.name}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: colors.textSecondary }}>
-                    <BubbleSymbol pos={player.position} colors={colors} />
-                    <span>ADP {player.adp}</span>
-                    <span>Value {player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)}</span>
-                  </div>
+              <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
+                  <BubbleSymbol pos={player.position} colors={colors} />
+                  <span className="min-w-0 truncate text-sm font-bold" style={{ color: colors.textPrimary }} title={player.name}>
+                    {player.name}{player.ocVariance && <span title={`New OC: ${player.ocVariance.coordinator}. ${player.ocVariance.note}`}> {OC_VARIANCE_SYMBOL}</span>}
+                  </span>
+                  <span className="shrink-0 text-[11px]" style={{ color: colors.textSecondary }}>ADP {player.adp}</span>
                 </div>
-                <div className="shrink-0 rounded px-2 py-1 text-center text-[11px] font-bold" style={{ background: player.confidenceColor, color: player.confidenceScore >= 45 && player.confidenceScore < 60 ? "#000" : colors.white }}>
-                  {player.confidence}<br />{player.confidenceScore}
+                <div className="shrink-0 rounded-full border px-2.5 py-1 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
+                  <div className="text-xs font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
                 </div>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-1 text-[11px]" style={{ color: colors.textSecondary }}>
-                <div>Roster: {player.rosterReason}</div>
-                <div>Expert: {player.expertEdge >= 0 ? "+" : ""}{player.expertEdge.toFixed(1)}</div>
-                <div>Format: {player.formatBonus >= 0 ? "+" : ""}{player.formatBonus}</div>
-                <div>Scarcity: {player.scarcityBonus >= 0 ? "+" : ""}{player.scarcityBonus}</div>
+              <div className="mt-2 flex items-start justify-between gap-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                <span className="font-bold" style={{ color: player.valueDiff >= 0 ? '#22c55e' : '#ef4444' }}>
+                  Value {player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)}
+                </span>
+                <span className="min-w-0 flex-1 truncate" title={player.pickNote}>{player.pickNote}</span>
               </div>
             </div>
           ))
