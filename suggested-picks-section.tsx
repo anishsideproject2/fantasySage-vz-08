@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
-import { OC_VARIANCE_SYMBOL, getDraftStrategySignal, getTeamOcVariance } from "./draft-strategy"
+import { OC_VARIANCE_SYMBOL, getPlayerNote, getTeamOcVariance } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -18,8 +18,8 @@ const getPlayerStrategySignal = (player) => {
   const nameKey = String(player.name || "").toLowerCase()
   const directSignal = PLAYER_STRATEGY_SIGNALS[nameKey]
   if (directSignal) return directSignal
-  if (player.position === "RB" && Number.parseFloat(player.adp) <= 36) {
-    return { bonus: 3, label: "RB scarce", detail: "RB market is pricey; bank a starter before the room locks you out." }
+  if (player.position === "RB" && Number.parseFloat(player.adp) <= 60) {
+    return { bonus: 5, label: "RB window", detail: "RB market is pricey; try to land a starter in rounds 1-5 before the room locks you out." }
   }
   if (player.position === "WR" && Number.parseFloat(player.adp) >= 24 && Number.parseFloat(player.adp) <= 60) {
     return { bonus: 2, label: "WR pocket", detail: "Strong WR range after hero-RB starts; prioritize if roster fit is open." }
@@ -134,6 +134,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const scarcityBonus = getScarcityBonus(player, availablePlayers)
       const strategySignal = getPlayerStrategySignal(player)
       const strategyBonus = strategySignal.bonus
+      const ocVariance = getTeamOcVariance(player.team)
+      const playerNote = getPlayerNote(player, rosterNeed.reason)
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -153,10 +155,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scarcityBonus,
         strategyBonus,
         strategySignal,
+        ocVariance,
+        playerNote,
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Fit", value: Math.round(needScore), detail: rosterNeed.reason },
-          { label: "Market", value: Math.round(expertScore), detail: `${expertEdge >= 0 ? "+" : ""}${expertEdge.toFixed(1)} expert edge` },
           { label: strategySignal.label, value: Math.round(strategyScore), detail: strategySignal.detail },
         ],
         rosterReason: rosterNeed.reason,
@@ -202,7 +205,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
                 </div>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
+              <div className="mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                <span className="font-bold" style={{ color: colors.textPrimary }}>Player note: </span>
+                {player.playerNote}
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
                 {player.scoreCards.map((card) => (
                   <div key={card.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                     <div className="flex items-center justify-between gap-2">
