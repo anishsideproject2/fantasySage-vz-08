@@ -7,6 +7,25 @@ import { OC_VARIANCE_SYMBOL, getDraftStrategySignal, getTeamOcVariance } from ".
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
 
+const PLAYER_STRATEGY_SIGNALS = {
+  "jaylen waddle": { bonus: 5, label: "Change discount", detail: "Monitor trade/team-change discount if market price lags role upgrade." },
+  "devonta smith": { bonus: 4, label: "Breakout bet", detail: "User thesis: target around the 3-4 turn if value holds." },
+  "colston loveland": { bonus: 6, label: "TE breaker", detail: "One of the last TE upside bets before the tier falls off." },
+  "tyler warren": { bonus: 6, label: "TE breaker", detail: "One of the last TE upside bets before the tier falls off." },
+}
+
+const getPlayerStrategySignal = (player) => {
+  const nameKey = String(player.name || "").toLowerCase()
+  const directSignal = PLAYER_STRATEGY_SIGNALS[nameKey]
+  if (directSignal) return directSignal
+  if (player.position === "RB" && Number.parseFloat(player.adp) <= 36) {
+    return { bonus: 3, label: "RB scarce", detail: "RB market is pricey; bank a starter before the room locks you out." }
+  }
+  if (player.position === "WR" && Number.parseFloat(player.adp) >= 24 && Number.parseFloat(player.adp) <= 60) {
+    return { bonus: 2, label: "WR pocket", detail: "Strong WR range after hero-RB starts; prioritize if roster fit is open." }
+  }
+  return { bonus: 0, label: "Clean fit", detail: "No special 2026 draft signal beyond value and roster fit." }
+}
 const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
@@ -113,17 +132,18 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const formatBonus = getFormatBonus(player.position)
       if (!rosterNeed.eligible) return null
       const scarcityBonus = getScarcityBonus(player, availablePlayers)
-      const strategySignal = getDraftStrategySignal({ player, rosterReason: rosterNeed.reason, scoringFormat })
-      const ocVariance = getTeamOcVariance(player.team)
+      const strategySignal = getPlayerStrategySignal(player)
+      const strategyBonus = strategySignal.bonus
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
       const formatScore = clamp(50 + formatBonus * 5, 0, 100)
       const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
+      const strategyScore = clamp(50 + strategyBonus * 8, 0, 100)
       const confidenceScore = Math.round(
-        clamp(valueScore * 0.38 + expertScore * 0.22 + needScore * 0.25 + formatScore * 0.08 + scarcityScore * 0.07, 0, 100),
+        clamp(valueScore * 0.34 + expertScore * 0.19 + needScore * 0.27 + formatScore * 0.06 + scarcityScore * 0.06 + strategyScore * 0.08, 0, 100),
       )
-      const hybridScore = 0.42 * valueDiff + 0.28 * expertEdge + 0.18 * rosterNeed.bonus + 0.07 * formatBonus + 0.05 * scarcityBonus
+      const hybridScore = 0.38 * valueDiff + 0.25 * expertEdge + 0.22 * rosterNeed.bonus + 0.05 * formatBonus + 0.04 * scarcityBonus + 0.06 * strategyBonus
 
       return {
         ...player,
@@ -131,9 +151,14 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         expertEdge,
         formatBonus,
         scarcityBonus,
+        strategyBonus,
         strategySignal,
-        ocVariance,
-        pickNote: `${rosterNeed.reason}; ${strategySignal.detail}`,
+        scoreCards: [
+          { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
+          { label: "Fit", value: Math.round(needScore), detail: rosterNeed.reason },
+          { label: "Market", value: Math.round(expertScore), detail: `${expertEdge >= 0 ? "+" : ""}${expertEdge.toFixed(1)} expert edge` },
+          { label: strategySignal.label, value: Math.round(strategyScore), detail: strategySignal.detail },
+        ],
         rosterReason: rosterNeed.reason,
         confidenceScore,
         confidence: getConfidenceLabel(confidenceScore),
@@ -177,11 +202,16 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
                 </div>
               </div>
-              <div className="mt-2 flex items-start justify-between gap-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                <span className="font-bold" style={{ color: player.valueDiff >= 0 ? '#22c55e' : '#ef4444' }}>
-                  Value {player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)}
-                </span>
-                <span className="min-w-0 flex-1 truncate" title={player.pickNote}>{player.pickNote}</span>
+              <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
+                {player.scoreCards.map((card) => (
+                  <div key={card.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span>
+                      <span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span>
+                    </div>
+                    <div className="mt-0.5 truncate" title={card.detail}>{card.detail}</div>
+                  </div>
+                ))}
               </div>
             </div>
           ))
