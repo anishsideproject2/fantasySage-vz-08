@@ -14,6 +14,8 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
   borderColor: type === "Draft" ? colors.purple : type === "Hybrid" ? colors.headingGreen : colors.gold,
 })
 
+const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
+
 const SageLogo = () => (
   <img src="https://imgur.com/TKUdYzv.png" alt="FantasySage Logo" className="w-32 h-36 sm:w-44 sm:h-48" />
 )
@@ -315,13 +317,13 @@ export function Header({
                     <button
                       key={preset.id}
                       onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="flex w-full items-center gap-3 rounded-md border p-2 text-left transition-colors hover:opacity-90"
+                      className="block w-full rounded-md border p-2 text-left transition-colors hover:opacity-90"
                       style={{
                         borderColor: isActive ? colors.headingGreen : colors.cardBorder,
                         backgroundColor: isActive ? `${colors.headingGreen}1a` : colors.card,
                       }}
                     >
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                         <div className="flex items-center gap-2 min-w-0">
                           <TrendingUp size={14} style={{ color: colors.headingGreen }} className="shrink-0" />
                           <div className="min-w-0">
@@ -336,35 +338,55 @@ export function Header({
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span
-                            className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
-                            style={getAccuracyTypeStyle(preset.accuracyType, colors)}
-                          >
-                            <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
-                          </span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
-                            {isActive ? "Loaded" : "Load"}
-                          </span>
+                        <div className="flex items-start gap-2">
+                          {preset.accuracyRanks ? (
+                            <div
+                              className="grid grid-cols-2 overflow-hidden rounded-md border text-[10px] leading-none"
+                              style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
+                              aria-label="Position accuracy ranks"
+                            >
+                              {POSITION_RANKS.map((position, index) => (
+                                <div
+                                  key={position}
+                                  className="flex min-w-12 items-center justify-between gap-1 px-1.5 py-1"
+                                  style={{
+                                    borderColor: colors.cardBorder,
+                                    borderRightWidth: index % 2 === 0 ? 1 : 0,
+                                    borderBottomWidth: index < 2 ? 1 : 0,
+                                  }}
+                                >
+                                  <span className="font-bold" style={{ color: colors.gold }}>
+                                    {position}
+                                  </span>
+                                  <span className="font-semibold" style={{ color: colors.textPrimary }}>
+                                    {preset.accuracyRanks?.[position] ?? "—"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div
+                              className="hidden rounded-md border px-2 py-2 text-[10px] font-medium sm:block"
+                              style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}
+                            >
+                              Overall draft accuracy
+                            </div>
+                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className="flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap rounded-full border px-1.5 py-0.5"
+                              style={getAccuracyTypeStyle(preset.accuracyType, colors)}
+                            >
+                              <Award size={12} /> {preset.accuracyType} #{preset.accuracyRank}
+                            </span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: isActive ? colors.headingGreen : colors.textSecondary }}>
+                              {isActive ? "Loaded" : "Load"}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-1 flex items-center justify-between gap-2">
-                        {preset.accuracyRanks ? (
-                          <div className="flex min-w-0 flex-wrap gap-1 text-[10px]">
-                            {["QB", "RB", "WR", "TE"].map((position) => (
-                              <span key={position} className="rounded border px-1 py-0.5" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
-                                <span className="font-bold" style={{ color: colors.gold }}>{position}</span>
-                                <span style={{ color: colors.textPrimary }}>
-                                  {preset.accuracyRanks?.[position] ? ` ${preset.accuracyRanks[position]}` : " —"}
-                                </span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="truncate rounded border px-2 py-0.5 text-[10px]" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
-                            Overall draft accuracy
-                          </div>
-                        )}
+                      <div className="mt-1 truncate text-[10px]" style={{ color: colors.textSecondary }}>
+                        {preset.accuracyNote}
                       </div>
                     </button>
                   )
