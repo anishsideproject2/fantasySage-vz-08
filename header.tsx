@@ -339,7 +339,7 @@ export function Header({
                           </div>
                         </div>
                         <div className="flex items-start gap-2">
-                          {preset.accuracyRanks ? (
+                          {preset.accuracyRanks && (
                             <div
                               className="grid grid-cols-2 overflow-hidden rounded-md border text-[10px] leading-none"
                               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
@@ -363,13 +363,6 @@ export function Header({
                                   </span>
                                 </div>
                               ))}
-                            </div>
-                          ) : (
-                            <div
-                              className="hidden rounded-md border px-2 py-2 text-[10px] font-medium sm:block"
-                              style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue, color: colors.textSecondary }}
-                            >
-                              Overall draft accuracy
                             </div>
                           )}
                           <div className="flex flex-col items-end gap-1">

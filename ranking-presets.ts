@@ -987,7 +987,7 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
     presets: [
       {
         id: "hybrid-half-ppr",
-        analyst: "Hybrid Accuracy Board",
+        analyst: "Sage Rankings",
         source: "Best analyst by position",
         updated: "6/15",
         accuracyRank: 1,
