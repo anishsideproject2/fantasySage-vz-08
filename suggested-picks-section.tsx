@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
-import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getPlayerNote } from "./draft-strategy"
+import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -213,6 +213,15 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const primaryStrategySignal = ocImpact || (strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
       const strategyBonus = strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)
       const playerNote = getPlayerNote(player, scoringFormat)
+      const ocSummary = getOcTendencySummary(player)
+      const fallbackOcCards = {
+        pass: { label: "OC pass", value: 50, detail: "No major pass-rate OC change flagged" },
+        run: { label: "OC run", value: 50, detail: "No major run-rate OC change flagged" },
+      }
+      const whySignal = ocImpact
+        ? `${ocImpact.coordinator} ${ocImpact.bonus > 0 ? "helps" : "adds risk to"} this ${player.position} profile.`
+        : playerNote || primaryStrategySignal.detail
+      const whyPickNote = `${valueDiff >= 0 ? "Pick for value" : "Only pick if you need the position"}: ${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP with ${rosterNeed.reason}. ${whySignal}`
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -234,11 +243,12 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         strategySignal,
         thematicSignal,
         ocImpact,
-        playerNote,
+        playerNote: whyPickNote,
+        ocSummary,
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
-          { label: "Fit", value: Math.round(needScore), detail: rosterNeed.reason },
-          { label: primaryStrategySignal.label, value: Math.round(strategyScore), detail: primaryStrategySignal.detail },
+          ocSummary?.pass || fallbackOcCards.pass,
+          ocSummary?.run || fallbackOcCards.run,
         ],
         rosterReason: rosterNeed.reason,
         confidenceScore,
@@ -295,7 +305,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                       <span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span>
                       <span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span>
                     </div>
-                    <div className="mt-0.5 truncate" title={card.detail}>{card.detail}</div>
+                    <div className="mt-0.5 leading-snug" title={card.detail}>{card.detail}</div>
                   </div>
                 ))}
               </div>

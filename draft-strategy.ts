@@ -107,6 +107,35 @@ export const OC_TENDENCY_CHANGES_BY_TEAM = {
 export const getOcTendencyChange = (team) => OC_TENDENCY_CHANGES_BY_TEAM[normalizeTeamAbbr(team)] || null
 
 const OC_TENDENCY_NOTE_THRESHOLD = 5
+const clampScore = (value) => Math.min(Math.max(value, 0), 100)
+
+export const getOcTendencySummary = (player) => {
+  const tendency = getOcTendencyChange(player.team)
+  const ocVariance = getTeamOcVariance(player.team)
+  if (!tendency || !ocVariance || ocVariance.actualChange === false) return null
+
+  const makeRateSummary = (rateType) => {
+    const nextRate = rateType === "run" ? tendency.runRate : tendency.passRate
+    const previousRate = rateType === "run" ? tendency.previousRunRate : tendency.previousPassRate
+    const delta = nextRate - previousRate
+    const favorable = delta > 0
+
+    return {
+      label: `OC ${rateType} ${favorable ? "boost" : "drag"}`,
+      value: Math.round(clampScore(50 + delta * 4)),
+      detail: `${formatDelta(delta)} from ${ocVariance.previousCoordinator || "last year's OC"} to ${ocVariance.coordinator} (${formatRate(previousRate)} → ${formatRate(nextRate)})`,
+      delta,
+      rateType,
+    }
+  }
+
+  return {
+    coordinator: ocVariance.coordinator,
+    previousCoordinator: ocVariance.previousCoordinator || "last year's OC",
+    pass: makeRateSummary("pass"),
+    run: makeRateSummary("run"),
+  }
+}
 
 export const getOcTendencyImpact = (player, scoringFormat = "") => {
   const tendency = getOcTendencyChange(player.team)
