@@ -1158,18 +1158,31 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const baseResearchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
       const researchScore = computeResearchScore({ note, existingBaseResearch: baseResearchScore, playerValueVsAdp: valueDiff, leagueFormat })
       const advancedConfidenceBonus = (opportunityProfile.score >= 70 ? 8 : 0) + (schemeProfile.bonus > 0 ? 5 : 0) + (categoryFlag?.type?.includes("BUST") ? -18 : categoryFlag ? 8 : 0)
-      const confidenceScore = Math.round(
-        clamp(valueScore * 0.20 + expertScore * 0.13 + needScore * 0.24 + formatScore * 0.05 + scarcityScore * 0.06 + strategyScore * 0.08 + researchScore * 0.08 + opportunityProfile.score * 0.11 + clamp(50 + schemeProfile.bonus * 6, 0, 100) * 0.05 + advancedConfidenceBonus, 0, 100),
+      const rawConfidenceScore = clamp(
+        valueScore * 0.36 +
+          expertScore * 0.18 +
+          needScore * 0.16 +
+          formatScore * 0.04 +
+          scarcityScore * 0.04 +
+          strategyScore * 0.06 +
+          researchScore * 0.05 +
+          opportunityProfile.score * 0.08 +
+          clamp(50 + schemeProfile.bonus * 6, 0, 100) * 0.03 +
+          advancedConfidenceBonus,
+        0,
+        100,
       )
+      const valueConfidenceFloor = valueDiff > 0 ? clamp(valueScore - 8, 0, 100) : 0
+      const confidenceScore = Math.round(Math.max(rawConfidenceScore, valueConfidenceFloor))
       const confidenceStars = getConfidenceStars(confidenceScore)
       const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
-      const hybridScore = 0.26 * valueDiff + 0.16 * expertEdge + 0.28 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.09 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
+      const hybridScore = 0.44 * valueDiff + 0.22 * expertEdge + 0.14 * rosterNeed.bonus + 0.03 * formatBonus + 0.04 * scarcityBonus + 0.05 * strategyBonus + 0.08 * researchEdge.bonus + tierUrgency
       const contextualSupport = clamp(
-        earlyContextAdjustment + rosterNeed.bonus * 0.65 + formatBonus * 0.4 + scarcityBonus * 0.7 + strategyBonus * 0.25 + researchEdge.bonus * 0.45 + tierUrgency,
-        player.position === "TE" ? -8 : -14,
-        player.position === "TE" ? 8 : 14,
+        earlyContextAdjustment + rosterNeed.bonus * 0.45 + formatBonus * 0.25 + scarcityBonus * 0.45 + strategyBonus * 0.15 + researchEdge.bonus * 0.3 + tierUrgency,
+        player.position === "TE" ? -6 : -8,
+        player.position === "TE" ? 6 : 8,
       )
-      const finalScore = valueDiff * (player.position === "TE" ? 8 : 5) + contextualSupport
+      const finalScore = valueDiff * (player.position === "TE" ? 10 : 9) + expertEdge * 1.5 + contextualSupport
 
       return {
         ...player,
