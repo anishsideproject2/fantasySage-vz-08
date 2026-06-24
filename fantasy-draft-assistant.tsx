@@ -200,15 +200,6 @@ export function FantasyDraftAssistant() {
               selectedTeamRosterId={selectedTeamRosterId}
               layout="horizontal"
             />
-            <DraftBoardSection
-              colors={colors}
-              draftData={draftData}
-              draftedPlayers={draftedPlayers}
-              currentPick={currentPick}
-              selectedTeamRosterId={selectedTeamRosterId}
-              setSelectedTeamRosterId={setSelectedTeamRosterId}
-              visibleRoundCount={10}
-            />
             <TeamRosterSection
               colors={colors}
               draftData={draftData}
@@ -217,9 +208,18 @@ export function FantasyDraftAssistant() {
               draftedPlayers={draftedPlayers}
               platform={platform}
             />
+            <DraftBoardSection
+              colors={colors}
+              draftData={draftData}
+              draftedPlayers={draftedPlayers}
+              currentPick={currentPick}
+              selectedTeamRosterId={selectedTeamRosterId}
+              setSelectedTeamRosterId={setSelectedTeamRosterId}
+              visibleRoundCount={3}
+            />
           </div>
 
-          <div className="hidden items-start gap-4 lg:grid lg:grid-cols-[minmax(320px,0.92fr)_minmax(520px,1.42fr)_minmax(340px,0.98fr)]">
+          <div className="hidden items-start gap-4 lg:grid lg:grid-cols-[minmax(320px,0.95fr)_minmax(380px,1.05fr)_minmax(420px,1.25fr)]">
             <div className="space-y-4">
               <BestValueSection
                 colors={colors}
@@ -236,6 +236,8 @@ export function FantasyDraftAssistant() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
               />
+            </div>
+            <div className="col-span-2 space-y-4">
               <SuggestedPicksSection
                 colors={colors}
                 draftData={draftData}
@@ -243,29 +245,27 @@ export function FantasyDraftAssistant() {
                 getAvailablePlayers={getAvailablePlayers}
                 draftedPlayers={draftedPlayers}
                 selectedTeamRosterId={selectedTeamRosterId}
-                layout="stacked"
+                layout="horizontal"
               />
-            </div>
-            <div className="space-y-4">
-              <DraftBoardSection
-                colors={colors}
-                draftData={draftData}
-                draftedPlayers={draftedPlayers}
-                currentPick={currentPick}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                visibleRoundCount={10}
-              />
-            </div>
-            <div>
-              <TeamRosterSection
-                colors={colors}
-                draftData={draftData}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                draftedPlayers={draftedPlayers}
-                platform={platform}
-              />
+              <div className="grid items-start gap-4 xl:grid-cols-[minmax(340px,0.9fr)_minmax(420px,1.1fr)]">
+                <TeamRosterSection
+                  colors={colors}
+                  draftData={draftData}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  draftedPlayers={draftedPlayers}
+                  platform={platform}
+                />
+                <DraftBoardSection
+                  colors={colors}
+                  draftData={draftData}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  visibleRoundCount={3}
+                />
+              </div>
             </div>
           </div>
         </main>
