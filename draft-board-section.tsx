@@ -26,12 +26,6 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   const rounds = draftData?.rounds || 0
   const totalPicks = numTeams && rounds ? numTeams * rounds : 0
   const picksByNumber = new Map((draftedPlayers || []).map((player) => [Number(player.pick_no), player]))
-  const currentRound = numTeams ? Math.min(Math.max(Math.floor((Number(currentPick) - 1) / numTeams) + 1, 1), rounds) : 1
-  const firstVisibleRound = currentRound >= rounds ? Math.max(rounds - 1, 1) : currentRound
-  const visibleRounds = Array.from(
-    { length: Math.min(2, rounds - firstVisibleRound + 1) },
-    (_, index) => firstVisibleRound + index,
-  )
 
   if (!numTeams || !rounds) {
     return (
@@ -54,18 +48,18 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <CardTitle className="flex items-center justify-between gap-2 text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Rounds {visibleRounds[0]}-{visibleRounds[visibleRounds.length - 1]}
+            Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-2 pt-0">
-        <div className="max-h-[15.5rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
-          <div className="min-w-[760px]">
+        <div className="overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+          <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"
               style={{ gridTemplateColumns: `3.5rem repeat(${numTeams}, minmax(7.5rem, 1fr))`, backgroundColor: colors.darkBlue }}
             >
-              <div className="border-r px-2 py-1.5 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+              <div className="border-r px-2 py-2 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                 Rd
               </div>
               {teams.map((team, index) => {
@@ -75,15 +69,15 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                   <button
                     key={team.roster_id || index}
                     onClick={() => setSelectedTeamRosterId?.(team.roster_id)}
-                    className="min-w-0 border-r px-2 py-1.5 text-left transition hover:opacity-90"
+                    className="min-w-0 border-r px-2 py-2 text-left transition hover:opacity-90"
                     style={{ borderColor: colors.lightBorder, backgroundColor: isSelected ? `${colors.headingGreen}22` : "transparent" }}
                     title={team.team_name}
                   >
                     <div className="flex items-center gap-2">
                       {avatarUrl ? (
-                        <img src={avatarUrl} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover" />
+                        <img src={avatarUrl} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                       ) : (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-black" style={{ backgroundColor: colors.purple, color: colors.white }}>
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black" style={{ backgroundColor: colors.purple, color: colors.white }}>
                           {getTeamInitials(team.team_name)}
                         </span>
                       )}
@@ -97,7 +91,8 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
               })}
             </div>
 
-            {visibleRounds.map((round) => {
+            {Array.from({ length: rounds }, (_, roundIndex) => {
+              const round = roundIndex + 1
               return (
                 <div
                   key={round}
@@ -117,7 +112,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                       <button
                         key={`${round}-${draftSlot}`}
                         onClick={() => setSelectedTeamRosterId?.(team.roster_id)}
-                        className="min-h-[3.75rem] border-r p-2 text-left transition hover:opacity-90"
+                        className="min-h-[4.5rem] border-r p-2 text-left transition hover:opacity-90"
                         style={{
                           borderColor: colors.lightBorder,
                           backgroundColor: isCurrentPick ? `${colors.headingGreen}26` : isSelectedTeam ? `${colors.purple}16` : colors.tableRow,
@@ -137,7 +132,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                             </div>
                           </div>
                         ) : (
-                          <div className="flex h-7 items-center justify-center rounded border border-dashed text-[10px] font-semibold" style={{ borderColor: colors.cardBorder, color: isCurrentPick ? colors.headingGreen : colors.textSecondary }}>
+                          <div className="flex h-9 items-center justify-center rounded border border-dashed text-[10px] font-semibold" style={{ borderColor: colors.cardBorder, color: isCurrentPick ? colors.headingGreen : colors.textSecondary }}>
                             {isCurrentPick ? "On clock" : "Upcoming"}
                           </div>
                         )}

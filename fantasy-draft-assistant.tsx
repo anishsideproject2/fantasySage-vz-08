@@ -345,6 +345,15 @@ export function FantasyDraftAssistant() {
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
                 />
 
+                <DraftedPlayersSection
+                  colors={colors}
+                  draftData={draftData}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                />
+
                 <TeamRosterSection
                   colors={colors}
                   draftData={draftData}
