@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useCallback } from "react"
-import { User } from "lucide-react"
+import { AlertTriangle, CheckCircle2, User } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -86,17 +86,18 @@ const TEAM_ABBREVIATIONS = {
 const getTeamAbbr = (teamName) => TEAM_ABBREVIATIONS[teamName] || teamName
 
 const getBubbleColorsForSlot = (pos, colors) => {
+  const isDarkTheme = colors.card !== "#FFFFFF"
   switch (pos) {
     case "QB":
       return { bg: colors.pillQB, text: colors.pillTextQB }
     case "RB":
       return { bg: colors.pillRB, text: colors.pillTextRB }
     case "WR":
-      return { bg: colors.pillWR, text: colors.pillTextWR }
+      return { bg: isDarkTheme ? colors.pillWR : colors.fantasyProsBlue, text: isDarkTheme ? colors.pillTextWR : colors.white }
     case "TE":
       return { bg: colors.pillTE, text: colors.pillTextTE }
     case "FLEX":
-      return { bg: colors.pillWR, text: colors.pillTextWR }
+      return { bg: isDarkTheme ? colors.pillWR : colors.fantasyProsBlue, text: isDarkTheme ? colors.pillTextWR : colors.white }
     case "BN":
       return { bg: colors.pillBN, text: colors.pillTextBN }
     default:
@@ -214,6 +215,36 @@ const groupRosterSlotsByPosition = (players, template) => {
   return groups
 }
 
+const getStarterSlotCount = (settings) => generateRosterSlots(settings).filter((slot) => slot !== "BN").length
+
+const getRosterBuildInsights = (counts, template) => {
+  const requiredCounts = template.reduce((acc, slot) => {
+    if (["QB", "RB", "WR", "TE"].includes(slot)) acc[slot] = (acc[slot] || 0) + 1
+    return acc
+  }, { QB: 0, RB: 0, WR: 0, TE: 0 })
+  const flexSlots = template.filter((slot) => slot === "FLEX").length
+  const flexEligibleCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (counts[pos] || 0), 0)
+  const flexCoreTarget = (requiredCounts.RB || 0) + (requiredCounts.WR || 0) + (requiredCounts.TE || 0) + flexSlots
+  const openStarters = ["QB", "RB", "WR", "TE"].filter((pos) => (counts[pos] || 0) < (requiredCounts[pos] || 0))
+  const starterCount = template.filter((slot) => slot !== "BN").length
+  const benchCount = Math.max((counts.total || 0) - starterCount, 0)
+  const benchSlots = template.filter((slot) => slot === "BN").length
+
+  if ((counts.WR || 0) < (requiredCounts.WR || 0)) {
+    return { tone: "warning", label: "WR starter gap", text: `Prioritize target-earning WRs: ${Math.max((requiredCounts.WR || 0) - (counts.WR || 0), 0)} dedicated WR slot${(requiredCounts.WR || 0) - (counts.WR || 0) === 1 ? "" : "s"} still open.` }
+  }
+  if (openStarters.length) {
+    return { tone: "warning", label: "Starter gap", text: `Open starters remain at ${openStarters.join(", ")}; keep suggestions filtered toward real lineup holes before bench depth.` }
+  }
+  if (flexEligibleCount < flexCoreTarget) {
+    return { tone: "warning", label: "Flex core open", text: `Add one more RB/WR/TE for flex coverage before low-upside backups.` }
+  }
+  if (benchCount < benchSlots) {
+    return { tone: "good", label: "Starters covered", text: `Starter shell is filled. Use ${benchSlots - benchCount} bench slot${benchSlots - benchCount === 1 ? "" : "s"} on RB contingency value and WR spike weeks.` }
+  }
+  return { tone: "good", label: "Roster filled", text: "Roster slots are filled; compare recent picks by ADP value and positional balance." }
+}
+
 const getRosterCounts = (players) =>
   players.reduce((counts, player) => {
     counts[player.position] = (counts[player.position] || 0) + 1
@@ -251,6 +282,10 @@ export function TeamRosterSection({
     () => groupRosterSlotsByPosition(fullRosterSlots, rosterTemplate),
     [fullRosterSlots, rosterTemplate],
   )
+  const starterSlotCount = useMemo(() => getStarterSlotCount(draftData?.slotSettings), [draftData?.slotSettings])
+  const rosterProgress = rosterTemplate.length ? Math.min(100, Math.round((rosterCounts.total / rosterTemplate.length) * 100)) : 0
+  const starterProgress = starterSlotCount ? Math.min(100, Math.round((Math.min(rosterCounts.total, starterSlotCount) / starterSlotCount) * 100)) : 0
+  const rosterBuildInsight = useMemo(() => getRosterBuildInsights(rosterCounts, rosterTemplate), [rosterCounts, rosterTemplate])
 
   const draftScore = useMemo(() => {
     const scores = { QB: 0, RB: 0, WR: 0, TE: 0, Overall: 0 }
@@ -345,6 +380,27 @@ export function TeamRosterSection({
         </CardContent>
       ) : (
         <CardContent className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
+          <div className="mb-2 rounded-xl border p-2" style={{ borderColor: rosterBuildInsight.tone === "warning" ? `${colors.gold}88` : `${colors.headingGreen}66`, background: rosterBuildInsight.tone === "warning" ? `${colors.gold}12` : `${colors.headingGreen}10` }}>
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 shrink-0" style={{ color: rosterBuildInsight.tone === "warning" ? colors.gold : colors.headingGreen }}>
+                {rosterBuildInsight.tone === "warning" ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: rosterBuildInsight.tone === "warning" ? colors.gold : colors.headingGreen }}>{rosterBuildInsight.label}</div>
+                <div className="mt-0.5 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>{rosterBuildInsight.text}</div>
+              </div>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+              <div>
+                <div className="mb-1 flex justify-between"><span>Starters</span><span>{starterProgress}%</span></div>
+                <div className="h-1.5 overflow-hidden rounded-full" style={{ background: colors.lightBorder }}><div className="h-full rounded-full" style={{ width: `${starterProgress}%`, background: colors.headingGreen }} /></div>
+              </div>
+              <div>
+                <div className="mb-1 flex justify-between"><span>Roster</span><span>{rosterProgress}%</span></div>
+                <div className="h-1.5 overflow-hidden rounded-full" style={{ background: colors.lightBorder }}><div className="h-full rounded-full" style={{ width: `${rosterProgress}%`, background: colors.fantasyProsBlue }} /></div>
+              </div>
+            </div>
+          </div>
           <div className="mb-2 grid grid-cols-4 gap-1">
             {["QB", "RB", "WR", "TE"].map((pos) => (
               <div key={pos} className="rounded-lg border px-1.5 py-1 text-center shadow-sm" style={{ borderColor: colors.lightBorder, background: `linear-gradient(180deg, ${colors.darkBlue}, ${colors.tableRow})` }}>
