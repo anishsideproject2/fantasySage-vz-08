@@ -288,7 +288,7 @@ export function TeamRosterSection({
 
   return (
     <Card className="flex flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
-      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
+      <CardHeader className="border-b px-3 py-2" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             {selectedTeamOwnerAvatar ? (
@@ -323,12 +323,12 @@ export function TeamRosterSection({
           </Select>
         </div>
 
-        <div className="mt-3 grid grid-cols-5 gap-2 text-center text-[11px]">
+        <div className="mt-2 grid grid-cols-5 gap-1.5 text-center text-[10px]">
           {["Overall", "QB", "RB", "WR", "TE"].map((pos) => {
             const score = draftScore[pos]
             const isGood = score >= 0
             return (
-              <div key={pos} className="rounded-xl border px-2 py-2" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
+              <div key={pos} className="rounded-xl border px-2 py-1.5" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
                 <div className="font-black" style={{ color: pos === "Overall" ? colors.gold : colors.textSecondary }}>{pos}</div>
                 <div className="text-sm font-black" style={{ color: score === 0 ? colors.textPrimary : isGood ? colors.adpPositive : colors.adpNegative }}>{score > 0 ? "+" : ""}{score}</div>
               </div>
@@ -344,63 +344,49 @@ export function TeamRosterSection({
           </div>
         </CardContent>
       ) : (
-        <CardContent className="px-3 py-3">
-          <div className="mb-3 grid grid-cols-4 gap-2">
+        <CardContent className="px-2.5 py-2">
+          <div className="mb-2 grid grid-cols-4 gap-1.5">
             {["QB", "RB", "WR", "TE"].map((pos) => (
-              <div key={pos} className="rounded-2xl border px-2 py-2 text-center shadow-sm" style={{ borderColor: colors.lightBorder, background: `linear-gradient(180deg, ${colors.darkBlue}, ${colors.tableRow})` }}>
+              <div key={pos} className="rounded-xl border px-2 py-1.5 text-center shadow-sm" style={{ borderColor: colors.lightBorder, background: `linear-gradient(180deg, ${colors.darkBlue}, ${colors.tableRow})` }}>
                 <div className="text-[10px] font-black" style={{ color: colors.textSecondary }}>{pos}</div>
                 <div className="text-lg font-black" style={{ color: getBubbleColorsForSlot(pos, colors).bg }}>{rosterCounts[pos] || 0}</div>
               </div>
             ))}
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {rosterSlotGroups.map((group) => {
               const groupColors = getBubbleColorsForSlot(group.slotType, colors)
 
               return (
-                <section key={`${group.slotType}-${group.slots[0]?.index}`} className="rounded-2xl border p-2.5" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 min-w-12 items-center justify-center rounded-xl px-2 text-xs font-black shadow-inner" style={{ background: groupColors.bg, color: groupColors.text }}>
-                        {POSITION_LABELS[group.slotType] || group.slotType}
-                      </div>
-                      <div className="text-xs font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                        {group.slots.length} slot{group.slots.length === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
+                <section key={`${group.slotType}-${group.slots[0]?.index}`} className="rounded-xl border p-1.5" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
+                  <div className="space-y-1.5">
                     {group.slots.map(({ player, slotType, index }) => {
                       const slotColors = getBubbleColorsForSlot(slotType, colors)
                       const isRecentPick = player && player.pick_no === mostRecentPickNo
                       const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
 
                       return (
-                        <div key={index + "-" + (player?.id || "empty")} className="group rounded-xl border px-2.5 py-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue})`, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.72 }}>
-                          <div className="flex items-start gap-2">
-                            <div className="mt-0.5 flex h-9 w-11 shrink-0 items-center justify-center rounded-xl text-[11px] font-black shadow-inner" style={{ background: `${slotColors.bg}22`, color: slotColors.bg }}>
+                        <div key={index + "-" + (player?.id || "empty")} className="group rounded-lg border px-2 py-1.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue})`, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.72 }}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex h-7 w-10 shrink-0 items-center justify-center rounded-lg text-[10px] font-black shadow-inner" style={{ background: `${slotColors.bg}22`, color: slotColors.bg }}>
                               {POSITION_LABELS[slotType] || slotType}
                             </div>
                             {player ? (
                               <>
                                 <div className="min-w-0 flex-1">
-                                  <div className="whitespace-normal break-words text-sm font-black leading-snug" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
-                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]" style={{ color: colors.textSecondary }}>
-                                    <span className="rounded-full px-1.5 py-0.5 font-bold" style={{ background: `${slotColors.bg}22`, color: slotColors.bg }}>{player.position}</span>
-                                    <span>{getTeamAbbr(player.team)}</span>
-                                    {isRecentPick && <span className="rounded-full px-1.5 py-0.5 font-black" style={{ background: `${colors.headingGreen}22`, color: colors.headingGreen }}>Latest</span>}
+                                  <div className="truncate text-sm font-black leading-snug" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
+                                  <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>
+                                    {getTeamAbbr(player.team)}{isRecentPick ? " · Latest" : ""}
                                   </div>
                                 </div>
-                                <div className="shrink-0 text-right">
-                                  <div className="text-sm font-black" style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</div>
-                                  {value !== null && <div className="text-[11px] font-black" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</div>}
+                                <div className="shrink-0 whitespace-nowrap text-right text-[11px] font-black">
+                                  <span style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</span>
+                                  {value !== null && <span className="ml-1" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</span>}
                                 </div>
                               </>
                             ) : (
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
-                                <div className="text-[11px] leading-snug" style={{ color: colors.textSecondary }}>Use the suggestions panel to fill this slot.</div>
+                                <div className="truncate text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
                               </div>
                             )}
                           </div>

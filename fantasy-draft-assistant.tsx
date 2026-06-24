@@ -10,7 +10,6 @@ import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 
 const normalizePlayerName = (name) => {
   if (!name) return ""
@@ -208,6 +207,7 @@ export function FantasyDraftAssistant() {
               currentPick={currentPick}
               selectedTeamRosterId={selectedTeamRosterId}
               setSelectedTeamRosterId={setSelectedTeamRosterId}
+              visibleRoundCount={10}
             />
             <TeamRosterSection
               colors={colors}
@@ -219,8 +219,8 @@ export function FantasyDraftAssistant() {
             />
           </div>
 
-          <ResizablePanelGroup direction="horizontal" className="hidden min-h-[720px] gap-2 lg:flex" autoSaveId="fantasy-sage-draft-layout">
-            <ResizablePanel defaultSize={28} minSize={20} className="space-y-4 pr-2">
+          <div className="hidden items-start gap-4 lg:grid lg:grid-cols-[minmax(320px,0.92fr)_minmax(520px,1.42fr)_minmax(340px,0.98fr)]">
+            <div className="space-y-4">
               <BestValueSection
                 colors={colors}
                 csvData={csvData}
@@ -236,9 +236,6 @@ export function FantasyDraftAssistant() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
               />
-            </ResizablePanel>
-            <ResizableHandle withHandle className="mx-1 bg-transparent after:bg-transparent" />
-            <ResizablePanel defaultSize={47} minSize={32} className="space-y-4 px-2">
               <SuggestedPicksSection
                 colors={colors}
                 draftData={draftData}
@@ -246,8 +243,10 @@ export function FantasyDraftAssistant() {
                 getAvailablePlayers={getAvailablePlayers}
                 draftedPlayers={draftedPlayers}
                 selectedTeamRosterId={selectedTeamRosterId}
-                layout="horizontal"
+                layout="stacked"
               />
+            </div>
+            <div className="space-y-4">
               <DraftBoardSection
                 colors={colors}
                 draftData={draftData}
@@ -255,10 +254,10 @@ export function FantasyDraftAssistant() {
                 currentPick={currentPick}
                 selectedTeamRosterId={selectedTeamRosterId}
                 setSelectedTeamRosterId={setSelectedTeamRosterId}
+                visibleRoundCount={10}
               />
-            </ResizablePanel>
-            <ResizableHandle withHandle className="mx-1 bg-transparent after:bg-transparent" />
-            <ResizablePanel defaultSize={25} minSize={20} className="pl-2">
+            </div>
+            <div>
               <TeamRosterSection
                 colors={colors}
                 draftData={draftData}
@@ -267,8 +266,8 @@ export function FantasyDraftAssistant() {
                 draftedPlayers={draftedPlayers}
                 platform={platform}
               />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+            </div>
+          </div>
         </main>
       </div>
     </div>
