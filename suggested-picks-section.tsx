@@ -1054,15 +1054,15 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const analystRank = getAnalystCompositeRank(player, scoringFormat)
       const valueGap = marketAdp - Number.parseFloat(currentPick)
       const valueDiff = marketAdp - analystRank
-      let finalScore = valueDiff
+      let earlyContextAdjustment = 0
       const expertRank = analystRank
       const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
       const rosterNeed = getRosterNeed(player.position)
-      if (activeBuildType === "HERO_RB" && player.position === "RB" && draftRound <= 3 && selectedRosterCounts.RB < 2) finalScore += 4
-      if (activeBuildType === "ZERO_RB" && player.position === "RB" && draftRound <= 4) finalScore -= 8
-      if (activeBuildType === "ZERO_RB" && (player.position === "WR" || player.position === "TE") && draftRound <= 4) finalScore += 3
-      if (activeBuildType === "EARLY_QB" && player.position === "QB" && selectedRosterCounts.QB === 0 && qbTierGap >= 8) finalScore += 5
-      if (draftRound >= 3 && selectedRosterCounts[player.position] < (starterTargets[player.position] || 0)) finalScore += 2
+      if (activeBuildType === "HERO_RB" && player.position === "RB" && draftRound <= 3 && selectedRosterCounts.RB < 2) earlyContextAdjustment += 4
+      if (activeBuildType === "ZERO_RB" && player.position === "RB" && draftRound <= 4) earlyContextAdjustment -= 8
+      if (activeBuildType === "ZERO_RB" && (player.position === "WR" || player.position === "TE") && draftRound <= 4) earlyContextAdjustment += 3
+      if (activeBuildType === "EARLY_QB" && player.position === "QB" && selectedRosterCounts.QB === 0 && qbTierGap >= 8) earlyContextAdjustment += 5
+      if (draftRound >= 3 && selectedRosterCounts[player.position] < (starterTargets[player.position] || 0)) earlyContextAdjustment += 2
       const vbdProfile = getVbdProfile({ player, availablePlayers, scoringFormat, replacementSnapshot, picksUntilNextTurn, starterTargets, flexSlots })
       const liveScarcity = getLiveScarcityProfile({ position: player.position, availablePlayers, draftedPlayers, replacementSnapshot, draftData, scoringFormat })
       let tags = getPlayerTags(player)
@@ -1164,6 +1164,12 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const confidenceStars = getConfidenceStars(confidenceScore)
       const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
       const hybridScore = 0.26 * valueDiff + 0.16 * expertEdge + 0.28 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.09 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
+      const contextualSupport = clamp(
+        earlyContextAdjustment + rosterNeed.bonus * 0.65 + formatBonus * 0.4 + scarcityBonus * 0.7 + strategyBonus * 0.25 + researchEdge.bonus * 0.45 + tierUrgency,
+        player.position === "TE" ? -8 : -14,
+        player.position === "TE" ? 8 : 14,
+      )
+      const finalScore = valueDiff * (player.position === "TE" ? 8 : 5) + contextualSupport
 
       return {
         ...player,
@@ -1222,7 +1228,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.finalScore - a.finalScore || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+    .sort((a, b) => b.finalScore - a.finalScore || b.valueDiff - a.valueDiff || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
     .slice(0, 8)
 
 
