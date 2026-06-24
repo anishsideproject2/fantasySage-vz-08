@@ -9,6 +9,7 @@ import { TeamRosterSection } from "./team-roster-section"
 import { AvailablePlayersSection } from "./available-players-section"
 import { PlayerQueueSection } from "./player-queue-section"
 import { SuggestedPicksSection } from "./suggested-picks-section"
+import { DraftBoardSection } from "./draft-board-section"
 import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
@@ -341,6 +342,15 @@ export function FantasyDraftAssistant() {
                   selectedTeamRosterId={selectedTeamRosterId}
                 />
 
+                <DraftBoardSection
+                  colors={colors}
+                  draftData={draftData}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                />
+
                 <DraftedPlayersSection
                   colors={colors}
                   draftedPlayers={draftedPlayers}
@@ -406,7 +416,16 @@ export function FantasyDraftAssistant() {
                   </ResizablePanel>
                   <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
                   <ResizablePanel defaultSize={38} minSize={28} className="px-3">
-                    <div className="h-full overflow-y-auto pr-1">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1">
+                  <DraftBoardSection
+                    colors={colors}
+                    draftData={draftData}
+                    draftedPlayers={draftedPlayers}
+                    currentPick={currentPick}
+                    selectedTeamRosterId={selectedTeamRosterId}
+                    setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  />
+
                   <TeamRosterSection
                     colors={colors}
                     draftData={draftData}
