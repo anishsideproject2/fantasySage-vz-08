@@ -358,17 +358,24 @@ export function TeamRosterSection({
               const groupColors = getBubbleColorsForSlot(group.slotType, colors)
 
               return (
-                <section key={`${group.slotType}-${group.slots[0]?.index}`} className="rounded-xl border p-1" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
-                  <div className="space-y-1">
+                <section key={`${group.slotType}-${group.slots[0]?.index}`} className="overflow-hidden rounded-xl border" style={{ borderColor: `${groupColors.bg}66`, background: `${groupColors.bg}10` }}>
+                  <div className="flex items-center justify-between border-b px-2.5 py-1.5" style={{ borderColor: `${groupColors.bg}44`, background: `linear-gradient(90deg, ${groupColors.bg}24, transparent)` }}>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ background: groupColors.bg }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: groupColors.bg }}>{POSITION_LABELS[group.slotType] || group.slotType}</span>
+                    </div>
+                    <span className="text-[10px] font-bold" style={{ color: colors.textSecondary }}>{group.slots.filter((slot) => slot.player).length}/{group.slots.length}</span>
+                  </div>
+                  <div className="space-y-1 p-1.5">
                     {group.slots.map(({ player, slotType, index }) => {
                       const slotColors = getBubbleColorsForSlot(slotType, colors)
                       const isRecentPick = player && player.pick_no === mostRecentPickNo
                       const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
 
                       return (
-                        <div key={index + "-" + (player?.id || "empty")} className="group rounded-lg border px-2 py-1 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue})`, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.72 }}>
+                        <div key={index + "-" + (player?.id || "empty")} className="group rounded-lg border px-2 py-1.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${slotColors.bg}18, ${colors.card})`, borderColor: isRecentPick ? colors.headingGreen : `${slotColors.bg}66`, boxShadow: `inset 4px 0 0 ${slotColors.bg}`, opacity: player ? 1 : 0.78 }}>
                           <div className="flex min-w-0 items-center gap-2">
-                            <div className="flex h-7 w-10 shrink-0 items-center justify-center rounded-lg text-[10px] font-black shadow-inner" style={{ background: `${slotColors.bg}22`, color: slotColors.bg }}>
+                            <div className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black shadow-inner" style={{ background: `${slotColors.bg}22`, borderColor: `${slotColors.bg}66`, color: slotColors.bg }}>
                               {POSITION_LABELS[slotType] || slotType}
                             </div>
                             {player ? (
@@ -388,6 +395,7 @@ export function TeamRosterSection({
                             ) : (
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
+                                <div className="text-[10px]" style={{ color: slotColors.bg }}>Target depth and value here</div>
                               </div>
                             )}
                           </div>
