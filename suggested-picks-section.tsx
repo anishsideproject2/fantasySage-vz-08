@@ -1045,6 +1045,17 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
     .map((player) => ({ player, analystRank: getAnalystCompositeRank(player, scoringFormat) })))
 
+  const suggestionCandidateLimit = 10
+  const maxValuePlayerKeys = new Set(
+    availablePlayers
+      .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
+      .map((player) => ({ player, analystRank: getAnalystCompositeRank(player, scoringFormat) }))
+      .filter(({ analystRank }) => !Number.isNaN(analystRank))
+      .sort((a, b) => a.analystRank - b.analystRank)
+      .slice(0, suggestionCandidateLimit)
+      .map(({ player }) => String(player.id || `${player.name}-${player.team}-${player.position}`)),
+  )
+
   const suggestedPicks = availablePlayers
     .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
     .map((player) => {
@@ -1077,7 +1088,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       tags = [...new Set(tags)]
       const roundGate = getRoundGate({ player, round: draftRound, currentPick, rosterCounts: selectedRosterCounts, starterTargets, superFlexSlots, valueGap, tags })
       const formatBonus = getFormatBonus(player.position) + tagFormatAdjustment / 4
-      if (!rosterNeed.eligible || roundGate.suppress) return null
+      const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
+      const hasExtremeStarterNeed = rosterNeed.eligible && rosterNeed.bonus >= 12 && selectedRosterCounts.total < starterCount
+      if ((!maxValuePlayerKeys.has(playerKey) && !hasExtremeStarterNeed) || !rosterNeed.eligible || roundGate.suppress) return null
       const tierCliff = getScarcityBonus(player, availablePlayers)
       const runScarcityBonus = positionalRunAlert?.position === player.position ? 2 : 0
       const liveScarcityBonus = liveScarcity.high ? 3 : liveScarcity.score >= 0.6 ? 1.5 : 0
@@ -1182,7 +1195,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         player.position === "TE" ? -6 : -8,
         player.position === "TE" ? 6 : 8,
       )
-      const finalScore = valueDiff * (player.position === "TE" ? 10 : 9) + expertEdge * 1.5 + contextualSupport
+      const boardRankPressure = Number.isNaN(analystRank) ? 0 : (Number(currentPick) - analystRank) * 2.4
+      const outsideEliteStarterNeedPenalty = !maxValuePlayerKeys.has(playerKey) && hasExtremeStarterNeed ? -8 : 0
+      const finalScore = valueDiff * (player.position === "TE" ? 12 : 11) + expertEdge * 1.2 + boardRankPressure + contextualSupport + outsideEliteStarterNeedPenalty
 
       return {
         ...player,
@@ -1241,7 +1256,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.finalScore - a.finalScore || b.valueDiff - a.valueDiff || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+    .sort((a, b) => b.finalScore - a.finalScore || a.analystRank - b.analystRank || b.valueDiff - a.valueDiff || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
     .slice(0, 8)
 
 
