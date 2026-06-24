@@ -382,7 +382,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const topPick = suggestedPicks[0]
 
   return (
-    <Card className={layout === "horizontal" ? "flex flex-col" : "flex h-full min-h-0 flex-col"} style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
@@ -391,7 +391,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className={layout === "horizontal" ? "px-2 pt-0 pb-2" : "min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2"}>
+      <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2">
         <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
           <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
           <div className="mt-1">{roundPlan}</div>
@@ -442,8 +442,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               {player.playerNote && (
                 <div className={layout === "horizontal" ? "mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" : "mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug"} style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
-                  {layout !== "horizontal" && <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>}
-                  <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {layout === "horizontal" ? player.analystContext.fact : `${player.analystContext.fact} ${player.analystContext.whyHigh}`} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} {player.analystContext.whyHigh} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
                 </div>
               )}
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">

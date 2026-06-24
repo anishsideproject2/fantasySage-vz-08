@@ -315,39 +315,139 @@ export function FantasyDraftAssistant() {
               />
             </div>
 
-            <div className="space-y-4 lg:col-span-8 xl:col-span-6">
-              <SuggestedPicksSection
-                colors={colors}
-                draftData={draftData}
-                currentPick={currentPick}
-                getAvailablePlayers={getAvailablePlayers}
-                draftedPlayers={draftedPlayers}
-                selectedTeamRosterId={selectedTeamRosterId}
-                layout="horizontal"
-              />
+        {/* Main Content Grid */}
+        <div className="min-h-0 flex-1 overflow-y-auto pb-4 lg:overflow-hidden lg:pb-0">
+              {/* Mobile: Stack all sections vertically */}
+              <div className="grid gap-4 lg:hidden">
+                <BestValueSection
+                  colors={colors}
+                  csvData={csvData}
+                  draftData={draftData}
+                  currentPick={currentPick}
+                  bestValuePosition={bestValuePosition}
+                  setBestValuePosition={setBestValuePosition}
+                  lastUpdate={lastUpdate}
+                  timeSinceUpdate={timeSinceUpdate}
+                  getAvailablePlayers={getAvailablePlayers}
+                  queues={queues}
+                  addToQueue={addToQueue}
+                  removeFromQueue={removeFromQueue}
+                  draftedPlayers={draftedPlayers}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                />
 
-              <DraftBoardSection
-                colors={colors}
-                draftData={draftData}
-                draftedPlayers={draftedPlayers}
-                currentPick={currentPick}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                visibleRoundCount={5}
-              />
-            </div>
+                <PlayerQueueSection
+                  colors={colors}
+                  queues={queues}
+                  removeFromQueue={removeFromQueue}
+                  clearQueue={clearQueue}
+                />
 
-            <div className="lg:col-span-12 xl:col-span-3">
-              <TeamRosterSection
-                colors={colors}
-                draftData={draftData}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                draftedPlayers={draftedPlayers}
-                platform={platform}
-              />
-            </div>
-          </div>
+                <SuggestedPicksSection
+                  colors={colors}
+                  draftData={draftData}
+                  currentPick={currentPick}
+                  getAvailablePlayers={getAvailablePlayers}
+                  draftedPlayers={draftedPlayers}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                />
+
+                <DraftBoardSection
+                  colors={colors}
+                  draftData={draftData}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                />
+
+                <TeamRosterSection
+                  colors={colors}
+                  draftData={draftData}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  draftedPlayers={draftedPlayers}
+                  platform={platform}
+                />
+              </div>
+
+              {/* Desktop: Resizable command-center layout. Resize is useful during drafts; drag/reorder was intentionally avoided because stable muscle memory matters more under time pressure. */}
+              <div className="hidden lg:block">
+                <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-225px)] min-h-[560px] rounded-2xl">
+                  <ResizablePanel defaultSize={30} minSize={24} className="pr-3">
+                    <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3 pb-3">
+                      <div className="min-h-0 overflow-y-auto pr-1">
+                        <BestValueSection
+                          colors={colors}
+                          csvData={csvData}
+                          draftData={draftData}
+                          currentPick={currentPick}
+                          bestValuePosition={bestValuePosition}
+                          setBestValuePosition={setBestValuePosition}
+                          lastUpdate={lastUpdate}
+                          timeSinceUpdate={timeSinceUpdate}
+                          getAvailablePlayers={getAvailablePlayers}
+                          queues={queues}
+                          addToQueue={addToQueue}
+                          removeFromQueue={removeFromQueue}
+                          draftedPlayers={draftedPlayers}
+                          selectedTeamRosterId={selectedTeamRosterId}
+                          searchTerm={searchTerm}
+                          setSearchTerm={setSearchTerm}
+                        />
+                      </div>
+                      <div className="max-h-[16rem] overflow-y-auto pr-1">
+                        <PlayerQueueSection
+                          colors={colors}
+                          queues={queues}
+                          removeFromQueue={removeFromQueue}
+                          clearQueue={clearQueue}
+                        />
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
+                  <ResizablePanel defaultSize={42} minSize={32} className="px-3">
+                    <div className="h-full min-h-0 pb-3">
+                      <DraftBoardSection
+                        colors={colors}
+                        draftData={draftData}
+                        draftedPlayers={draftedPlayers}
+                        currentPick={currentPick}
+                        selectedTeamRosterId={selectedTeamRosterId}
+                        setSelectedTeamRosterId={setSelectedTeamRosterId}
+                      />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
+                  <ResizablePanel defaultSize={28} minSize={23} className="pl-3">
+                    <div className="grid h-full min-h-0 grid-rows-[minmax(16rem,0.95fr)_minmax(16rem,1.05fr)] gap-3 pb-3">
+                      <div className="min-h-0 overflow-hidden">
+                        <TeamRosterSection
+                          colors={colors}
+                          draftData={draftData}
+                          selectedTeamRosterId={selectedTeamRosterId}
+                          setSelectedTeamRosterId={setSelectedTeamRosterId}
+                          draftedPlayers={draftedPlayers}
+                          platform={platform}
+                        />
+                      </div>
+                      <div className="min-h-0 overflow-hidden">
+                        <SuggestedPicksSection
+                          colors={colors}
+                          draftData={draftData}
+                          currentPick={currentPick}
+                          getAvailablePlayers={getAvailablePlayers}
+                          draftedPlayers={draftedPlayers}
+                          selectedTeamRosterId={selectedTeamRosterId}
+                        />
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </div>
         </div>
       </div>
     </div>

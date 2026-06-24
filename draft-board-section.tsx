@@ -32,6 +32,33 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   const rounds = draftData?.rounds || 0
   const totalPicks = numTeams && rounds ? numTeams * rounds : 0
   const picksByNumber = new Map((draftedPlayers || []).map((player) => [Number(player.pick_no), player]))
+  const latestPickNo = draftedPlayers.length ? Math.max(...draftedPlayers.map((player) => Number(player.pick_no) || 0)) : null
+  const latestPickRef = useRef(null)
+  const currentSlot = numTeams ? getDraftSlotForPick(currentPick, numTeams) : null
+  const currentTeam = currentSlot ? teams[currentSlot - 1] : null
+  const isSelectedOnClock = currentTeam && String(currentTeam.roster_id) === String(selectedTeamRosterId)
+  const picksUntilSelected = useMemo(() => {
+    if (!numTeams || !rounds || !selectedTeamRosterId || currentPick > totalPicks) return null
+    for (let pick = currentPick; pick <= totalPicks; pick += 1) {
+      const slot = getDraftSlotForPick(pick, numTeams)
+      const team = teams[slot - 1]
+      if (team && String(team.roster_id) === String(selectedTeamRosterId)) return pick - currentPick
+    }
+    return null
+  }, [currentPick, numTeams, rounds, selectedTeamRosterId, teams, totalPicks])
+  const selectedDraftValue = useMemo(() => {
+    const selectedPlayers = (draftedPlayers || []).filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
+    const value = selectedPlayers.reduce((sum, player) => {
+      const adp = Number.parseFloat(player.adp)
+      return Number.isNaN(adp) || !player.pick_no ? sum : sum + (Number(player.pick_no) - adp)
+    }, 0)
+    return Number(value.toFixed(1))
+  }, [draftedPlayers, selectedTeamRosterId])
+
+  useEffect(() => {
+    if (!latestPickRef.current) return
+    latestPickRef.current.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" })
+  }, [latestPickNo])
 
   const currentRound = numTeams ? Math.floor((Number(currentPick || 1) - 1) / numTeams) + 1 : 1
   const firstVisibleRound = Math.max(1, Math.min(currentRound - 2, Math.max(1, rounds - visibleRoundCount + 1)))
@@ -83,12 +110,12 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   }
 
   return (
-    <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-2 text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Picks {firstVisibleRound}-{visibleRounds[visibleRounds.length - 1]} • Current {Math.min(currentPick, totalPicks || currentPick)}/{totalPicks}
+            Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
           </span>
         </CardTitle>
         {selectedTeamRosterId && (
@@ -96,13 +123,13 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
             {isSelectedOnClock
               ? "🚨 You are on the clock — make your pick."
               : picksUntilSelected === null
-                ? `Draft complete for the selected team. Value: ${selectedDraftValue > 0 ? "+" : ""}${selectedDraftValue}`
+                ? "Draft complete for the selected team."
                 : `${picksUntilSelected} pick${picksUntilSelected === 1 ? "" : "s"} until the selected team is on the clock.`}
           </div>
         )}
       </CardHeader>
-      <CardContent className="px-2 pt-0 pb-2">
-        <div className="overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+      <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
+        <div className="h-full overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"
