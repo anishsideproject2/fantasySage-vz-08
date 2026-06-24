@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { Header } from "./header"
 import { BestValueSection } from "./best-value-section"
-import { DraftedPlayersSection } from "./drafted-players-section"
 import { ScoreboardSection } from "./scoreboard-section"
 import { TeamRosterSection } from "./team-roster-section"
 import { AvailablePlayersSection } from "./available-players-section"
@@ -118,11 +117,6 @@ export function FantasyDraftAssistant() {
   }
 
   const clearQueue = () => setQueues({ QB: [], RB: [], WR: [], TE: [] })
-
-  // Calculate draft pick counts
-  const totalPossiblePicks = draftData?.rounds && draftData?.numTeams ? draftData.rounds * draftData.numTeams : 0
-  const draftedCount = draftedPlayers?.length || 0
-  const remainingCount = totalPossiblePicks - draftedCount
 
   // Keep ranking drafted flags in sync with the active draft. This must also
   // clear flags when switching to a new draft with no picks yet.
@@ -353,11 +347,11 @@ export function FantasyDraftAssistant() {
 
                 <DraftedPlayersSection
                   colors={colors}
-                  draftedPlayers={draftedPlayers}
                   draftData={draftData}
-                  totalPossiblePicks={totalPossiblePicks}
-                  draftedCount={draftedCount}
-                  remainingCount={remainingCount}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
                 />
 
                 <TeamRosterSection
@@ -446,15 +440,6 @@ export function FantasyDraftAssistant() {
                     getAvailablePlayers={getAvailablePlayers}
                     draftedPlayers={draftedPlayers}
                     selectedTeamRosterId={selectedTeamRosterId}
-                  />
-
-                  <DraftedPlayersSection
-                    colors={colors}
-                    draftedPlayers={draftedPlayers}
-                    draftData={draftData}
-                    totalPossiblePicks={totalPossiblePicks}
-                    draftedCount={draftedCount}
-                    remainingCount={remainingCount}
                   />
 
                   <AvailablePlayersSection
