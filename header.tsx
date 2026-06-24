@@ -14,6 +14,7 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 })
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
+const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "best-ball", "half-ppr"]
 
 const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
   "half-ppr": "del-don-half-ppr",
@@ -72,9 +73,9 @@ export function Header({
   const presetScrollerRef = useRef<HTMLDivElement | null>(null)
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
 
-  const selectedScoringGroup = useMemo(
-    () => RANKING_PRESET_GROUPS.find((group) => group.id === selectedScoringGroupId) || RANKING_PRESET_GROUPS.find((group) => group.id === "full-ppr")!,
-    [selectedScoringGroupId],
+  const quickSwitchGroups = useMemo(
+    () => QUICK_SWITCH_GROUP_ORDER.map((groupId) => RANKING_PRESET_GROUPS.find((group) => group.id === groupId)).filter(Boolean),
+    [],
   )
 
   useEffect(() => {
@@ -201,77 +202,93 @@ export function Header({
       </div>
 
       <div className="rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
-            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; use the selector to manually change format or switch boards.</p>
-          </div>
-          <div className="flex min-w-[14rem] flex-col gap-1">
-            <span className="text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>Board format</span>
-            <Select value={selectedScoringGroupId} onValueChange={handleScoringGroupChange}>
-              <SelectTrigger className="h-9" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RANKING_PRESET_GROUPS.map((group) => (
-                  <SelectItem key={group.id} value={group.id}>{group.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; Full PPR, Underdog, and Half PPR boards are grouped side-by-side for quick loading.</p>
           </div>
         </div>
         <div
           ref={presetScrollerRef}
           onWheel={handlePresetWheel}
-          className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2"
-          aria-label="Scrollable analyst ranking boards"
+          className="grid gap-3 overflow-x-auto overscroll-x-contain pb-2 lg:grid-cols-3"
+          aria-label="Scrollable analyst ranking boards grouped by format"
         >
-          {selectedScoringGroup.presets.map((preset) => {
-              const group = selectedScoringGroup
-              const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-              return (
-                <button
-                  key={preset.id}
-                  ref={isActive ? activePresetRef : null}
-                  onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                  className="min-h-[8.5rem] w-[18rem] shrink-0 rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95 sm:w-[20rem]"
-                  style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}1f` : colors.darkBlue }}
-                  aria-pressed={isActive}
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                    <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: colors.card, color: colors.gold }}>{group.label}</span>
-                    {isActive && (
-                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: `${colors.headingGreen}26`, color: colors.headingGreen }}>
-                        <Check size={12} /> Loaded
-                      </span>
-                    )}
+          {quickSwitchGroups.map((group: any) => {
+            const isUnderdog = group.id === "best-ball"
+            return (
+              <section
+                key={group.id}
+                className="min-w-[18rem] rounded-xl border p-2"
+                style={{ borderColor: isUnderdog ? colors.gold : colors.cardBorder, backgroundColor: isUnderdog ? `${colors.gold}14` : colors.darkBlue }}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-wide" style={{ color: isUnderdog ? colors.gold : colors.headingGreen }}>
+                    {isUnderdog ? "Underdog rankings" : group.label}
                   </div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
-                        {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
-                      </div>
-                      <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
-                      <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.gold }}>
-                        {getAccuracyAwardLabel(preset)}
-                      </div>
-                    </div>
-                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
-                      #{preset.accuracyRank}
-                    </span>
-                  </div>
-                  {preset.accuracyRanks && (
-                    <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                      {POSITION_RANKS.map((position) => (
-                        <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.card, color: colors.gold }}>
-                          {position} {preset.accuracyRanks?.[position] ?? "—"}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
+                  <button
+                    type="button"
+                    onClick={() => handleScoringGroupChange(group.id)}
+                    className="rounded-full border px-2 py-0.5 text-[10px] font-black uppercase"
+                    style={{ borderColor: isUnderdog ? colors.gold : colors.lightBorder, color: isUnderdog ? colors.gold : colors.textSecondary, backgroundColor: colors.card }}
+                  >
+                    Load default
+                  </button>
+                </div>
+                <div className="grid gap-2">
+                  {group.presets.map((preset) => {
+                    const isActive = rankings[activeRankingIndex]?.presetId === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        ref={isActive ? activePresetRef : null}
+                        onClick={() => {
+                          setSelectedScoringGroupId(group.id)
+                          setDetectedScoringLabel("Manual board format")
+                          loadPreset(preset.id, activeRankingIndex)
+                        }}
+                        className="min-h-[7rem] rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                        style={{ borderColor: isActive ? (isUnderdog ? colors.gold : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? colors.gold : colors.headingGreen}1f` : colors.card }}
+                        aria-pressed={isActive}
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+                          <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: colors.darkBlue, color: isUnderdog ? colors.gold : colors.headingGreen }}>{group.label}</span>
+                          {isActive && (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: `${isUnderdog ? colors.gold : colors.headingGreen}26`, color: isUnderdog ? colors.gold : colors.headingGreen }}>
+                              <Check size={12} /> Loaded
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
+                              {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
+                            </div>
+                            <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
+                            <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: isUnderdog ? colors.gold : colors.headingGreen }}>
+                              {getAccuracyAwardLabel(preset)}
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                            #{preset.accuracyRank}
+                          </span>
+                        </div>
+                        {preset.accuracyRanks && (
+                          <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
+                            {POSITION_RANKS.map((position) => (
+                              <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: isUnderdog ? colors.gold : colors.textSecondary }}>
+                                {position} {preset.accuracyRanks?.[position] ?? "—"}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )
+          })}
         </div>
       </div>
 
@@ -284,7 +301,6 @@ export function Header({
             activeRankingIndex={activeRankingIndex}
             setActiveRankingIndex={setActiveRankingIndex}
             handleFileUpload={handleFileUpload}
-            loadPreset={loadPreset}
             isPapaParseLoaded={isPapaParseLoaded}
           />
         </div>
