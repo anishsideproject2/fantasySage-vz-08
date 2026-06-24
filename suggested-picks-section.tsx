@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { BubbleSymbol } from "./bubble-symbol"
-import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draft-strategy"
+import { getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -527,7 +527,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
           <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
           <div className="mt-1">{roundPlan}</div>
-          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research.</div>
+          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research. OC-change risk is kept in the details instead of flagged with an extra icon.</div>
         </div>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
@@ -547,7 +547,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                     <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                     <BubbleSymbol pos={player.position} colors={colors} />
                     <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>
-                      {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
+                      {player.name}
                     </span>
                     <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                   </button>
