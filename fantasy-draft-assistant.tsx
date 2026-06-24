@@ -10,6 +10,7 @@ import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 
 const normalizePlayerName = (name) => {
   if (!name) return ""
@@ -175,8 +176,51 @@ export function FantasyDraftAssistant() {
         />
 
         <main className="flex-1 pb-6">
-          <div className="grid gap-4 lg:grid-cols-12 lg:items-start">
-            <div className="space-y-4 lg:col-span-4 xl:col-span-3">
+          <div className="space-y-4 lg:hidden">
+            <BestValueSection
+              colors={colors}
+              csvData={csvData}
+              draftData={draftData}
+              currentPick={currentPick}
+              bestValuePosition={bestValuePosition}
+              setBestValuePosition={setBestValuePosition}
+              lastUpdate={lastUpdate}
+              timeSinceUpdate={timeSinceUpdate}
+              getAvailablePlayers={getAvailablePlayers}
+              draftedPlayers={draftedPlayers}
+              selectedTeamRosterId={selectedTeamRosterId}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+            />
+            <SuggestedPicksSection
+              colors={colors}
+              draftData={draftData}
+              currentPick={currentPick}
+              getAvailablePlayers={getAvailablePlayers}
+              draftedPlayers={draftedPlayers}
+              selectedTeamRosterId={selectedTeamRosterId}
+              layout="horizontal"
+            />
+            <DraftBoardSection
+              colors={colors}
+              draftData={draftData}
+              draftedPlayers={draftedPlayers}
+              currentPick={currentPick}
+              selectedTeamRosterId={selectedTeamRosterId}
+              setSelectedTeamRosterId={setSelectedTeamRosterId}
+            />
+            <TeamRosterSection
+              colors={colors}
+              draftData={draftData}
+              selectedTeamRosterId={selectedTeamRosterId}
+              setSelectedTeamRosterId={setSelectedTeamRosterId}
+              draftedPlayers={draftedPlayers}
+              platform={platform}
+            />
+          </div>
+
+          <ResizablePanelGroup direction="horizontal" className="hidden min-h-[720px] gap-2 lg:flex" autoSaveId="fantasy-sage-draft-layout">
+            <ResizablePanel defaultSize={28} minSize={20} className="space-y-4 pr-2">
               <BestValueSection
                 colors={colors}
                 csvData={csvData}
@@ -192,9 +236,9 @@ export function FantasyDraftAssistant() {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
               />
-            </div>
-
-            <div className="space-y-4 lg:col-span-5 xl:col-span-6">
+            </ResizablePanel>
+            <ResizableHandle withHandle className="mx-1 bg-transparent after:bg-transparent" />
+            <ResizablePanel defaultSize={47} minSize={32} className="space-y-4 px-2">
               <SuggestedPicksSection
                 colors={colors}
                 draftData={draftData}
@@ -204,7 +248,6 @@ export function FantasyDraftAssistant() {
                 selectedTeamRosterId={selectedTeamRosterId}
                 layout="horizontal"
               />
-
               <DraftBoardSection
                 colors={colors}
                 draftData={draftData}
@@ -213,9 +256,9 @@ export function FantasyDraftAssistant() {
                 selectedTeamRosterId={selectedTeamRosterId}
                 setSelectedTeamRosterId={setSelectedTeamRosterId}
               />
-            </div>
-
-            <div className="lg:col-span-3 xl:col-span-3">
+            </ResizablePanel>
+            <ResizableHandle withHandle className="mx-1 bg-transparent after:bg-transparent" />
+            <ResizablePanel defaultSize={25} minSize={20} className="pl-2">
               <TeamRosterSection
                 colors={colors}
                 draftData={draftData}
@@ -224,8 +267,8 @@ export function FantasyDraftAssistant() {
                 draftedPlayers={draftedPlayers}
                 platform={platform}
               />
-            </div>
-          </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </main>
       </div>
     </div>
