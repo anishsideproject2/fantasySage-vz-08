@@ -117,7 +117,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
-        <div className="max-h-[38rem] min-h-[30rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"

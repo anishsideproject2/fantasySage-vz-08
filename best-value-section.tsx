@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { Search, Sparkles, TrendingUp } from "lucide-react"
 import { BubbleSymbol } from "./bubble-symbol"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
@@ -11,15 +11,23 @@ const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const getAnalystRank = (player) => Number.parseFloat(player.expertRank ?? player.rank ?? player.ecr ?? player.adp)
 
 function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+  const valueColor = getValueDiffColor(player.valueDiff)
+
   return (
     <div
-      className="rounded-lg best-value-row transition-colors duration-150"
+      className="rounded-xl best-value-row border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg"
       style={{
-        background: isBestValue ? colors.highlight : idx % 2 !== 0 ? colors.tableRow : "transparent",
+        background: isBestValue
+          ? `linear-gradient(135deg, ${colors.gold}20, ${colors.tableRow})`
+          : idx % 2 !== 0
+            ? colors.tableRow
+            : `${colors.darkBlue}66`,
+        borderColor: isBestValue ? `${colors.gold}88` : colors.lightBorder,
+        boxShadow: isBestValue ? `inset 4px 0 0 ${colors.gold}` : `inset 4px 0 0 ${valueColor}66`,
         color: colors.textPrimary,
       }}
     >
-      <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
+      <div className="grid grid-cols-12 items-center gap-2 px-2.5 py-2 text-sm">
         <button
           type="button"
           onClick={(e) => {
@@ -27,7 +35,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
             const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
             window.open(`https://www.playerprofiler.com/nfl/${slug}`, "_blank", "noopener,noreferrer")
           }}
-          className="col-span-5 min-w-0 truncate player-name-cell text-left hover:underline"
+          className="col-span-5 min-w-0 truncate player-name-cell text-left font-black hover:underline"
           title={player.name}
         >
           {player.name}
@@ -35,8 +43,10 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
         <div className="col-span-2 flex justify-center">
           <BubbleSymbol pos={player.position} colors={colors} />
         </div>
-        <div className="col-span-3 text-right font-bold" style={{ color: getValueDiffColor(player.valueDiff) }}>
-          {player.valueDiff === "--" ? "--" : `${Number.parseFloat(player.valueDiff) >= 0 ? "+" : ""}${player.valueDiff}`}
+        <div className="col-span-3 text-right">
+          <span className="rounded-full px-2 py-0.5 text-xs font-black" style={{ background: `${valueColor}18`, color: valueColor }}>
+            {player.valueDiff === "--" ? "--" : `${Number.parseFloat(player.valueDiff) >= 0 ? "+" : ""}${player.valueDiff}`}
+          </span>
         </div>
         <div className="col-span-2 text-right font-bold" style={{ color: colors.gold }}>
           {player.analystRank}
@@ -115,8 +125,8 @@ export function BestValueSection({
   const pickInRound = draftData?.numTeams ? ((currentPick - 1) % draftData.numTeams) + 1 : "-"
 
   return (
-    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
-      <CardHeader className="pb-3">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue}44)`, border: `1px solid ${colors.lightBorder}` }}>
+      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {lastUpdate && (
@@ -131,7 +141,8 @@ export function BestValueSection({
                 <div>ago</div>
               </div>
             )}
-            <CardTitle className="text-base font-bold tracking-wide" style={{ color: colors.gold }}>
+            <CardTitle className="flex items-center gap-2 text-base font-black tracking-wide" style={{ color: colors.gold }}>
+              <Sparkles size={16} />
               BEST VALUE
             </CardTitle>
             <Select value={bestValuePosition} onValueChange={setBestValuePosition}>
@@ -156,16 +167,16 @@ export function BestValueSection({
           </div>
           <div className="flex gap-3 items-center">
             <div
-              className="px-3 py-1 rounded text-center border"
+              className="rounded-xl border px-3 py-1.5 text-center shadow-sm"
               style={{
                 background: colors.darkBlue,
                 borderColor: colors.lightBorder,
               }}
             >
-              <div className="text-xs" style={{ color: colors.textSecondary }}>
-                CURRENT PICK
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: colors.textSecondary }}>
+                Current pick
               </div>
-              <div className="text-sm font-bold" style={{ color: colors.textPrimary }}>
+              <div className="text-sm font-black" style={{ color: colors.textPrimary }}>
                 {round}.{String(pickInRound).padStart(2, "0")}
               </div>
             </div>
@@ -175,7 +186,7 @@ export function BestValueSection({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: colors.textSecondary }} />
             <Input
-              placeholder="Search best values..."
+              placeholder="Search Available Players"
               value={searchTerm}
               onChange={(e) => setSearchTerm?.(e.target.value)}
               className="h-8 pl-10 text-sm"
@@ -184,8 +195,13 @@ export function BestValueSection({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 px-2 pt-0">
-        <div className="max-h-[40rem] overflow-y-auto">
+      <CardContent className="min-h-0 flex-1 px-2 py-2">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder, background: `${colors.background}55` }}>
+          <div className="flex items-center justify-between border-b px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+            <span className="flex items-center gap-1.5"><TrendingUp size={13} /> Sorted by current-pick value</span>
+            <span>Top 60 available</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
           <div className="space-y-1">
             {/* Header */}
             <div
@@ -212,6 +228,7 @@ export function BestValueSection({
                 getValueDiffColor={getValueDiffColor}
               />
             ))}
+          </div>
           </div>
         </div>
       </CardContent>
