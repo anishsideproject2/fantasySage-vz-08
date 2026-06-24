@@ -26,6 +26,8 @@ const getDraftSlotForPick = (pickNo, numTeams) => {
   return isSnakeBackHalf ? numTeams - pickInRound + 1 : pickInRound
 }
 
+const POSITION_ORDER = ["QB", "RB", "WR", "TE"]
+
 const getPositionBoardColors = (pos, colors) => {
   switch (pos) {
     case "QB":
@@ -39,6 +41,20 @@ const getPositionBoardColors = (pos, colors) => {
     default:
       return { border: colors.lightBorder, background: colors.tableRow }
   }
+}
+
+const getPickValue = (player) => {
+  if (!player?.pick_no) return null
+  const adp = Number.parseFloat(player.adp)
+  if (Number.isNaN(adp)) return null
+  return Number((Number(player.pick_no) - adp).toFixed(1))
+}
+
+const getValueLabel = (value) => {
+  if (value === null) return null
+  if (value >= 8) return "Value"
+  if (value <= -8) return "Reach"
+  return "ADP"
 }
 
 export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = 8 }) {
@@ -61,6 +77,26 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
     }
     return null
   }, [currentPick, numTeams, rounds, selectedTeamRosterId, teams, totalPicks])
+  const rosterSummaries = useMemo(() => {
+    const summaries = new Map()
+    teams.forEach((team) => {
+      summaries.set(String(team.roster_id), { QB: 0, RB: 0, WR: 0, TE: 0, picks: 0, value: 0 })
+    })
+    ;(draftedPlayers || []).forEach((player) => {
+      const key = String(player.roster_id)
+      const summary = summaries.get(key) || { QB: 0, RB: 0, WR: 0, TE: 0, picks: 0, value: 0 }
+      if (POSITION_ORDER.includes(player.position)) summary[player.position] += 1
+      summary.picks += 1
+      const value = getPickValue(player)
+      if (value !== null) summary.value += value
+      summaries.set(key, summary)
+    })
+    summaries.forEach((summary) => {
+      summary.value = Number(summary.value.toFixed(1))
+    })
+    return summaries
+  }, [draftedPlayers, teams])
+
   const selectedDraftValue = useMemo(() => {
     const selectedPlayers = (draftedPlayers || []).filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     const value = selectedPlayers.reduce((sum, player) => {
@@ -76,6 +112,8 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   }, [latestPickNo])
 
   const currentRound = numTeams ? Math.floor((Number(currentPick || 1) - 1) / numTeams) + 1 : 1
+  const latestPlayer = latestPickNo ? picksByNumber.get(latestPickNo) : null
+  const selectedSummary = selectedTeamRosterId ? rosterSummaries.get(String(selectedTeamRosterId)) : null
   const firstVisibleRound = Math.max(1, Math.min(currentRound - 2, Math.max(1, rounds - visibleRoundCount + 1)))
   const visibleRounds = Array.from(
     { length: Math.min(visibleRoundCount, rounds) },
@@ -106,15 +144,43 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
             Showing rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
           </span>
         </CardTitle>
-        {selectedTeamRosterId && (
-          <div className="mt-2 rounded-xl border px-3 py-2 text-xs font-bold" style={{ borderColor: isSelectedOnClock ? colors.headingGreen : colors.lightBorder, background: isSelectedOnClock ? `${colors.headingGreen}22` : colors.tableRow, color: isSelectedOnClock ? colors.headingGreen : colors.textSecondary }}>
-            {isSelectedOnClock
-              ? "🚨 You are on the clock — make your pick."
-              : picksUntilSelected === null
-                ? "Draft complete for the selected team."
-                : `${picksUntilSelected} pick${picksUntilSelected === 1 ? "" : "s"} until the selected team is on the clock.`}
+        <div className="mt-2 grid gap-2 text-xs font-bold sm:grid-cols-3">
+          <div className="rounded-xl border px-3 py-2" style={{ borderColor: isSelectedOnClock ? colors.headingGreen : colors.lightBorder, background: isSelectedOnClock ? `${colors.headingGreen}22` : colors.tableRow, color: isSelectedOnClock ? colors.headingGreen : colors.textSecondary }}>
+            <div className="text-[9px] uppercase tracking-wide">Selected clock</div>
+            <div className="mt-0.5">
+              {selectedTeamRosterId
+                ? isSelectedOnClock
+                  ? "🚨 You are on the clock"
+                  : picksUntilSelected === null
+                    ? "Draft complete"
+                    : `${picksUntilSelected} pick${picksUntilSelected === 1 ? "" : "s"} away`
+                : "Select a team"}
+            </div>
           </div>
-        )}
+          <div className="rounded-xl border px-3 py-2" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
+            <div className="text-[9px] uppercase tracking-wide">On clock now</div>
+            <div className="mt-0.5 truncate" style={{ color: colors.textPrimary }}>{currentTeam?.team_name || "Waiting for draft"}</div>
+          </div>
+          <div className="rounded-xl border px-3 py-2" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
+            <div className="text-[9px] uppercase tracking-wide">Latest pick</div>
+            <div className="mt-0.5 truncate" style={{ color: colors.textPrimary }}>{latestPlayer ? `${latestPickNo}. ${latestPlayer.name}` : "No picks yet"}</div>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+          {POSITION_ORDER.map((pos) => {
+            const positionColors = getPositionBoardColors(pos, colors)
+            return (
+              <span key={pos} className="rounded-full border px-2 py-0.5" style={{ borderColor: positionColors.border, background: positionColors.background, color: positionColors.border }}>
+                {pos}
+              </span>
+            )
+          })}
+          <span>Green outline = current pick</span>
+          <span>Purple wash = selected team</span>
+          {selectedSummary && (
+            <span className="ml-auto">Selected roster: {POSITION_ORDER.map((pos) => `${pos} ${selectedSummary[pos] || 0}`).join(" · ")}</span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
         <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
@@ -150,6 +216,15 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                         <div className="truncate text-[9px]" style={{ color: colors.textSecondary }}>{team.owner?.display_name}</div>
                       </div>
                     </div>
+                    {(() => {
+                      const summary = rosterSummaries.get(String(team.roster_id))
+                      return (
+                        <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-bold" style={{ color: colors.textSecondary }}>
+                          <span>{POSITION_ORDER.map((pos) => `${pos}${summary?.[pos] || 0}`).join(" ")}</span>
+                          <span style={{ color: (summary?.value || 0) >= 0 ? colors.adpPositive : colors.adpNegative }}>{(summary?.value || 0) > 0 ? "+" : ""}{summary?.value || 0}</span>
+                        </div>
+                      )
+                    })()}
                   </button>
                 )
               })}
@@ -173,6 +248,8 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                     const isSelectedTeam = String(team.roster_id) === String(selectedTeamRosterId)
                     const positionColors = getPositionBoardColors(player?.position, colors)
                     const baseBackground = player ? positionColors.background : colors.tableRow
+                    const pickValue = getPickValue(player)
+                    const pickValueLabel = getValueLabel(pickValue)
                     return (
                       <button
                         key={`${round}-${draftSlot}`}
@@ -187,7 +264,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                       >
                         <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-bold" style={{ color: isCurrentPick ? colors.headingGreen : colors.textSecondary }}>
                           <span>{round}.{String(getDraftSlotForPick(pickNo, numTeams)).padStart(2, "0")}</span>
-                          <span>#{pickNo}</span>
+                          <span>{isCurrentPick ? "ON CLOCK" : `#${pickNo}`}</span>
                         </div>
                         {player ? (
                           <div className="space-y-1">
@@ -196,6 +273,12 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                               <BubbleSymbol pos={player.position} colors={colors} />
                               <span className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{player.team}</span>
                             </div>
+                            {pickValue !== null && (
+                              <div className="flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-[9px] font-black" style={{ background: colors.card, color: pickValue >= 0 ? colors.adpPositive : colors.adpNegative }}>
+                                <span>{pickValueLabel}</span>
+                                <span>{pickValue > 0 ? "+" : ""}{pickValue}</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="flex h-9 items-center justify-center rounded border border-dashed text-[10px] font-semibold" style={{ borderColor: colors.cardBorder, color: isCurrentPick ? colors.headingGreen : colors.textSecondary }}>
