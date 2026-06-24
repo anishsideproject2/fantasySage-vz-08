@@ -219,8 +219,8 @@ export function FantasyDraftAssistant() {
             />
           </div>
 
-          <div className="hidden items-start gap-4 lg:grid lg:grid-cols-[minmax(320px,0.95fr)_minmax(380px,1.05fr)_minmax(420px,1.25fr)]">
-            <div className="space-y-4">
+          <div className="hidden items-stretch gap-4 lg:grid lg:grid-cols-[minmax(320px,0.9fr)_minmax(520px,1.35fr)_minmax(340px,0.9fr)]">
+            <div className="flex min-h-[46rem] flex-col">
               <BestValueSection
                 colors={colors}
                 csvData={csvData}
@@ -237,7 +237,7 @@ export function FantasyDraftAssistant() {
                 setSearchTerm={setSearchTerm}
               />
             </div>
-            <div className="col-span-2 space-y-4">
+            <div className="flex min-h-[46rem] flex-col gap-4">
               <SuggestedPicksSection
                 colors={colors}
                 draftData={draftData}
@@ -247,15 +247,7 @@ export function FantasyDraftAssistant() {
                 selectedTeamRosterId={selectedTeamRosterId}
                 layout="horizontal"
               />
-              <div className="grid items-start gap-4 xl:grid-cols-[minmax(340px,0.9fr)_minmax(420px,1.1fr)]">
-                <TeamRosterSection
-                  colors={colors}
-                  draftData={draftData}
-                  selectedTeamRosterId={selectedTeamRosterId}
-                  setSelectedTeamRosterId={setSelectedTeamRosterId}
-                  draftedPlayers={draftedPlayers}
-                  platform={platform}
-                />
+              <div className="flex flex-1 flex-col">
                 <DraftBoardSection
                   colors={colors}
                   draftData={draftData}
@@ -263,9 +255,19 @@ export function FantasyDraftAssistant() {
                   currentPick={currentPick}
                   selectedTeamRosterId={selectedTeamRosterId}
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
-                  visibleRoundCount={3}
+                  visibleRoundCount={5}
                 />
               </div>
+            </div>
+            <div className="flex min-h-[46rem] flex-col">
+              <TeamRosterSection
+                colors={colors}
+                draftData={draftData}
+                selectedTeamRosterId={selectedTeamRosterId}
+                setSelectedTeamRosterId={setSelectedTeamRosterId}
+                draftedPlayers={draftedPlayers}
+                platform={platform}
+              />
             </div>
           </div>
         </main>

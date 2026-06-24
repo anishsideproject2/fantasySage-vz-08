@@ -115,7 +115,7 @@ export function BestValueSection({
   const pickInRound = draftData?.numTeams ? ((currentPick - 1) % draftData.numTeams) + 1 : "-"
 
   return (
-    <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -184,8 +184,8 @@ export function BestValueSection({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 px-2">
-        <div className="overflow-y-auto max-h-[32rem]">
+      <CardContent className="min-h-0 flex-1 px-2 pt-0">
+        <div className="max-h-[40rem] overflow-y-auto">
           <div className="space-y-1">
             {/* Header */}
             <div
