@@ -11,35 +11,35 @@ const BENCH_TARGET_POSITIONS = ["RB", "WR"]
 
 const ANALYST_CONTEXT = {
   default: {
-    analyst: "FantasyPros consensus + Justin Boone",
+    analyst: "FantasyPros consensus",
     fact: "Player-specific note not curated yet; use the value, roster-fit, ADP, and tier signals above as the primary recommendation.",
     whyHigh: "The analyst case should come from role, efficiency, team environment, and price—not from a generic ranking bucket.",
     source: "FantasyPros consensus rankings",
     url: "https://www.fantasypros.com/nfl/rankings/",
   },
   RB: {
-    analyst: "FantasyPros consensus + Justin Boone",
+    analyst: "FantasyPros consensus",
     fact: "Running backs move up when they combine projected touches, receiving work, and paths to goal-line usage.",
     whyHigh: "Analysts are usually buying volume fragility at the position: one clearer workload can separate quickly from committee backs.",
     source: "FantasyPros RB rankings",
     url: "https://www.fantasypros.com/nfl/rankings/rb-cheatsheets.php",
   },
   WR: {
-    analyst: "FantasyPros consensus + Justin Boone",
+    analyst: "FantasyPros consensus",
     fact: "Receivers move up when target share, route participation, and quarterback environment point to repeatable volume.",
     whyHigh: "Analysts are usually betting on target earning and weekly ceiling rather than simply saying the player is highly ranked.",
     source: "FantasyPros WR rankings",
     url: "https://www.fantasypros.com/nfl/rankings/wr-cheatsheets.php",
   },
   TE: {
-    analyst: "FantasyPros consensus + Justin Boone",
+    analyst: "FantasyPros consensus",
     fact: "Tight ends move up when they project as real pass-game options instead of touchdown-only streamers.",
     whyHigh: "Analysts are buying positional leverage when a TE can command WR-like targets at a thinner position.",
     source: "FantasyPros TE rankings",
     url: "https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php",
   },
   QB: {
-    analyst: "FantasyPros consensus + Justin Boone",
+    analyst: "FantasyPros consensus",
     fact: "Quarterbacks move up when rushing, elite efficiency, or stacked offensive context creates a weekly edge over the deep QB pool.",
     whyHigh: "Analysts are paying for separator traits only when they are likely to beat replacement-level quarterback production.",
     source: "FantasyPros QB rankings",
