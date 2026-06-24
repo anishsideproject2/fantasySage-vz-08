@@ -8,6 +8,63 @@ const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
 
 
+
+const ANALYST_CONTEXT = {
+  default: {
+    analyst: "FantasyPros consensus + Justin Boone",
+    fact: "Player-specific note not curated yet; use the value, roster-fit, ADP, and tier signals above as the primary recommendation.",
+    whyHigh: "The analyst case should come from role, efficiency, team environment, and price—not from a generic ranking bucket.",
+    source: "FantasyPros consensus rankings",
+    url: "https://www.fantasypros.com/nfl/rankings/",
+  },
+  RB: {
+    analyst: "FantasyPros consensus + Justin Boone",
+    fact: "Running backs move up when they combine projected touches, receiving work, and paths to goal-line usage.",
+    whyHigh: "Analysts are usually buying volume fragility at the position: one clearer workload can separate quickly from committee backs.",
+    source: "FantasyPros RB rankings",
+    url: "https://www.fantasypros.com/nfl/rankings/rb-cheatsheets.php",
+  },
+  WR: {
+    analyst: "FantasyPros consensus + Justin Boone",
+    fact: "Receivers move up when target share, route participation, and quarterback environment point to repeatable volume.",
+    whyHigh: "Analysts are usually betting on target earning and weekly ceiling rather than simply saying the player is highly ranked.",
+    source: "FantasyPros WR rankings",
+    url: "https://www.fantasypros.com/nfl/rankings/wr-cheatsheets.php",
+  },
+  TE: {
+    analyst: "FantasyPros consensus + Justin Boone",
+    fact: "Tight ends move up when they project as real pass-game options instead of touchdown-only streamers.",
+    whyHigh: "Analysts are buying positional leverage when a TE can command WR-like targets at a thinner position.",
+    source: "FantasyPros TE rankings",
+    url: "https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php",
+  },
+  QB: {
+    analyst: "FantasyPros consensus + Justin Boone",
+    fact: "Quarterbacks move up when rushing, elite efficiency, or stacked offensive context creates a weekly edge over the deep QB pool.",
+    whyHigh: "Analysts are paying for separator traits only when they are likely to beat replacement-level quarterback production.",
+    source: "FantasyPros QB rankings",
+    url: "https://www.fantasypros.com/nfl/rankings/qb-cheatsheets.php",
+  },
+}
+
+const FEATURED_ANALYST_CONTEXT = {
+  "bijan robinson": { analyst: "Justin Boone / FantasyPros consensus", fact: "FantasyPros' 2026 half-PPR consensus lists Robinson at No. 1 overall, with expert ranks tightly clustered near the top.", whyHigh: "The bullish case is elite touch volume plus receiving usage; Boone's early 2026 ranks also placed him first overall.", source: "FantasyPros 2026 rankings; Yahoo/Boone early 2026 ranks", url: "https://www.fantasypros.com/nfl/rankings/" },
+  "jahmyr gibbs": { analyst: "FantasyPros consensus / Fantasy Life", fact: "Fantasy Life noted Gibbs started all 17 games and posted 1,223 rushing yards with 13 rushing TDs on 243 carries in its 2026 top-50 outlook.", whyHigh: "Analysts are high because an expanding workload paired with receiving explosiveness gives him overall RB1 upside.", source: "Fantasy Life 2026 top-50 outlook", url: "https://www.fantasylife.com/articles/fantasy/fantasy-football-2026-top-50-rankings-bijan-robinson-or-jahmyr-gibbs-at-101" },
+  "ja'marr chase": { analyst: "FantasyPros consensus", fact: "FantasyPros' 2026 consensus keeps Chase inside the elite first-round tier with a best expert rank near the top of drafts.", whyHigh: "The case is bankable alpha target share plus touchdown ceiling in a high-value passing game.", source: "FantasyPros 2026 rankings", url: "https://www.fantasypros.com/nfl/rankings/" },
+  "puka nacua": { analyst: "Justin Boone / FantasyPros consensus", fact: "Boone's early 2026 top 50 put Nacua in the top three, while FantasyPros consensus keeps him in the opening-round WR tier.", whyHigh: "The bullish case is target earning and weekly reception volume strong enough to anchor PPR builds.", source: "Yahoo/Boone early 2026 ranks; FantasyPros 2026 rankings", url: "https://sports.yahoo.com/fantasy/article/justin-boones-early-top-50-fantasy-football-rankings-for-2026-165115671.html" },
+  "jaxon smith-njigba": { analyst: "FantasyPros consensus", fact: "FantasyPros' 2026 consensus places Smith-Njigba in the early first-round conversation, with a narrow expert range around the top WR tier.", whyHigh: "Analysts are buying target growth and the profile of a receiver who can win through volume rather than one-off splash plays.", source: "FantasyPros 2026 rankings", url: "https://www.fantasypros.com/nfl/rankings/" },
+  "brock bowers": { analyst: "FantasyPros / PFF market context", fact: "Coverage around 2025 TE rankings highlighted Bowers' exceptional rookie target rate and low-risk elite TE profile.", whyHigh: "The case is that he functions like a featured receiver at TE, creating a positional edge most teams cannot match.", source: "FantasyPros/PFF TE market coverage", url: "https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php" },
+  "devonta smith": { analyst: "FantasyPros consensus + default board", fact: "Smith's appeal is proven target earning and efficiency despite sharing an offense with another high-end receiver.", whyHigh: "Analysts like him when the draft price bakes in the target competition but not the weekly WR2/WR1 spike potential.", source: "FantasyPros WR rankings", url: "https://www.fantasypros.com/nfl/rankings/wr-cheatsheets.php" },
+  "jaylen waddle": { analyst: "FantasyPros consensus + default board", fact: "Waddle's fantasy profile is built on speed, yards after the catch, and the ability to turn moderate volume into explosive weeks.", whyHigh: "The bullish analyst case is that any role or offensive-context bump can make his ceiling beat a discounted ADP.", source: "FantasyPros WR rankings", url: "https://www.fantasypros.com/nfl/rankings/wr-cheatsheets.php" },
+  "colston loveland": { analyst: "FantasyPros consensus + default board", fact: "Loveland is a receiving-first TE archetype, the kind fantasy analysts chase when looking for a non-touchdown-dependent breakout.", whyHigh: "Analysts get aggressive when the board is about to run out of TEs with plausible route and target upside.", source: "FantasyPros TE rankings", url: "https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php" },
+  "tyler warren": { analyst: "FantasyPros consensus + default board", fact: "Warren's appeal is versatility and receiving usage upside, which matters at a position where many options are touchdown-dependent.", whyHigh: "The high-on-him case is that a meaningful route role can create a weekly TE edge at a cheaper draft cost.", source: "FantasyPros TE rankings", url: "https://www.fantasypros.com/nfl/rankings/te-cheatsheets.php" },
+}
+
+const getAnalystContext = (player) => {
+  const key = String(player.name || "").toLowerCase()
+  return FEATURED_ANALYST_CONTEXT[key] || ANALYST_CONTEXT[player.position] || ANALYST_CONTEXT.default
+}
+
 const RESEARCH_PILLARS_2026 = [
   "2026 guides emphasize RB/WR balance: RBs are priced closer to WRs than last year, so do not blindly zero-RB past usable volume.",
   "Elite WR scoring still drives PPR lineups; build target depth and avoid fragile touchdown-only profiles.",
@@ -269,6 +326,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
       const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
       const playerNote = getPlayerNote(player, scoringFormat)
+      const analystContext = getAnalystContext(player)
       const ocSummary = getOcTendencySummary(player)
       const fallbackOcCards = {
         pass: { label: "OC pass", value: 50, detail: "No major pass-rate OC change flagged" },
@@ -302,6 +360,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         thematicSignal,
         ocImpact,
         playerNote: whyPickNote,
+        analystContext,
         ocSummary,
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
@@ -323,7 +382,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const topPick = suggestedPicks[0]
 
   return (
-    <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
@@ -332,7 +391,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="max-h-[34rem] space-y-2 overflow-y-auto px-2 pt-0 pr-1">
+      <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2">
         <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
           <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
           <div className="mt-1">{roundPlan}</div>
@@ -360,6 +419,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   </div>
                 </div>
                 <p className="mt-2 text-xs leading-snug" style={{ color: colors.textSecondary }}>{topPick.teamCompositionInsight}</p>
+                <p className="mt-2 rounded-lg border px-2 py-1.5 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}><span className="font-black" style={{ color: colors.textPrimary }}>{topPick.analystContext.analyst} context:</span> {topPick.analystContext.fact} <a className="font-bold underline" href={topPick.analystContext.url} target="_blank" rel="noreferrer">{topPick.analystContext.source}</a></p>
               </div>
             )}
             {suggestedPicks.map((player, idx) => (
@@ -383,6 +443,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 <div className="mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} {player.analystContext.whyHigh} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
                 </div>
               )}
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
