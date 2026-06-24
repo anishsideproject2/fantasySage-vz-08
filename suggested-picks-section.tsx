@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { BubbleSymbol } from "./bubble-symbol"
 import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draft-strategy"
 
@@ -535,22 +536,24 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         ) : (
           <div className={isHorizontal ? "grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2" : "grid gap-2 pb-1 sm:grid-cols-2"}>
             {suggestedPicks.map((player, idx) => (
-              <div key={player.id} className="group relative">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
-                  aria-label={`Show details for ${player.name}`}
-                >
-                  <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
-                  <BubbleSymbol pos={player.position} colors={colors} />
-                  <span className="min-w-0 truncate text-sm font-black" title={player.name}>
-                    {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
-                  </span>
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
-                </button>
+              <HoverCard key={player.id} openDelay={80} closeDelay={120}>
+                <HoverCardTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
+                    aria-label={`Show details for ${player.name}`}
+                  >
+                    <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
+                    <BubbleSymbol pos={player.position} colors={colors} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>
+                      {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
+                    </span>
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                  </button>
+                </HoverCardTrigger>
 
-                <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-[min(92vw,34rem)] translate-y-1 rounded-2xl border p-3 opacity-0 shadow-2xl transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                <HoverCardContent align="start" side="bottom" sideOffset={10} collisionPadding={12} className="w-[min(92vw,34rem)] rounded-2xl border p-3 shadow-2xl" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
@@ -581,8 +584,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
+                </HoverCardContent>
+              </HoverCard>
             ))}
           </div>
         )}

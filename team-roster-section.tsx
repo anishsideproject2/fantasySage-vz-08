@@ -287,7 +287,7 @@ export function TeamRosterSection({
   }, [teamRosterPlayers])
 
   return (
-    <Card className="flex flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="border-b px-3 py-2" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -344,7 +344,7 @@ export function TeamRosterSection({
           </div>
         </CardContent>
       ) : (
-        <CardContent className="px-2.5 py-2">
+        <CardContent className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
           <div className="mb-2 grid grid-cols-4 gap-1">
             {["QB", "RB", "WR", "TE"].map((pos) => (
               <div key={pos} className="rounded-lg border px-1.5 py-1 text-center shadow-sm" style={{ borderColor: colors.lightBorder, background: `linear-gradient(180deg, ${colors.darkBlue}, ${colors.tableRow})` }}>

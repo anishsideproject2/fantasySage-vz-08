@@ -83,7 +83,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   }
 
   return (
-    <Card className="flex min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="px-3 pb-2 pt-3">
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
@@ -102,7 +102,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
-        <div className="max-h-[21rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <div className="max-h-[31rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"
@@ -161,7 +161,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                         key={`${round}-${draftSlot}`}
                         ref={pickNo === latestPickNo ? latestPickRef : null}
                         onClick={() => setSelectedTeamRosterId?.(team.roster_id)}
-                        className="min-h-[4.25rem] border-r p-2 text-left transition hover:opacity-90"
+                        className="min-h-[4.6rem] border-r p-2 text-left transition hover:opacity-90"
                         style={{
                           borderColor: colors.lightBorder,
                           backgroundColor: isCurrentPick ? `${colors.headingGreen}26` : isSelectedTeam ? `${colors.purple}16` : colors.tableRow,
