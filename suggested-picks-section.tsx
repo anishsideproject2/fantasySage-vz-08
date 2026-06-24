@@ -478,10 +478,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.hybridScore - a.hybridScore || b.confidenceScore - a.confidenceScore)
-    .slice(0, 6)
+    .sort((a, b) => b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+    .slice(0, 5)
 
-  const topPick = suggestedPicks[0]
 
   const isHorizontal = layout === "horizontal"
 
@@ -491,7 +490,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Live top 6 • {scoringFormat} • {draftTypeLabel}
+            Live top 5 • ranked by confidence • {scoringFormat} • {draftTypeLabel}
           </span>
         </CardTitle>
       </CardHeader>
@@ -506,63 +505,56 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className={isHorizontal ? "flex snap-x gap-2 overflow-x-auto pb-1" : "space-y-2"}>
-            {topPick && layout !== "horizontal" && (
-              <div className="rounded-xl border p-3" style={{ borderColor: topPick.confidenceColor, background: `${topPick.confidenceColor}16` }}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: topPick.confidenceColor }}>Best analyst call · {getActionLabel(topPick)}</div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <BubbleSymbol pos={topPick.position} colors={colors} />
-                      <span className="truncate text-base font-black" style={{ color: colors.textPrimary }}>{topPick.name}</span>
-                    </div>
-                  </div>
-                  <div className="rounded-full px-3 py-2 text-center" style={{ background: `${topPick.confidenceColor}24`, color: topPick.confidenceColor }}>
-                    <div className="text-lg font-black leading-none">{topPick.confidenceScore}</div>
-                    <div className="text-[9px] font-bold uppercase">{topPick.confidence}</div>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs leading-snug" style={{ color: colors.textSecondary }}>{topPick.teamCompositionInsight}</p>
-                <p className="mt-2 rounded-lg border px-2 py-1.5 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}><span className="font-black" style={{ color: colors.textPrimary }}>{topPick.analystContext.analyst} context:</span> {topPick.analystContext.fact} <a className="font-bold underline" href={topPick.analystContext.url} target="_blank" rel="noreferrer">{topPick.analystContext.source}</a></p>
-              </div>
-            )}
+          <div className="flex flex-wrap gap-2 pb-1">
             {suggestedPicks.map((player, idx) => (
-            <div key={player.id} className={isHorizontal ? "min-w-[18rem] max-w-[22rem] flex-1 snap-start rounded-lg border px-2 py-2" : "rounded-lg border px-2 py-2"} style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
-              <div className="flex items-center gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
+              <div key={player.id} className="group relative">
+                <button
+                  type="button"
+                  className="flex max-w-[13rem] items-center gap-2 rounded-full border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
+                  aria-label={`Show details for ${player.name}`}
+                >
+                  <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                   <BubbleSymbol pos={player.position} colors={colors} />
-                  <span className="min-w-0 truncate text-sm font-bold" style={{ color: colors.textPrimary }} title={player.name}>
+                  <span className="min-w-0 truncate text-sm font-black" title={player.name}>
                     {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
                   </span>
-                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ backgroundColor: `${player.confidenceColor}22`, color: player.confidenceColor }}>{getActionLabel(player)}</span>
-                  <span className="shrink-0 text-[11px]" style={{ color: colors.textSecondary }}>ADP {player.adp}</span>
-                </div>
-                <div className="shrink-0 rounded-full border px-2.5 py-1 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
-                  <div className="text-xs font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
-                  <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidence}</div>
-                </div>
-              </div>
-              {player.playerNote && (
-                <div className={isHorizontal ? "mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" : "mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug"} style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
-                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
-                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
-                  <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} {player.analystContext.whyHigh} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
-                </div>
-              )}
-              <div className={isHorizontal ? "mt-2 grid grid-cols-2 gap-1.5 text-[10px]" : "mt-2 grid grid-cols-4 gap-1.5 text-[10px]"}>
-                {player.scoreCards.map((card) => (
-                  <div key={card.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span>
-                      <span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span>
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                </button>
+
+                <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-[min(92vw,26rem)] translate-y-1 rounded-2xl border p-3 opacity-0 shadow-2xl transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
+                      <div className="mt-1 truncate text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
+                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.rosterReason}</div>
                     </div>
-                    <div className="mt-0.5 leading-snug" title={card.detail}>{card.detail}</div>
+                    <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
+                      <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
+                      <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>score</div>
+                    </div>
                   </div>
-                ))}
+
+                  <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
+                    {player.scoreCards.map((card) => (
+                      <div key={card.label} className="rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span>
+                          <span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span>
+                        </div>
+                        <div className="mt-0.5 leading-snug" title={card.detail}>{card.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
             ))}
           </div>
         )}
