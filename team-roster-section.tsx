@@ -265,8 +265,8 @@ export function TeamRosterSection({
   }, [teamRosterPlayers])
 
   return (
-    <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
-      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder }}>
+    <Card className="flex flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             {selectedTeamOwnerAvatar ? (
@@ -325,13 +325,13 @@ export function TeamRosterSection({
         <CardContent className="px-3 py-3">
           <div className="mb-3 grid grid-cols-4 gap-2">
             {["QB", "RB", "WR", "TE"].map((pos) => (
-              <div key={pos} className="rounded-xl border px-2 py-2 text-center" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
+              <div key={pos} className="rounded-2xl border px-2 py-2 text-center shadow-sm" style={{ borderColor: colors.lightBorder, background: `linear-gradient(180deg, ${colors.darkBlue}, ${colors.tableRow})` }}>
                 <div className="text-[10px] font-black" style={{ color: colors.textSecondary }}>{pos}</div>
                 <div className="text-lg font-black" style={{ color: getBubbleColorsForSlot(pos, colors).bg }}>{rosterCounts[pos] || 0}</div>
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
             {fullRosterSlots.map((player, idx) => {
               const slotType = rosterTemplate[idx]
               const slotColors = getBubbleColorsForSlot(slotType, colors)
@@ -339,15 +339,15 @@ export function TeamRosterSection({
               const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
 
               return (
-                <div key={idx + "-" + (player?.id || "empty")} className="group rounded-2xl border p-2 transition" style={{ background: isRecentPick ? `${colors.headingGreen}18` : colors.tableRow, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.62 }}>
+                <div key={idx + "-" + (player?.id || "empty")} className="group rounded-2xl border p-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${colors.tableRow}, ${colors.card})`, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.62 }}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl text-xs font-black" style={{ background: slotColors.bg, color: slotColors.text }}>{POSITION_LABELS[slotType] || slotType}</div>
+                    <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-2xl text-xs font-black shadow-inner" style={{ background: slotColors.bg, color: slotColors.text }}>{POSITION_LABELS[slotType] || slotType}</div>
                     {player ? (
                       <>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-black" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
-                          <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: colors.textSecondary }}>
-                            <span>{player.position}</span><span>•</span><span>{getTeamAbbr(player.team)}</span>{isRecentPick && <span style={{ color: colors.headingGreen }}>Latest</span>}
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px]" style={{ color: colors.textSecondary }}>
+                            <span className="rounded-full px-1.5 py-0.5" style={{ background: `${slotColors.bg}22`, color: slotColors.bg }}>{player.position}</span><span>{getTeamAbbr(player.team)}</span>{isRecentPick && <span className="rounded-full px-1.5 py-0.5 font-black" style={{ background: `${colors.headingGreen}22`, color: colors.headingGreen }}>Latest</span>}
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
