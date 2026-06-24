@@ -187,7 +187,21 @@ function mapPlayersToRosterSlots(players, settings) {
   return filledRoster
 }
 
-const getSleeperAvatarUrl = (avatar) => (avatar ? `https://sleepercdn.com/avatars/thumbs/${avatar}` : null)
+const getSleeperAvatarUrl = (avatar) => {
+  if (!avatar) return null
+  const value = String(avatar)
+  if (value.startsWith("http")) return value
+  return `https://sleepercdn.com/avatars/${value}`
+}
+
+const getPickLabel = (pickNo, numTeams = 1) => `${Math.floor((pickNo - 1) / numTeams) + 1}.${String(((pickNo - 1) % numTeams) + 1).padStart(2, "0")}`
+
+const getRosterCounts = (players) =>
+  players.reduce((counts, player) => {
+    counts[player.position] = (counts[player.position] || 0) + 1
+    counts.total += 1
+    return counts
+  }, { QB: 0, RB: 0, WR: 0, TE: 0, total: 0 })
 
 export function TeamRosterSection({
   colors,
@@ -213,6 +227,8 @@ export function TeamRosterSection({
     () => mapPlayersToRosterSlots(teamRosterPlayers, draftData?.slotSettings),
     [teamRosterPlayers, draftData?.slotSettings],
   )
+  const rosterCounts = useMemo(() => getRosterCounts(teamRosterPlayers), [teamRosterPlayers])
+  const rosterTemplate = useMemo(() => generateRosterSlots(draftData?.slotSettings), [draftData?.slotSettings])
 
   const draftScore = useMemo(() => {
     const scores = { QB: 0, RB: 0, WR: 0, TE: 0, Overall: 0 }
@@ -249,205 +265,109 @@ export function TeamRosterSection({
   }, [teamRosterPlayers])
 
   return (
-    <div className="space-y-4">
-      <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
-        <CardContent className="p-4">
-          <Select
-            value={selectedTeamRosterId || ""}
-            onValueChange={(value) => setSelectedTeamRosterId(value ? value : null)}
-            disabled={!draftData || !draftData.teams || draftData.teams.length === 0}
-          >
-            <SelectTrigger
-              className="w-full text-center font-bold"
-              style={{
-                background: "#6B7280", // Gray color
-                color: "white", // White text
-                borderColor: colors.cardBorder,
-              }}
-            >
+    <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder }}>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            {selectedTeamOwnerAvatar ? (
+              <img src={getSleeperAvatarUrl(selectedTeamOwnerAvatar) || "/placeholder.svg"} alt={selectedTeamOwnerDisplayName} className="h-11 w-11 rounded-2xl border-2 object-cover" style={{ borderColor: colors.headingGreen }} />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border-2" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
+                <User size={20} style={{ color: colors.headingGreen }} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ background: `${colors.headingGreen}22`, color: colors.headingGreen }}>
+                  TEAM ROSTER
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.textSecondary }}>{rosterCounts.total} drafted</span>
+              </div>
+              <h3 className="truncate text-lg font-black" style={{ color: colors.textPrimary }}>{selectedTeamName}</h3>
+              {platform === "sleeper" && selectedTeamOwnerDisplayName && <span className="text-xs" style={{ color: colors.textSecondary }}>@{selectedTeamOwnerDisplayName}</span>}
+            </div>
+          </div>
+          <Select value={selectedTeamRosterId || ""} onValueChange={(value) => setSelectedTeamRosterId(value ? value : null)} disabled={!draftData || !draftData.teams || draftData.teams.length === 0}>
+            <SelectTrigger className="h-10 w-full rounded-xl text-left font-bold xl:w-[16rem]" style={{ background: colors.darkBlue, color: colors.textPrimary, borderColor: colors.cardBorder }}>
               <SelectValue placeholder="-- Select a Team --" />
             </SelectTrigger>
-            <SelectContent style={{ backgroundColor: "#6B7280", borderColor: colors.cardBorder }}>
+            <SelectContent style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
               {draftData?.teams.map((team) => (
-                <SelectItem
-                  key={team.roster_id}
-                  value={team.roster_id}
-                  style={{
-                    backgroundColor: "#6B7280",
-                    color: "white",
-                    "&:hover": { backgroundColor: "#4B5563" },
-                    "&:focus": { backgroundColor: "#4B5563" },
-                  }}
-                  className="text-white hover:bg-gray-600 focus:bg-gray-600"
-                >
-                  <span className="flex items-center gap-2">
-                    {team.avatar || team.owner?.avatar ? (
-                      <img src={getSleeperAvatarUrl(team.avatar || team.owner?.avatar) || "/placeholder.svg"} alt="" className="h-5 w-5 rounded-full object-cover" />
-                    ) : (
-                      <span className="h-5 w-5 rounded-full" style={{ backgroundColor: colors.darkBlue }} />
-                    )}
-                    <span>{team.team_name} {platform === "sleeper" ? `(@${team.owner.display_name})` : ""}</span>
-                  </span>
+                <SelectItem key={team.roster_id} value={team.roster_id} className="text-sm" style={{ color: colors.textPrimary }}>
+                  {team.team_name} {platform === "sleeper" ? `(@${team.owner.display_name})` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="mt-3 grid grid-cols-5 gap-2 text-center text-[11px]">
+          {["Overall", "QB", "RB", "WR", "TE"].map((pos) => {
+            const score = draftScore[pos]
+            const isGood = score >= 0
+            return (
+              <div key={pos} className="rounded-xl border px-2 py-2" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
+                <div className="font-black" style={{ color: pos === "Overall" ? colors.gold : colors.textSecondary }}>{pos}</div>
+                <div className="text-sm font-black" style={{ color: score === 0 ? colors.textPrimary : isGood ? colors.adpPositive : colors.adpNegative }}>{score > 0 ? "+" : ""}{score}</div>
+              </div>
+            )
+          })}
+        </div>
+      </CardHeader>
+
+      {!selectedTeamRosterId ? (
+        <CardContent className="p-3">
+          <div className="rounded-xl border border-dashed px-4 py-6 text-center text-sm" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+            Pick a team from the live draft board or selector to inspect roster construction.
+          </div>
         </CardContent>
-      </Card>
-
-      {selectedTeamRosterId && (
-        <Card
-          className="flex-1 flex flex-col"
-          style={{
-            background: colors.card,
-            border: `1px solid ${colors.lightBorder}`,
-            minHeight: "700px",
-          }}
-        >
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {selectedTeamOwnerAvatar ? (
-                  <img
-                    src={getSleeperAvatarUrl(selectedTeamOwnerAvatar) || "/placeholder.svg"}
-                    alt={selectedTeamOwnerDisplayName}
-                    className="w-10 h-10 rounded-full border-2"
-                    style={{ borderColor: colors.headingGreen }}
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full border-2 flex items-center justify-center"
-                    style={{
-                      background: colors.darkBlue,
-                      borderColor: colors.headingGreen,
-                    }}
-                  >
-                    <User size={20} style={{ color: colors.headingGreen }} />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold" style={{ color: colors.textPrimary }}>
-                    {selectedTeamName}
-                  </h3>
-                  {platform === "sleeper" && (
-                    <span className="text-xs" style={{ color: colors.textSecondary }}>
-                      @{selectedTeamOwnerDisplayName}
-                    </span>
-                  )}
-                </div>
+      ) : (
+        <CardContent className="px-3 py-3">
+          <div className="mb-3 grid grid-cols-4 gap-2">
+            {["QB", "RB", "WR", "TE"].map((pos) => (
+              <div key={pos} className="rounded-xl border px-2 py-2 text-center" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
+                <div className="text-[10px] font-black" style={{ color: colors.textSecondary }}>{pos}</div>
+                <div className="text-lg font-black" style={{ color: getBubbleColorsForSlot(pos, colors).bg }}>{rosterCounts[pos] || 0}</div>
               </div>
-              <div
-                className="px-3 py-2 rounded border"
-                style={{
-                  background: colors.darkBlue,
-                  borderColor: colors.lightBorder,
-                }}
-              >
-                <div className="text-xs text-center mb-1" style={{ color: colors.textSecondary }}>
-                  DRAFT SCORE (Starters)
-                </div>
-                <div className="flex gap-2 text-xs">
-                  {["Overall", "QB", "RB", "WR", "TE"].map((pos) => {
-                    const score = draftScore[pos]
-                    const isGood = score >= 0
-                    const showPlus = score > 0
-                    return (
-                      <div key={pos} className="text-center">
-                        <div
-                          className="font-bold"
-                          style={{
-                            color: pos === "Overall" ? colors.gold : colors.textPrimary,
-                          }}
-                        >
-                          {pos}
-                        </div>
-                        <div
-                          className="font-bold"
-                          style={{
-                            color: score === 0 ? colors.textPrimary : isGood ? colors.adpPositive : colors.adpNegative,
-                          }}
-                        >
-                          {showPlus ? "+" : ""}
-                          {score}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 flex-1 flex flex-col min-h-0 px-2">
-            <div className="flex-1 space-y-2">
-              {fullRosterSlots.map((player, idx) => {
-                const slotType = generateRosterSlots(draftData?.slotSettings)[idx]
-                const slotColors = getBubbleColorsForSlot(slotType, colors)
-                const isRecentPick = player && player.pick_no === mostRecentPickNo
+            ))}
+          </div>
+          <div className="grid gap-2">
+            {fullRosterSlots.map((player, idx) => {
+              const slotType = rosterTemplate[idx]
+              const slotColors = getBubbleColorsForSlot(slotType, colors)
+              const isRecentPick = player && player.pick_no === mostRecentPickNo
+              const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
 
-                return (
-                  <div
-                    key={idx + "-" + (player?.id || "empty")}
-                    className="flex items-center px-3 py-2 rounded border-2"
-                    style={{
-                      background: colors.tableRow,
-                      borderColor: colors.purple,
-                      opacity: player ? 1 : 0.55,
-                      minHeight: "48px",
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded flex items-center justify-center font-bold text-sm mr-4 flex-shrink-0"
-                      style={{
-                        background: slotColors.bg,
-                        color: slotColors.text,
-                      }}
-                    >
-                      {POSITION_LABELS[slotType] || slotType}
-                    </div>
+              return (
+                <div key={idx + "-" + (player?.id || "empty")} className="group rounded-2xl border p-2 transition" style={{ background: isRecentPick ? `${colors.headingGreen}18` : colors.tableRow, borderColor: isRecentPick ? colors.headingGreen : colors.lightBorder, opacity: player ? 1 : 0.62 }}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl text-xs font-black" style={{ background: slotColors.bg, color: slotColors.text }}>{POSITION_LABELS[slotType] || slotType}</div>
                     {player ? (
                       <>
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate text-base" style={{ color: colors.textPrimary }}>
-                            {player.name}
-                          </div>
-                          <div className="text-sm flex items-center gap-2" style={{ color: colors.textSecondary }}>
-                            <span>{player.position}</span>
-                            <span>-</span>
-                            <span>{getTeamAbbr(player.team)}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-black" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
+                          <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: colors.textSecondary }}>
+                            <span>{player.position}</span><span>•</span><span>{getTeamAbbr(player.team)}</span>{isRecentPick && <span style={{ color: colors.headingGreen }}>Latest</span>}
                           </div>
                         </div>
-                        <div className="text-right min-w-20">
-                          <div className="font-bold text-base" style={{ color: colors.textPrimary }}>
-                            {`${Math.floor((player.pick_no - 1) / (draftData?.numTeams || 1)) + 1}.${String(((player.pick_no - 1) % (draftData?.numTeams || 1)) + 1).padStart(2, "0")}`}
-                          </div>
-                          {player.adp && player.pick_no && (
-                            <div
-                              className="text-sm font-bold"
-                              style={{
-                                color:
-                                  player.pick_no - Number.parseFloat(player.adp) >= 0
-                                    ? colors.adpPositive
-                                    : colors.adpNegative,
-                              }}
-                            >
-                              Value: {player.pick_no - Number.parseFloat(player.adp) > 0 ? "+" : ""}
-                              {(player.pick_no - Number.parseFloat(player.adp)).toFixed(1)}
-                            </div>
-                          )}
+                        <div className="shrink-0 text-right">
+                          <div className="text-sm font-black" style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</div>
+                          {value !== null && <div className="text-[11px] font-black" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</div>}
                         </div>
                       </>
                     ) : (
-                      <div className="flex-1" style={{ color: colors.textPrimary }}>
-                        <span className="italic text-base">Empty</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
+                        <div className="text-[11px]" style={{ color: colors.textSecondary }}>Use the suggestions panel to fill this slot.</div>
                       </div>
                     )}
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   )
 }
