@@ -5,6 +5,7 @@ import { findPresetById } from "./ranking-presets"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
+const DEFAULT_RANKING_PRESET_ID = "del-don-full-ppr"
 
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
@@ -216,6 +217,13 @@ export function usePlayerData() {
     },
     [],
   )
+
+  useEffect(() => {
+    const hasLoadedRankings = rankings.some((ranking) => ranking.data.length > 0 || ranking.presetId)
+    if (!hasLoadedRankings) {
+      loadPreset(DEFAULT_RANKING_PRESET_ID, 0)
+    }
+  }, [loadPreset, rankings])
 
   const getActiveRankingData = useCallback(() => {
     return rankings[activeRankingIndex]?.data || []

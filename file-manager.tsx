@@ -80,13 +80,13 @@ export function FileManager({
             <ExternalLink size={13} />
           </a>
           <a
-            href="https://underdognetwork.com/football"
+            href="https://www.4for4.com/underdog/adp"
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-between rounded-md border px-3 py-2 text-xs font-bold transition hover:opacity-85"
             style={{ borderColor: colors.lightBorder, color: colors.textPrimary, backgroundColor: colors.darkBlue }}
           >
-            Underdog football rankings
+            Underdog ADP rankings
             <ExternalLink size={13} />
           </a>
         </div>
