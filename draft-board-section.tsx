@@ -50,11 +50,12 @@ const getPickValue = (player) => {
   return Number((Number(player.pick_no) - adp).toFixed(1))
 }
 
+const MEANINGFUL_PICK_VALUE_DIFF = 20
+
 const getValueLabel = (value) => {
-  if (value === null) return null
-  if (value >= 8) return "Value"
-  if (value <= -8) return "Reach"
-  return "ADP"
+  if (value === null || Math.abs(value) < MEANINGFUL_PICK_VALUE_DIFF) return null
+  if (value > 0) return "💎 Value"
+  return "🫏 Reach"
 }
 
 export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = 8 }) {
@@ -186,7 +187,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
-              className="grid sticky top-0 z-10"
+              className="grid"
               style={{ gridTemplateColumns: `3rem repeat(${numTeams}, minmax(8.25rem, 1fr))`, backgroundColor: colors.darkBlue }}
             >
               <div className="border-r px-2 py-2 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
@@ -273,7 +274,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                               <BubbleSymbol pos={player.position} colors={colors} />
                               <span className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{player.team}</span>
                             </div>
-                            {pickValue !== null && (
+                            {pickValueLabel && (
                               <div className="flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-[9px] font-black" style={{ background: colors.card, color: pickValue >= 0 ? colors.adpPositive : colors.adpNegative }}>
                                 <span>{pickValueLabel}</span>
                                 <span>{pickValue > 0 ? "+" : ""}{pickValue}</span>
