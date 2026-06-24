@@ -7,6 +7,7 @@ import { getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draf
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
+const CORE_STARTER_POSITIONS = ["RB", "WR", "TE"]
 
 const getScoringFormatFromSettings = (draftData, settings = {}) => {
   const rawFormat = String(
@@ -116,13 +117,14 @@ const getAnalystContext = (player) => {
 // and Washington Post draft-efficiency research on WR/RB/QB/TE payoff curves.
 const RESEARCH_PILLARS_2026 = [
   "Hero/Anchor RB research favors landing one early workhorse, then pivoting to target-earning WRs and selective onesie values.",
+  "Double Hero RB is viable when two real workload backs fall early, but WR/TE starter gaps should still beat fragile RB3 depth.",
   "Zero-RB research still works when the room gives elite WR/TE value; do not patch RB with low-upside dead-zone volume.",
   "QB research is barbell: in 1QB, either take a true rushing/elite edge or wait past the comfort tier; Superflex stays QB-heavy.",
   "TE research is also barbell: elite leverage or late athletic upside beats the middle-round safety trap.",
   "WR evaluation should overweight target earning, especially prospect/young-player target share and clear No. 1 routes.",
 ]
 
-const ANALYST_MODEL_VERSION = "Analyst Predictor v2 · sourced 2026 strategy blend"
+const ANALYST_MODEL_VERSION = "Strategy lock · 2026 analyst blend"
 
 const getAdpRound = (adp, teams = 12) => {
   const value = Number.parseFloat(adp)
@@ -205,12 +207,25 @@ const getResearchEdge = ({ player, round, adpRound, rosterNeed, rosterCounts, st
   return { bonus: 0, label: "Research neutral", detail: "No macro strategy override; value, roster fit, and tier leverage should drive the call." }
 }
 
-const getRoundPlan = ({ round, isSuperFlex, scoringFormat }) => {
-  if (isSuperFlex && round <= 3) return "Superflex: keep QB scarcity live while still comparing elite RB/WR values."
-  if (round <= 2) return scoringFormat === "Full PPR" ? "Open with elite target volume or a true anchor RB; avoid low-ceiling positional reaches." : "Prioritize elite WRs and true bellcow RBs before positional cliffs appear."
-  if (round <= 4) return "Build the RB/WR core, but let elite QB/TE leverage through only when the tier edge is real."
-  if (round <= 8) return "Middle rounds: prefer target-earning WRs and clear tier drops; fade RB/TE safety traps unless role clarity is strong."
-  return "Bench rounds: chase RB contingency upside, WR spike weeks, and late QB/TE athletic upside; skip redundant floor plays."
+const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, isSuperFlex, scoringFormat }) => {
+  const rb = rosterCounts.RB || 0
+  const wr = rosterCounts.WR || 0
+  const coreStarterTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const coreStarterCount = CORE_STARTER_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0)
+  const openCoreSlots = Math.max(coreStarterTarget - coreStarterCount, 0)
+  const missing = CORE_STARTER_POSITIONS.filter((pos) => (rosterCounts[pos] || 0) < (starterTargets[pos] || 0))
+  const label = rb >= 2 && round <= 5 ? "Double Hero RB" : rb === 1 ? "Hero RB" : rb === 0 && wr >= 2 ? "Zero RB / Hero WR" : "Balanced BPA"
+  const next = missing.length > 0
+    ? `Fill ${missing.join("/")} starter${missing.length === 1 ? "" : "s"} before bench depth.`
+    : openCoreSlots > 0
+      ? "Fill the flex with the best RB/WR/TE value before bench depth."
+      : "Starters are set; bench should be RB/WR upside, not duplicate QB/TE."
+  const guardrail = isSuperFlex
+    ? "Superflex keeps QB scarcity in the conversation, but do not ignore open RB/WR/TE starters."
+    : "In 1QB, QB only breaks through when the tier/value gap is obvious after core starters are addressed."
+  const format = scoringFormat === "Standard" ? "Standard scoring raises RB touchdown/volume value." : "PPR scoring raises WR target volume and pass-catching RB/TE value."
+
+  return { label, next, guardrail, format }
 }
 
 const getPositionMultiplier = ({ position, round, scoringFormat, isSuperFlex, rosterNeed }) => {
@@ -286,7 +301,7 @@ const getThematicStrategySignal = ({ player, round, rosterNeed, rosterCounts, st
   if (position === "TE") {
     if (hasStarter) return { bonus: -6, label: "No bench TE", detail: "Avoid redundant TE unless settings demand it." }
     if (adp <= 30) return { bonus: 3, label: "Elite TE edge", detail: "Elite TE is viable when the board gives you a real tier advantage." }
-    if (isMiddle && adp <= 90) return { bonus: 3, label: "TE tier value", detail: "Middle-round TE value is better than forcing the position early." }
+    if (isMiddle && adp <= 90) return { bonus: needsCoreSkillStarter ? 2 : -2, label: needsCoreSkillStarter ? "TE starter fill" : "TE middle caution", detail: needsCoreSkillStarter ? "TE can fill an open starter/flex slot, but keep the tier gap honest." : "Avoid paying for middle-round TE safety once core starters are covered." }
     return { bonus: -1, label: "TE discipline", detail: "Do not reach at TE without a tier or ADP discount." }
   }
 
@@ -390,17 +405,17 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     const directOpen = Math.max(directTarget - count, 0)
     const flexEligibleCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (selectedRosterCounts[pos] || 0), 0)
     const flexEligibleTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
-    const flexOpen = position === "RB" || position === "WR" ? Math.max(flexEligibleTarget - flexEligibleCount, 0) : 0
+    const flexOpen = CORE_STARTER_POSITIONS.includes(position) ? Math.max(flexEligibleTarget - flexEligibleCount, 0) : 0
     const superFlexOpen = position === "QB" ? Math.max(starterTargets.QB + superFlexSlots - count, 0) : 0
     const benchOpen = selectedRosterCounts.total >= starterCount && selectedRosterCounts.total < rosterSize
     const rosterFull = selectedRosterCounts.total >= rosterSize
 
-    if (directOpen > 0) return { bonus: position === "RB" || position === "WR" ? 10 : 8, reason: `${directOpen} ${position} starter slot${directOpen === 1 ? "" : "s"} open`, eligible: true }
+    if (directOpen > 0) return { bonus: position === "WR" ? 13 : position === "RB" ? 12 : position === "TE" ? 10 : 6, reason: `${directOpen} ${position} starter slot${directOpen === 1 ? "" : "s"} open`, eligible: true }
     if (superFlexOpen > 0) return { bonus: 7, reason: `${superFlexOpen} superflex QB slot${superFlexOpen === 1 ? "" : "s"} open`, eligible: true }
     if (position === "QB" || position === "TE") {
       return { bonus: -100, reason: `skip double ${position}; starter slot is covered`, eligible: false }
     }
-    if (flexOpen > 0) return { bonus: 6, reason: `${flexOpen} flex slot${flexOpen === 1 ? "" : "s"} open`, eligible: true }
+    if (flexOpen > 0) return { bonus: position === "TE" ? 4 : 7, reason: `${flexOpen} flex slot${flexOpen === 1 ? "" : "s"} open`, eligible: true }
     if (benchOpen && BENCH_TARGET_POSITIONS.includes(position)) return { bonus: 3, reason: `bench upside should be RB/WR only`, eligible: true }
     if (rosterFull) return { bonus: -10, reason: "roster is full", eligible: false }
     return { bonus: 1, reason: `usable ${position} depth`, eligible: BENCH_TARGET_POSITIONS.includes(position) }
@@ -411,7 +426,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const availablePlayers = getAvailablePlayers?.() || []
   const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
 
-  const roundPlan = getRoundPlan({ round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat })
+  const strategyLock = getBuildStrategyLock({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat })
 
   const suggestedPicks = availablePlayers
     .map((player) => {
@@ -473,10 +488,10 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const strategyScore = clamp(50 + strategyBonus * 7, 0, 100)
       const researchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
       const confidenceScore = Math.round(
-        clamp(valueScore * 0.28 + expertScore * 0.17 + needScore * 0.22 + formatScore * 0.05 + scarcityScore * 0.07 + strategyScore * 0.11 + researchScore * 0.10, 0, 100),
+        clamp(valueScore * 0.24 + expertScore * 0.15 + needScore * 0.30 + formatScore * 0.05 + scarcityScore * 0.07 + strategyScore * 0.09 + researchScore * 0.10, 0, 100),
       )
       const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
-      const hybridScore = 0.3 * valueDiff + 0.19 * expertEdge + 0.19 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.11 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
+      const hybridScore = 0.26 * valueDiff + 0.16 * expertEdge + 0.28 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.09 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
 
       return {
         ...player,
@@ -524,11 +539,14 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         </CardTitle>
       </CardHeader>
       <CardContent className={isHorizontal ? "space-y-2 px-2 pt-0 pr-1 pb-2" : "min-h-0 flex-1 space-y-2 overflow-visible px-2 pt-0 pr-1 pb-2"}>
-        <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
-          <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
-          <div className="mt-1">{roundPlan}</div>
-          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research. OC-change risk is kept in the details instead of flagged with an extra icon.</div>
-        </div>
+        <details className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }} open>
+          <summary className="cursor-pointer font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
+            Current strategy: {strategyLock.label}
+          </summary>
+          <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
+          <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
+          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: prioritizes open WR/RB/TE starters, then flex, then RB/WR upside bench depth; uses VBD, ADP, tier cliffs, target-earning WR research, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
+        </details>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
