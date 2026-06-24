@@ -58,6 +58,7 @@ export function FantasyDraftAssistant() {
 
   const [bestValuePosition, setBestValuePosition] = useState("All")
   const [showCopiedMessage, setShowCopiedMessage] = useState(false)
+  const [selectedStrategyOverride, setSelectedStrategyOverride] = useState("auto")
 
   // Keep ranking drafted flags in sync with the active draft. This must also
   // clear flags when switching to a new draft with no picks yet.
@@ -199,6 +200,8 @@ export function FantasyDraftAssistant() {
               draftedPlayers={draftedPlayers}
               selectedTeamRosterId={selectedTeamRosterId}
               layout="horizontal"
+              selectedStrategyOverride={selectedStrategyOverride}
+              setSelectedStrategyOverride={setSelectedStrategyOverride}
             />
             <TeamRosterSection
               colors={colors}
@@ -215,7 +218,7 @@ export function FantasyDraftAssistant() {
               currentPick={currentPick}
               selectedTeamRosterId={selectedTeamRosterId}
               setSelectedTeamRosterId={setSelectedTeamRosterId}
-              visibleRoundCount={3}
+              visibleRoundCount={null}
             />
           </div>
 
@@ -256,6 +259,8 @@ export function FantasyDraftAssistant() {
                 draftedPlayers={draftedPlayers}
                 selectedTeamRosterId={selectedTeamRosterId}
                 layout="horizontal"
+                selectedStrategyOverride={selectedStrategyOverride}
+                setSelectedStrategyOverride={setSelectedStrategyOverride}
               />
               <div className="flex min-h-0 flex-1 flex-col">
                 <DraftBoardSection
@@ -265,7 +270,7 @@ export function FantasyDraftAssistant() {
                   currentPick={currentPick}
                   selectedTeamRosterId={selectedTeamRosterId}
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
-                  visibleRoundCount={10}
+                  visibleRoundCount={null}
                 />
               </div>
             </div>
