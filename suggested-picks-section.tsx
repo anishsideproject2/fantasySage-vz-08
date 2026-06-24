@@ -7,6 +7,33 @@ import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getOcTendencySummary, getPlaye
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
 
+
+const RESEARCH_PILLARS_2026 = [
+  "2026 guides emphasize RB/WR balance: RBs are priced closer to WRs than last year, so do not blindly zero-RB past usable volume.",
+  "Elite WR scoring still drives PPR lineups; build target depth and avoid fragile touchdown-only profiles.",
+  "QB/TE are barbell positions in 1QB: take a real tier edge or wait for value instead of paying the middle tax.",
+  "Draft rooms reward tier-based VBD: ADP discount matters most when the next same-position tier is about to dry up.",
+]
+
+const getRoundPlan = ({ round, isSuperFlex, scoringFormat }) => {
+  if (isSuperFlex && round <= 3) return "Superflex: keep QB scarcity live while still comparing elite RB/WR values."
+  if (round <= 2) return scoringFormat === "Full PPR" ? "Open with elite target volume or a true anchor RB; avoid low-ceiling positional reaches." : "Prioritize bellcow RBs and elite WRs before positional cliffs appear."
+  if (round <= 5) return "Build the RB/WR starter core; 2026 rooms are pricing RBs earlier, so take volume when value is fair."
+  if (round <= 8) return "Attack WR depth, selective TE/QB tier values, and avoid the classic RB dead-zone unless role clarity is strong."
+  return "Bench rounds: chase RB contingency upside and WR spike weeks; skip redundant QB/TE in normal 1QB formats."
+}
+
+const getPositionMultiplier = ({ position, round, scoringFormat, isSuperFlex, rosterNeed }) => {
+  if (position === "QB") {
+    if (isSuperFlex) return round <= 4 ? 1.45 : 1.25
+    return round <= 5 ? 0.55 : rosterNeed.bonus > 0 ? 0.9 : 0.65
+  }
+  if (position === "TE") return round <= 3 ? 1.05 : round <= 8 ? 0.95 : 0.75
+  if (position === "RB") return round <= 5 ? 1.18 : round <= 8 ? 0.92 : 1.08
+  if (position === "WR") return scoringFormat === "Full PPR" ? 1.16 : round <= 8 ? 1.06 : 1
+  return 1
+}
+
 const PLAYER_STRATEGY_SIGNALS = {
   "jaylen waddle": { bonus: 5, label: "Change discount", detail: "Monitor trade/team-change discount if market price lags role upgrade." },
   "devonta smith": { bonus: 4, label: "Breakout bet", detail: "User thesis: target around the 3-4 turn if value holds." },
@@ -212,6 +239,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const availablePlayers = getAvailablePlayers?.() || []
   const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
 
+  const roundPlan = getRoundPlan({ round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat })
+
   const suggestedPicks = availablePlayers
     .map((player) => {
       if (player.adp === undefined || isNaN(player.adp) || !currentPick) return null
@@ -237,7 +266,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         draftType,
       })
       const primaryStrategySignal = ocImpact || (strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
-      const strategyBonus = strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)
+      const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
+      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
       const playerNote = getPlayerNote(player, scoringFormat)
       const ocSummary = getOcTendencySummary(player)
       const fallbackOcCards = {
@@ -258,7 +288,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const confidenceScore = Math.round(
         clamp(valueScore * 0.33 + expertScore * 0.18 + needScore * 0.26 + formatScore * 0.06 + scarcityScore * 0.06 + strategyScore * 0.11, 0, 100),
       )
-      const hybridScore = 0.36 * valueDiff + 0.23 * expertEdge + 0.21 * rosterNeed.bonus + 0.05 * formatBonus + 0.04 * scarcityBonus + 0.11 * strategyBonus
+      const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
+      const hybridScore = 0.34 * valueDiff + 0.2 * expertEdge + 0.22 * rosterNeed.bonus + 0.05 * formatBonus + 0.07 * scarcityBonus + 0.12 * strategyBonus + tierUrgency
 
       return {
         ...player,
@@ -275,7 +306,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Roster", value: Math.round(needScore), detail: rosterNeed.reason },
-          { label: "Scarcity", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? "Meaningful tier drop after this player" : "No urgent tier cliff" },
+          { label: "Tier", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? "Meaningful same-position tier drop after this player" : "No urgent tier cliff" },
         ],
         teamCompositionInsight,
         rosterReason: rosterNeed.reason,
@@ -301,7 +332,12 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto px-2 pt-0 pr-1">
+      <CardContent className="max-h-[34rem] space-y-2 overflow-y-auto px-2 pt-0 pr-1">
+        <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
+          <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
+          <div className="mt-1">{roundPlan}</div>
+          <div className="mt-1 truncate" title={RESEARCH_PILLARS_2026.join(" ")}>Model: tier VBD + roster fit + ADP value + 2026 RB/WR/QB/TE market guidance.</div>
+        </div>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.

@@ -9,6 +9,7 @@ import { AvailablePlayersSection } from "./available-players-section"
 import { PlayerQueueSection } from "./player-queue-section"
 import { SuggestedPicksSection } from "./suggested-picks-section"
 import { DraftBoardSection } from "./draft-board-section"
+import { DraftedPlayersSection } from "./drafted-players-section"
 import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
@@ -260,7 +261,7 @@ export function FantasyDraftAssistant() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[1920px] px-3 py-3 sm:px-4 lg:px-5">
+      <div className="mx-auto flex h-screen max-w-[1920px] flex-col overflow-hidden px-3 py-3 sm:px-4 lg:px-5">
         <Header
           theme={theme}
           toggleTheme={toggleTheme}
@@ -287,8 +288,26 @@ export function FantasyDraftAssistant() {
           draftData={draftData}
         />
 
+        <div
+          className="mb-3 grid gap-2 rounded-2xl border p-2 text-xs shadow-sm md:grid-cols-4"
+          style={{ background: colors.card, borderColor: colors.lightBorder }}
+        >
+          {[
+            { label: "On clock", value: `Pick ${currentPick || 1}`, hint: draftData?.numTeams ? `Round ${Math.floor((Number(currentPick || 1) - 1) / draftData.numTeams) + 1}` : "Connect draft" },
+            { label: "Synced", value: lastUpdate ? timeSinceUpdate : "Not live", hint: platform === "sleeper" ? "Sleeper draft" : "Manual board" },
+            { label: "Roster focus", value: `Team ${selectedTeamRosterId || "—"}`, hint: "Click any team on board" },
+            { label: "Draft mode", value: "Command center", hint: "Resize columns while drafting" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-xl border px-3 py-2" style={{ borderColor: colors.cardBorder, background: colors.tableRow }}>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: colors.textSecondary }}>{item.label}</div>
+              <div className="mt-1 truncate text-lg font-black" style={{ color: colors.textPrimary }}>{item.value}</div>
+              <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{item.hint}</div>
+            </div>
+          ))}
+        </div>
+
         {/* Main Content Grid */}
-        <div className="grid gap-3 lg:gap-4">
+        <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
               {/* Mobile: Stack all sections vertically */}
               <div className="grid gap-4 lg:hidden">
                 <BestValueSection
@@ -373,9 +392,9 @@ export function FantasyDraftAssistant() {
 
               {/* Desktop: Resizable command-center layout. Resize is useful during drafts; drag/reorder was intentionally avoided because stable muscle memory matters more under time pressure. */}
               <div className="hidden lg:block">
-                <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-260px)] rounded-2xl">
+                <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-225px)] rounded-2xl">
                   <ResizablePanel defaultSize={31} minSize={24} className="pr-3">
-                    <div className="h-full space-y-3 overflow-y-auto pr-1">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1 pb-3">
                   <BestValueSection
                     colors={colors}
                     csvData={csvData}
@@ -410,7 +429,7 @@ export function FantasyDraftAssistant() {
                   </ResizablePanel>
                   <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
                   <ResizablePanel defaultSize={38} minSize={28} className="px-3">
-                    <div className="h-full space-y-3 overflow-y-auto pr-1">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1 pb-3">
                   <DraftBoardSection
                     colors={colors}
                     draftData={draftData}
@@ -432,7 +451,7 @@ export function FantasyDraftAssistant() {
                   </ResizablePanel>
                   <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
                   <ResizablePanel defaultSize={31} minSize={24} className="pl-3">
-                    <div className="h-full space-y-3 overflow-y-auto pr-1">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1 pb-3">
                   <SuggestedPicksSection
                     colors={colors}
                     draftData={draftData}
