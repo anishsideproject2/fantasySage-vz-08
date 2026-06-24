@@ -14,7 +14,7 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 })
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
-const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "best-ball", "half-ppr"]
+const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "half-ppr"]
 const UNDERDOG_PASTEL_YELLOW = "#FDE68A"
 
 const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
@@ -70,14 +70,29 @@ export function Header({
 }) {
   const [showFileManager, setShowFileManager] = useState(false)
   const [selectedScoringGroupId, setSelectedScoringGroupId] = useState("full-ppr")
-  const [detectedScoringLabel, setDetectedScoringLabel] = useState("Defaulting to Full PPR")
+  const [detectedScoringLabel, setDetectedScoringLabel] = useState("Ready to load a board")
   const presetScrollerRef = useRef<HTMLDivElement | null>(null)
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
 
-  const quickSwitchGroups = useMemo(
-    () => QUICK_SWITCH_GROUP_ORDER.map((groupId) => RANKING_PRESET_GROUPS.find((group) => group.id === groupId)).filter(Boolean),
-    [],
-  )
+  const quickSwitchGroups = useMemo(() => {
+    const groupsById = new Map(RANKING_PRESET_GROUPS.map((group) => [group.id, group]))
+    const halfPpr = groupsById.get("half-ppr")
+    const bestBall = groupsById.get("best-ball")
+
+    return QUICK_SWITCH_GROUP_ORDER.map((groupId) => {
+      const group = groupsById.get(groupId)
+      if (!group) return null
+      if (groupId !== "half-ppr" || !halfPpr || !bestBall) return group
+
+      return {
+        ...halfPpr,
+        presets: [
+          ...halfPpr.presets,
+          ...bestBall.presets.map((preset) => ({ ...preset, quickSwitchSubformat: "Best Ball · Underdog" })),
+        ],
+      }
+    }).filter(Boolean)
+  }, [])
 
   useEffect(() => {
     activePresetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
@@ -86,7 +101,7 @@ export function Header({
   useEffect(() => {
     const draftId = extractSleeperDraftId(sleeperUrl.trim())
     if (!draftId) {
-      setDetectedScoringLabel("Defaulting to Full PPR")
+      setDetectedScoringLabel("Ready to load a board")
       return
     }
 
@@ -98,7 +113,7 @@ export function Header({
         const draft = await res.json()
         const detectedGroupId = detectScoringGroupFromDraft(draft)
         if (!detectedGroupId) {
-          setDetectedScoringLabel("Sleeper format not labeled; showing Full PPR")
+          setDetectedScoringLabel("Sleeper format not labeled; keeping current board")
           return
         }
 
@@ -108,7 +123,7 @@ export function Header({
         const activePresetMatchesFormat = RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.presets.some((preset) => preset.id === activePresetId)
         if (!activePresetMatchesFormat) loadPreset(DEFAULT_PRESET_BY_GROUP[detectedGroupId], activeRankingIndex)
       } catch (err) {
-        if (!controller.signal.aborted) setDetectedScoringLabel("Could not auto-detect yet; showing Full PPR")
+        if (!controller.signal.aborted) setDetectedScoringLabel("Could not auto-detect yet; keeping current board")
       }
     }, 400)
 
@@ -201,82 +216,77 @@ export function Header({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
-            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; swipe horizontally for Full PPR, 🐶 Underdog, and Half PPR quick loads.</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; swipe horizontally to load compact analyst boards by format.</p>
           </div>
         </div>
         <div
           ref={presetScrollerRef}
           onWheel={handlePresetWheel}
-          className="flex flex-nowrap gap-3 overflow-x-auto overscroll-x-contain pb-2"
-          aria-label="Scrollable analyst ranking boards grouped by format"
+          className="flex flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
+          aria-label="Horizontally scrollable analyst ranking boards grouped by format"
         >
-          {quickSwitchGroups.map((group: any) => {
-            const isUnderdog = group.id === "best-ball"
-            return (
-              <section
-                key={group.id}
-                className="min-w-[21rem] flex-1 rounded-2xl border p-3 sm:min-w-[24rem] xl:min-w-[28rem]"
-                style={{ borderColor: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.cardBorder, backgroundColor: isUnderdog ? `${UNDERDOG_PASTEL_YELLOW}38` : colors.darkBlue }}
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-xs font-black uppercase tracking-wide" style={{ color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
-                    {isUnderdog ? "🐶 Underdog" : group.label}
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  {group.presets.map((preset) => {
-                    const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-                    return (
-                      <button
-                        key={preset.id}
-                        ref={isActive ? activePresetRef : null}
-                        onClick={() => {
-                          setSelectedScoringGroupId(group.id)
-                          setDetectedScoringLabel("Manual board format")
-                          loadPreset(preset.id, activeRankingIndex)
-                        }}
-                        className="min-h-[5.75rem] rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
-                        style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
-                        aria-pressed={isActive}
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                          <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: colors.darkBlue, color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>{group.label}</span>
-                          {isActive && (
-                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
-                              <Check size={12} /> Loaded
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
-                              {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
-                            </div>
-                            <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
-                            <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
-                              {getAccuracyAwardLabel(preset)}
-                            </div>
-                          </div>
-                          <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
-                            #{preset.accuracyRank}
+          {quickSwitchGroups.map((group: any) => (
+            <section
+              key={group.id}
+              className="flex shrink-0 items-stretch gap-2 rounded-2xl border p-2"
+              style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
+            >
+              <div className="flex min-w-16 items-center justify-center rounded-xl px-2 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
+                {group.label}
+              </div>
+              <div className="flex flex-nowrap gap-2">
+                {group.presets.map((preset) => {
+                  const isActive = rankings[activeRankingIndex]?.presetId === preset.id
+                  const isUnderdog = Boolean(preset.quickSwitchSubformat)
+                  return (
+                    <button
+                      key={preset.id}
+                      ref={isActive ? activePresetRef : null}
+                      onClick={() => {
+                        setSelectedScoringGroupId(isUnderdog ? "best-ball" : group.id)
+                        setDetectedScoringLabel("Manual board selected")
+                        loadPreset(preset.id, activeRankingIndex)
+                      }}
+                      className="min-h-[4.25rem] w-48 shrink-0 rounded-xl border px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
+                      aria-pressed={isActive}
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
+                          {isUnderdog ? "Best Ball · Underdog" : preset.accuracyType}
+                        </span>
+                        {isActive && (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
+                            <Check size={10} /> Loaded
                           </span>
-                        </div>
-                        {preset.accuracyRanks && (
-                          <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                            {POSITION_RANKS.map((position) => (
-                              <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: isUnderdog ? "#8A5A00" : colors.textSecondary }}>
-                                {position} {preset.accuracyRanks?.[position] ?? "—"}
-                              </span>
-                            ))}
-                          </div>
                         )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })}
+                      </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold" style={{ color: colors.textPrimary }}>
+                            {preset.analyst}
+                          </div>
+                          <div className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{preset.source} · {preset.updated}</div>
+                        </div>
+                        <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                          #{preset.accuracyRank}
+                        </span>
+                      </div>
+                      {preset.accuracyRanks && (
+                        <div className="mt-1.5 flex gap-1 text-[9px]">
+                          {POSITION_RANKS.map((position) => (
+                            <span key={position} className="rounded-md px-1 py-0.5 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
+                              {position} {preset.accuracyRanks?.[position] ?? "—"}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
 
