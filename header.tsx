@@ -15,6 +15,14 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
 
+const getAccuracyYear = (preset: any) => preset.accuracyNote?.match(/20\d{2}/)?.[0] || ""
+
+const getAccuracyAwardLabel = (preset: any) => {
+  const year = getAccuracyYear(preset)
+  const type = preset.accuracyType === "Hybrid" ? "Hybrid accuracy" : `${preset.accuracyType || "Accuracy"} accuracy`
+  return year ? `${year} ${type}` : type
+}
+
 export function Header({
   theme,
   toggleTheme,
@@ -123,37 +131,57 @@ export function Header({
             <span>Drag/reorder skipped to preserve draft-night muscle memory.</span>
           </div>
         </div>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {RANKING_PRESET_GROUPS.flatMap((group) => group.presets.map((preset) => ({ group, preset }))).map(({ group, preset }) => {
-            const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-            return (
-              <button
-                key={preset.id}
-                onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                className="rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
-                style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}1f` : colors.darkBlue }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>{preset.analyst}</div>
-                    <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{group.label} · {preset.source}</div>
-                  </div>
-                  <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
-                    #{preset.accuracyRank}
-                  </span>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {RANKING_PRESET_GROUPS.map((group) => (
+            <section key={group.id} className="rounded-xl border p-2" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wide" style={{ color: colors.gold }}>{group.label}</h3>
+                  <p className="text-[11px]" style={{ color: colors.textSecondary }}>{group.description}</p>
                 </div>
-                {preset.accuracyRanks && (
-                  <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                    {POSITION_RANKS.map((position) => (
-                      <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.card, color: colors.gold }}>
-                        {position} {preset.accuracyRanks?.[position] ?? "—"}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </button>
-            )
-          })}
+                <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase" style={{ backgroundColor: `${colors.headingGreen}1f`, color: colors.headingGreen }}>
+                  {group.presets.length} boards
+                </span>
+              </div>
+              <div className="grid gap-2 xl:grid-cols-3">
+                {group.presets.map((preset) => {
+                  const isActive = rankings[activeRankingIndex]?.presetId === preset.id
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => loadPreset(preset.id, activeRankingIndex)}
+                      className="rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}1f` : colors.card }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
+                            {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
+                          </div>
+                          <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
+                          <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.gold }}>
+                            {getAccuracyAwardLabel(preset)}
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                          #{preset.accuracyRank}
+                        </span>
+                      </div>
+                      {preset.accuracyRanks && (
+                        <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
+                          {POSITION_RANKS.map((position) => (
+                            <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: colors.gold }}>
+                              {position} {preset.accuracyRanks?.[position] ?? "—"}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
 

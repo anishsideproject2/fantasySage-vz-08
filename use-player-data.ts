@@ -29,7 +29,10 @@ export function usePlayerData() {
 
   const normalizeName = (name) => {
     if (!name) return ""
-    return name
+
+    const canonicalName = String(name).replace(/\bKenny\s+Gainwell\b/i, "Kenneth Gainwell")
+
+    return canonicalName
       .toLowerCase()
       .replace(/(\s|,)+(jr\.?|sr\.?|ii|iii|iv|v)\b/g, "")
       .replace(/[^a-z]/g, "")

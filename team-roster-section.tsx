@@ -205,7 +205,7 @@ export function TeamRosterSection({
   const selectedTeam = draftData?.teams.find((team) => String(team.roster_id) === String(selectedTeamRosterId))
   const selectedTeamName = selectedTeam ? selectedTeam.team_name : "Select a Team"
   const selectedTeamOwnerDisplayName = selectedTeam ? selectedTeam.owner.display_name : ""
-  const selectedTeamOwnerAvatar = selectedTeam ? selectedTeam.owner.avatar : null
+  const selectedTeamOwnerAvatar = selectedTeam ? selectedTeam.avatar || selectedTeam.owner.avatar : null
 
   const teamRosterPlayers = useMemo(() => getSelectedTeamRosterPlayers(), [getSelectedTeamRosterPlayers])
 
@@ -280,7 +280,14 @@ export function TeamRosterSection({
                   }}
                   className="text-white hover:bg-gray-600 focus:bg-gray-600"
                 >
-                  {team.team_name} {platform === "sleeper" ? `(@${team.owner.display_name})` : ""}
+                  <span className="flex items-center gap-2">
+                    {team.avatar || team.owner?.avatar ? (
+                      <img src={getSleeperAvatarUrl(team.avatar || team.owner?.avatar) || "/placeholder.svg"} alt="" className="h-5 w-5 rounded-full object-cover" />
+                    ) : (
+                      <span className="h-5 w-5 rounded-full" style={{ backgroundColor: colors.darkBlue }} />
+                    )}
+                    <span>{team.team_name} {platform === "sleeper" ? `(@${team.owner.display_name})` : ""}</span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

@@ -108,6 +108,32 @@ const getSignalColor = (score) => {
   return "#ef4444"
 }
 
+const getRosterCompositionInsight = ({ position, rosterCounts, starterTargets, flexSlots, scoringFormat, round }) => {
+  const rb = rosterCounts.RB || 0
+  const wr = rosterCounts.WR || 0
+  const qb = rosterCounts.QB || 0
+  const te = rosterCounts.TE || 0
+  const flexCoreTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const flexCoreCount = rb + wr + te
+
+  if (position === "RB" && rb === 0 && round <= 4) return "Roster build lacks an anchor RB; this pick stabilizes weekly floor and keeps the room from forcing you later."
+  if (position === "WR" && wr < starterTargets.WR && scoringFormat !== "Standard") return "PPR build still needs target volume; this adds a weekly reception floor instead of chasing fragile touchdowns."
+  if ((position === "RB" || position === "WR") && flexCoreCount < flexCoreTarget) return "Fills the starting RB/WR/TE core before bench-only picks become optimal."
+  if (position === "QB" && qb === 0) return "Only viable because your starter spot is open; compare against remaining RB/WR tier quality before clicking."
+  if (position === "TE" && te === 0) return "Addresses the last singleton starter, but only worth it if the tier gap is real."
+  if (position === "RB") return "Bench RBs carry injury-contingent league-winning upside and protect against early-season depth shocks."
+  if (position === "WR") return "Bench WR depth creates matchup flexibility and spike-week options in bye weeks."
+  return "Best-player fit is acceptable, but double-check whether RB/WR depth has a higher ceiling."
+}
+
+const getActionLabel = (player) => {
+  if (player.confidenceScore >= 82 && player.valueDiff >= -2) return "Draft now"
+  if (player.valueDiff >= 8) return "Value smash"
+  if (player.rosterReason?.includes("open")) return "Need fit"
+  if (player.scarcityBonus >= 4) return "Tier break"
+  return "Queue"
+}
+
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId }) {
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
@@ -221,6 +247,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const whySignal = ocImpact
         ? `${ocImpact.coordinator} ${ocImpact.bonus > 0 ? "helps" : "adds risk to"} this ${player.position} profile.`
         : playerNote || primaryStrategySignal.detail
+      const teamCompositionInsight = getRosterCompositionInsight({ position: player.position, rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, round: draftRound })
       const whyPickNote = `${valueDiff >= 0 ? "Pick for value" : "Only pick if you need the position"}: ${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP with ${rosterNeed.reason}. ${whySignal}`
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
@@ -247,9 +274,10 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         ocSummary,
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
-          ocSummary?.pass || fallbackOcCards.pass,
-          ocSummary?.run || fallbackOcCards.run,
+          { label: "Roster", value: Math.round(needScore), detail: rosterNeed.reason },
+          { label: "Scarcity", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? "Meaningful tier drop after this player" : "No urgent tier cliff" },
         ],
+        teamCompositionInsight,
         rosterReason: rosterNeed.reason,
         confidenceScore,
         confidence: getConfidenceLabel(confidenceScore),
@@ -259,7 +287,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     })
     .filter(Boolean)
     .sort((a, b) => b.hybridScore - a.hybridScore || b.confidenceScore - a.confidenceScore)
-    .slice(0, 5)
+    .slice(0, 6)
+
+  const topPick = suggestedPicks[0]
 
   return (
     <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
@@ -267,7 +297,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 5 • {scoringFormat} • {draftTypeLabel}
+            Top 6 • {scoringFormat} • {draftTypeLabel}
           </span>
         </CardTitle>
       </CardHeader>
@@ -277,8 +307,27 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          suggestedPicks.map((player, idx) => (
-            <div key={player.id} className="rounded-lg border px-2 py-2" style={{ borderColor: colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
+          <>
+            {topPick && (
+              <div className="rounded-xl border p-3" style={{ borderColor: topPick.confidenceColor, background: `${topPick.confidenceColor}16` }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: topPick.confidenceColor }}>Best analyst call · {getActionLabel(topPick)}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <BubbleSymbol pos={topPick.position} colors={colors} />
+                      <span className="truncate text-base font-black" style={{ color: colors.textPrimary }}>{topPick.name}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-full px-3 py-2 text-center" style={{ background: `${topPick.confidenceColor}24`, color: topPick.confidenceColor }}>
+                    <div className="text-lg font-black leading-none">{topPick.confidenceScore}</div>
+                    <div className="text-[9px] font-bold uppercase">{topPick.confidence}</div>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs leading-snug" style={{ color: colors.textSecondary }}>{topPick.teamCompositionInsight}</p>
+              </div>
+            )}
+            {suggestedPicks.map((player, idx) => (
+            <div key={player.id} className="rounded-lg border px-2 py-2" style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
               <div className="flex items-center gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
@@ -286,6 +335,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <span className="min-w-0 truncate text-sm font-bold" style={{ color: colors.textPrimary }} title={player.name}>
                     {player.name}{player.ocImpact && <span title={player.ocImpact.detail}> {OC_VARIANCE_SYMBOL}</span>}
                   </span>
+                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase" style={{ backgroundColor: `${player.confidenceColor}22`, color: player.confidenceColor }}>{getActionLabel(player)}</span>
                   <span className="shrink-0 text-[11px]" style={{ color: colors.textSecondary }}>ADP {player.adp}</span>
                 </div>
                 <div className="shrink-0 rounded-full border px-2.5 py-1 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
@@ -294,8 +344,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 </div>
               </div>
               {player.playerNote && (
-                <div className="mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                  {player.playerNote}
+                <div className="mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
                 </div>
               )}
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
@@ -310,7 +361,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 ))}
               </div>
             </div>
-          ))
+            ))}
+          </>
         )}
       </CardContent>
     </Card>
