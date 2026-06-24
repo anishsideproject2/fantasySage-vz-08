@@ -83,9 +83,9 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between gap-2 text-base font-bold tracking-wide" style={{ color: colors.gold }}>
+    <Card className="flex min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+      <CardHeader className="px-3 pb-2 pt-3">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
             Rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
@@ -102,11 +102,11 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
-        <div className="h-full overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <div className="max-h-[21rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"
-              style={{ gridTemplateColumns: `3.5rem repeat(${numTeams}, minmax(7.5rem, 1fr))`, backgroundColor: colors.darkBlue }}
+              style={{ gridTemplateColumns: `3rem repeat(${numTeams}, minmax(8.25rem, 1fr))`, backgroundColor: colors.darkBlue }}
             >
               <div className="border-r px-2 py-2 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                 Rd
@@ -145,9 +145,9 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                 <div
                   key={round}
                   className="grid border-t"
-                  style={{ gridTemplateColumns: `3.5rem repeat(${numTeams}, minmax(7.5rem, 1fr))`, borderColor: colors.lightBorder }}
+                  style={{ gridTemplateColumns: `3rem repeat(${numTeams}, minmax(8.25rem, 1fr))`, borderColor: colors.lightBorder }}
                 >
-                  <div className="flex items-center justify-center border-r text-sm font-black" style={{ borderColor: colors.lightBorder, color: colors.gold }}>
+                  <div className="flex items-center justify-center border-r text-xs font-black" style={{ borderColor: colors.lightBorder, color: colors.gold }}>
                     {round}
                   </div>
                   {teams.map((team, teamIndex) => {
@@ -161,7 +161,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                         key={`${round}-${draftSlot}`}
                         ref={pickNo === latestPickNo ? latestPickRef : null}
                         onClick={() => setSelectedTeamRosterId?.(team.roster_id)}
-                        className="min-h-[4.5rem] border-r p-2 text-left transition hover:opacity-90"
+                        className="min-h-[4.25rem] border-r p-2 text-left transition hover:opacity-90"
                         style={{
                           borderColor: colors.lightBorder,
                           backgroundColor: isCurrentPick ? `${colors.headingGreen}26` : isSelectedTeam ? `${colors.purple}16` : colors.tableRow,

@@ -533,7 +533,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className="grid gap-2 pb-1 sm:grid-cols-2">
+          <div className={isHorizontal ? "grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2" : "grid gap-2 pb-1 sm:grid-cols-2"}>
             {suggestedPicks.map((player, idx) => (
               <div key={player.id} className="group relative">
                 <button
