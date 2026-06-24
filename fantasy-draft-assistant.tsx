@@ -219,7 +219,7 @@ export function FantasyDraftAssistant() {
             />
           </div>
 
-          <div className="hidden items-stretch gap-4 lg:grid lg:grid-cols-[minmax(320px,0.9fr)_minmax(520px,1.35fr)_minmax(340px,0.9fr)]">
+          <div className="hidden items-stretch gap-4 lg:grid lg:grid-cols-[minmax(320px,0.9fr)_minmax(380px,0.95fr)_minmax(520px,1.35fr)]">
             <div className="flex min-h-[46rem] flex-col">
               <BestValueSection
                 colors={colors}
@@ -237,6 +237,16 @@ export function FantasyDraftAssistant() {
                 setSearchTerm={setSearchTerm}
               />
             </div>
+            <div className="flex min-h-[46rem] flex-col">
+              <TeamRosterSection
+                colors={colors}
+                draftData={draftData}
+                selectedTeamRosterId={selectedTeamRosterId}
+                setSelectedTeamRosterId={setSelectedTeamRosterId}
+                draftedPlayers={draftedPlayers}
+                platform={platform}
+              />
+            </div>
             <div className="flex min-h-[46rem] flex-col gap-4">
               <SuggestedPicksSection
                 colors={colors}
@@ -247,7 +257,7 @@ export function FantasyDraftAssistant() {
                 selectedTeamRosterId={selectedTeamRosterId}
                 layout="horizontal"
               />
-              <div className="flex flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 flex-col">
                 <DraftBoardSection
                   colors={colors}
                   draftData={draftData}
@@ -255,19 +265,9 @@ export function FantasyDraftAssistant() {
                   currentPick={currentPick}
                   selectedTeamRosterId={selectedTeamRosterId}
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
-                  visibleRoundCount={5}
+                  visibleRoundCount={8}
                 />
               </div>
-            </div>
-            <div className="flex min-h-[46rem] flex-col">
-              <TeamRosterSection
-                colors={colors}
-                draftData={draftData}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                draftedPlayers={draftedPlayers}
-                platform={platform}
-              />
             </div>
           </div>
         </main>

@@ -26,7 +26,22 @@ const getDraftSlotForPick = (pickNo, numTeams) => {
   return isSnakeBackHalf ? numTeams - pickInRound + 1 : pickInRound
 }
 
-export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = 5 }) {
+const getPositionBoardColors = (pos, colors) => {
+  switch (pos) {
+    case "QB":
+      return { border: colors.pillQB, background: `${colors.pillQB}18` }
+    case "RB":
+      return { border: colors.pillRB, background: `${colors.pillRB}18` }
+    case "WR":
+      return { border: colors.pillWR, background: `${colors.pillWR}18` }
+    case "TE":
+      return { border: colors.pillTE, background: `${colors.pillTE}20` }
+    default:
+      return { border: colors.lightBorder, background: colors.tableRow }
+  }
+}
+
+export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = 8 }) {
   const teams = draftData?.teams || []
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
@@ -88,7 +103,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
+            Showing rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
           </span>
         </CardTitle>
         {selectedTeamRosterId && (
@@ -102,7 +117,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
-        <div className="max-h-[31rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <div className="max-h-[38rem] min-h-[30rem] overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
               className="grid sticky top-0 z-10"
@@ -156,6 +171,8 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                     const player = picksByNumber.get(pickNo)
                     const isCurrentPick = pickNo === Number(currentPick)
                     const isSelectedTeam = String(team.roster_id) === String(selectedTeamRosterId)
+                    const positionColors = getPositionBoardColors(player?.position, colors)
+                    const baseBackground = player ? positionColors.background : colors.tableRow
                     return (
                       <button
                         key={`${round}-${draftSlot}`}
@@ -163,9 +180,9 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                         onClick={() => setSelectedTeamRosterId?.(team.roster_id)}
                         className="min-h-[4.6rem] border-r p-2 text-left transition hover:opacity-90"
                         style={{
-                          borderColor: colors.lightBorder,
-                          backgroundColor: isCurrentPick ? `${colors.headingGreen}26` : isSelectedTeam ? `${colors.purple}16` : colors.tableRow,
-                          boxShadow: isCurrentPick ? `inset 0 0 0 2px ${colors.headingGreen}` : "none",
+                          borderColor: player ? positionColors.border : colors.lightBorder,
+                          background: isCurrentPick ? `${colors.headingGreen}26` : isSelectedTeam ? `linear-gradient(180deg, ${colors.purple}16, ${baseBackground})` : baseBackground,
+                          boxShadow: isCurrentPick ? `inset 0 0 0 2px ${colors.headingGreen}` : player ? `inset 0 0 0 1px ${positionColors.border}55` : "none",
                         }}
                       >
                         <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-bold" style={{ color: isCurrentPick ? colors.headingGreen : colors.textSecondary }}>
