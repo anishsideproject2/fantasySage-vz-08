@@ -219,8 +219,8 @@ export function FantasyDraftAssistant() {
             />
           </div>
 
-          <div className="hidden items-stretch gap-4 lg:grid lg:grid-cols-[minmax(320px,0.9fr)_minmax(380px,0.95fr)_minmax(520px,1.35fr)]">
-            <div className="flex min-h-[46rem] flex-col">
+          <div className="hidden items-stretch gap-4 lg:grid lg:h-[52rem] lg:grid-cols-[minmax(320px,0.9fr)_minmax(380px,0.95fr)_minmax(520px,1.35fr)]">
+            <div className="flex min-h-0 flex-col">
               <BestValueSection
                 colors={colors}
                 csvData={csvData}
@@ -237,7 +237,7 @@ export function FantasyDraftAssistant() {
                 setSearchTerm={setSearchTerm}
               />
             </div>
-            <div className="flex min-h-[46rem] flex-col">
+            <div className="flex min-h-0 flex-col">
               <TeamRosterSection
                 colors={colors}
                 draftData={draftData}
@@ -247,7 +247,7 @@ export function FantasyDraftAssistant() {
                 platform={platform}
               />
             </div>
-            <div className="flex min-h-[46rem] flex-col gap-4">
+            <div className="flex min-h-0 flex-col gap-4">
               <SuggestedPicksSection
                 colors={colors}
                 draftData={draftData}
@@ -265,7 +265,7 @@ export function FantasyDraftAssistant() {
                   currentPick={currentPick}
                   selectedTeamRosterId={selectedTeamRosterId}
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
-                  visibleRoundCount={8}
+                  visibleRoundCount={10}
                 />
               </div>
             </div>
