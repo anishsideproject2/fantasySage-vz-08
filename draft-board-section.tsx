@@ -58,7 +58,7 @@ const getValueLabel = (value) => {
   return "🫏 Reach"
 }
 
-export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = 8 }) {
+export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null }) {
   const teams = draftData?.teams || []
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
@@ -115,11 +115,11 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   const currentRound = numTeams ? Math.floor((Number(currentPick || 1) - 1) / numTeams) + 1 : 1
   const latestPlayer = latestPickNo ? picksByNumber.get(latestPickNo) : null
   const selectedSummary = selectedTeamRosterId ? rosterSummaries.get(String(selectedTeamRosterId)) : null
-  const firstVisibleRound = Math.max(1, Math.min(currentRound - 2, Math.max(1, rounds - visibleRoundCount + 1)))
-  const visibleRounds = Array.from(
-    { length: Math.min(visibleRoundCount, rounds) },
-    (_, index) => firstVisibleRound + index,
-  ).filter((round) => round >= 1 && round <= rounds)
+  const shouldLimitRounds = Number.isFinite(Number(visibleRoundCount)) && Number(visibleRoundCount) > 0 && Number(visibleRoundCount) < rounds
+  const firstVisibleRound = shouldLimitRounds ? Math.max(1, Math.min(currentRound - 2, Math.max(1, rounds - Number(visibleRoundCount) + 1))) : 1
+  const visibleRounds = shouldLimitRounds
+    ? Array.from({ length: Math.min(Number(visibleRoundCount), rounds) }, (_, index) => firstVisibleRound + index).filter((round) => round >= 1 && round <= rounds)
+    : Array.from({ length: rounds }, (_, index) => index + 1)
   const lastVisibleRound = visibleRounds[visibleRounds.length - 1] || firstVisibleRound
   if (!numTeams || !rounds) {
     return (
@@ -142,7 +142,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Showing rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
+            Showing {shouldLimitRounds ? `rounds ${firstVisibleRound}-${lastVisibleRound}` : `all ${rounds} rounds`} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
           </span>
         </CardTitle>
         <div className="mt-2 grid gap-2 text-xs font-bold sm:grid-cols-3">
@@ -187,7 +187,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
-              className="grid"
+              className="sticky top-0 z-10 grid"
               style={{ gridTemplateColumns: `3rem repeat(${numTeams}, minmax(8.25rem, 1fr))`, backgroundColor: colors.darkBlue }}
             >
               <div className="border-r px-2 py-2 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>

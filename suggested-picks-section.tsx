@@ -126,6 +126,89 @@ const RESEARCH_PILLARS_2026 = [
 
 const ANALYST_MODEL_VERSION = "Strategy lock · 2026 analyst blend"
 
+const STRATEGY_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "balanced", label: "Balanced BPA" },
+  { value: "hero-rb", label: "Hero RB" },
+  { value: "double-hero-rb", label: "Double Hero RB" },
+  { value: "zero-rb", label: "Zero RB" },
+  { value: "wr-heavy", label: "WR-Heavy" },
+  { value: "robust-rb", label: "Robust RB" },
+  { value: "elite-te", label: "Elite TE" },
+  { value: "early-qb", label: "Elite/Early QB" },
+  { value: "late-qb-te", label: "Late QB/TE" },
+]
+
+const getSelectedPickRoundsByPosition = ({ draftedPlayers = [], selectedTeamRosterId, numTeams = 12 }) => {
+  const teamCount = Number(numTeams) || 12
+  return draftedPlayers
+    .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
+    .reduce((roundsByPosition, player) => {
+      const pickNo = Number(player.pick_no)
+      const round = Number(player.round) || (pickNo > 0 ? Math.ceil(pickNo / teamCount) : 99)
+      const position = String(player.position || "").toUpperCase()
+      if (!roundsByPosition[position]) roundsByPosition[position] = []
+      roundsByPosition[position].push(round)
+      roundsByPosition[position].sort((a, b) => a - b)
+      return roundsByPosition
+    }, { QB: [], RB: [], WR: [], TE: [] })
+}
+
+const getStrategyGuidance = (value, scoringFormat, isSuperFlex) => {
+  const pprNote = scoringFormat === "Standard" ? "Standard scoring keeps touchdown/volume RBs in play." : "PPR scoring rewards target-earning WRs and receiving backs."
+  const sfNote = isSuperFlex ? " Superflex still elevates QB scarcity." : " In 1QB, avoid QB unless elite value falls or you intentionally chose an early-QB build."
+  const guidance = {
+    balanced: "Stay flexible: draft value into open starters, fill flex with RB/WR/TE, then chase RB/WR upside.",
+    "hero-rb": "Protect the single early RB anchor with target-earning WRs, one TE/QB value if it falls, and late RB upside.",
+    "double-hero-rb": "Two early RB anchors are already secured; aggressively catch up at WR/TE before adding more fragile RB depth.",
+    "zero-rb": "Do not force RB dead-zone volume; build WR/TE/elite QB leverage, then attack late contingent and receiving RBs.",
+    "wr-heavy": "Lean into WR target volume while keeping enough RB/TE value awareness to avoid empty starter slots.",
+    "robust-rb": "RB volume is the bet; stop before overinvesting, then fill WR starters and avoid redundant bench QB/TE.",
+    "elite-te": "Treat TE as a solved leverage slot, then prioritize RB/WR starters and avoid a second TE.",
+    "early-qb": "Treat QB as solved; core RB/WR/TE starters and flex depth should beat a backup QB.",
+    "late-qb-te": "Use patience at onesie positions; build RB/WR/flex depth and only take QB/TE when value or tiers force it.",
+  }
+  return `${guidance[value] || guidance.balanced} ${pprNote}${sfNote}`
+}
+
+const getManualStrategySignal = ({ strategyOverride, player, round, rosterCounts, starterTargets, flexSlots, scoringFormat, isSuperFlex }) => {
+  if (!strategyOverride || strategyOverride === "auto") return { bonus: 0, label: "Auto strategy", detail: "Auto-detected build controls the macro plan." }
+  const position = player.position
+  const rb = rosterCounts.RB || 0
+  const wr = rosterCounts.WR || 0
+  const te = rosterCounts.TE || 0
+  const qb = rosterCounts.QB || 0
+  const flexCoreCount = rb + wr + te
+  const flexCoreTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const needsFlexCore = flexCoreCount < flexCoreTarget
+  const isPpr = scoringFormat !== "Standard"
+  const match = (bonus, label, detail) => ({ bonus, label, detail })
+
+  if (strategyOverride === "hero-rb") {
+    if (position === "WR" && needsFlexCore) return match(5, "Hero RB pivot", "After one anchor RB, prioritize target-earning WRs and flex starters.")
+    if (position === "RB" && rb >= 1 && round <= 8) return match(-4, "Avoid RB pile-up", "Hero RB does not mean forcing dead-zone RB2/RB3 over stronger WR/TE value.")
+    if (position === "RB" && round >= 9) return match(4, "Hero RB late upside", "Late contingent RBs are exactly where Hero RB adds depth.")
+  }
+  if (strategyOverride === "double-hero-rb") {
+    if (position === "WR" || (position === "TE" && te === 0)) return match(5, "Double Hero catch-up", "Two early RBs push the next picks toward WR/TE starter value.")
+    if (position === "RB" && rb >= 2 && round <= 8) return match(-6, "No triple dead-zone RB", "Double Hero RB is two early anchors, not mid-round RB hoarding.")
+  }
+  if (strategyOverride === "zero-rb") {
+    if (position === "WR" || position === "TE") return match(5, "Zero RB core", "Build receiver/TE leverage while the RB room spends early capital.")
+    if (position === "RB" && round <= 8) return match(-5, "Zero RB discipline", "Do not patch the build with dead-zone volume unless the value is extreme.")
+    if (position === "RB") return match(6, "Zero RB attack", "Late RB upside is the payoff window for this build.")
+  }
+  if (strategyOverride === "wr-heavy" && position === "WR") return match(4 + (isPpr ? 1 : 0), "WR-heavy lean", "User override favors target volume and WR/flex pressure.")
+  if (strategyOverride === "robust-rb") {
+    if (position === "RB" && rb < 3 && round <= 6) return match(5, "Robust RB fit", "Robust RB wants multiple early workload bets before pivoting away.")
+    if (position === "WR" && rb >= 2) return match(3, "Robust RB pivot", "With RB volume banked, fill WR starters before depth.")
+  }
+  if (strategyOverride === "elite-te") return position === "TE" && te > 0 ? match(-8, "No second TE", "Elite TE build should not spend another pick on TE.") : position === "WR" || position === "RB" ? match(3, "TE solved", "TE leverage is handled; attack RB/WR starters and flex.") : match(0, "TE solved", "Keep TE solved and compare value.")
+  if (strategyOverride === "early-qb") return position === "QB" && qb > 0 ? match(-8, "No backup QB", "Early-QB build already paid for the position.") : position === "RB" || position === "WR" ? match(3, "QB solved", "QB is handled; refill RB/WR/flex value.") : match(0, "QB solved", "Avoid doubling down at QB.")
+  if (strategyOverride === "late-qb-te" && (position === "QB" || position === "TE") && round <= 8 && !isSuperFlex) return match(-4, "Late onesie plan", "User override wants patience at QB/TE unless a tier drop is obvious.")
+  return match(0, "Manual strategy", "Manual override noted; no extra positional adjustment for this player.")
+}
+
 const getAdpRound = (adp, teams = 12) => {
   const value = Number.parseFloat(adp)
   const teamCount = Number(teams) || 12
@@ -207,14 +290,35 @@ const getResearchEdge = ({ player, round, adpRound, rosterNeed, rosterCounts, st
   return { bonus: 0, label: "Research neutral", detail: "No macro strategy override; value, roster fit, and tier leverage should drive the call." }
 }
 
-const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, isSuperFlex, scoringFormat }) => {
+const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, isSuperFlex, scoringFormat, draftedRoundsByPosition = {}, strategyOverride = "auto" }) => {
   const rb = rosterCounts.RB || 0
   const wr = rosterCounts.WR || 0
   const coreStarterTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
   const coreStarterCount = CORE_STARTER_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0)
   const openCoreSlots = Math.max(coreStarterTarget - coreStarterCount, 0)
   const missing = CORE_STARTER_POSITIONS.filter((pos) => (rosterCounts[pos] || 0) < (starterTargets[pos] || 0))
-  const label = rb >= 2 && round <= 5 ? "Double Hero RB" : rb === 1 ? "Hero RB" : rb === 0 && wr >= 2 ? "Zero RB / Hero WR" : "Balanced BPA"
+  const earlyRbCount = (draftedRoundsByPosition.RB || []).filter((pickedRound) => pickedRound <= 5).length
+  const earlyWrCount = (draftedRoundsByPosition.WR || []).filter((pickedRound) => pickedRound <= 5).length
+  const hasEarlyTe = (draftedRoundsByPosition.TE || []).some((pickedRound) => pickedRound <= 4)
+  const hasEarlyQb = (draftedRoundsByPosition.QB || []).some((pickedRound) => pickedRound <= (isSuperFlex ? 3 : 5))
+  const detectedKey = earlyRbCount >= 3 && round <= 7
+    ? "robust-rb"
+    : earlyRbCount >= 2
+      ? "double-hero-rb"
+      : earlyRbCount === 1
+        ? "hero-rb"
+        : rb === 0 && (round >= 6 || earlyWrCount >= 3)
+          ? "zero-rb"
+          : wr >= 3 && earlyRbCount <= 1
+            ? "wr-heavy"
+            : hasEarlyTe
+              ? "elite-te"
+              : hasEarlyQb
+                ? "early-qb"
+                : "balanced"
+  const activeKey = strategyOverride && strategyOverride !== "auto" ? strategyOverride : detectedKey
+  const option = STRATEGY_OPTIONS.find((strategy) => strategy.value === activeKey)
+  const label = `${option?.label || "Balanced BPA"}${strategyOverride && strategyOverride !== "auto" ? " (manual)" : ""}`
   const next = missing.length > 0
     ? `Fill ${missing.join("/")} starter${missing.length === 1 ? "" : "s"} before bench depth.`
     : openCoreSlots > 0
@@ -225,7 +329,7 @@ const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, 
     : "In 1QB, QB only breaks through when the tier/value gap is obvious after core starters are addressed."
   const format = scoringFormat === "Standard" ? "Standard scoring raises RB touchdown/volume value." : "PPR scoring raises WR target volume and pass-catching RB/TE value."
 
-  return { label, next, guardrail, format }
+  return { label, next, guardrail, format, activeKey, detectedKey, guidance: getStrategyGuidance(activeKey, scoringFormat, isSuperFlex) }
 }
 
 const getPositionMultiplier = ({ position, round, scoringFormat, isSuperFlex, rosterNeed }) => {
@@ -366,7 +470,7 @@ const getActionLabel = (player) => {
   return "Track"
 }
 
-export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked" }) {
+export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride }) {
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -426,7 +530,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const availablePlayers = getAvailablePlayers?.() || []
   const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
 
-  const strategyLock = getBuildStrategyLock({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat })
+  const draftedRoundsByPosition = getSelectedPickRoundsByPosition({ draftedPlayers, selectedTeamRosterId, numTeams: draftData?.numTeams || 12 })
+  const strategyLock = getBuildStrategyLock({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat, draftedRoundsByPosition, strategyOverride: selectedStrategyOverride })
 
   const suggestedPicks = availablePlayers
     .map((player) => {
@@ -465,9 +570,10 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         superFlexSlots,
         scoringFormat,
       })
-      const primaryStrategySignal = ocImpact || (researchEdge.bonus !== 0 ? researchEdge : strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
+      const manualStrategySignal = getManualStrategySignal({ strategyOverride: selectedStrategyOverride, player, round: draftRound, rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, isSuperFlex: superFlexSlots > 0 })
+      const primaryStrategySignal = ocImpact || (manualStrategySignal.bonus !== 0 ? manualStrategySignal : researchEdge.bonus !== 0 ? researchEdge : strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
       const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
-      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
+      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + manualStrategySignal.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
       const playerNote = getPlayerNote(player, scoringFormat)
       const analystContext = getAnalystContext(player)
       const ocSummary = getOcTendencySummary(player)
@@ -504,6 +610,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         thematicSignal,
         researchEdge,
         ocImpact,
+        manualStrategySignal,
         playerNote: whyPickNote,
         analystContext,
         ocSummary,
@@ -543,7 +650,23 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           <summary className="cursor-pointer font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
             Current strategy: {strategyLock.label}
           </summary>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label className="font-black uppercase tracking-wide" htmlFor="strategy-override" style={{ color: colors.textSecondary }}>Pivot strategy</label>
+            <select
+              id="strategy-override"
+              value={selectedStrategyOverride}
+              onChange={(event) => setSelectedStrategyOverride?.(event.target.value)}
+              className="rounded-md border px-2 py-1 text-[11px] font-bold outline-none"
+              style={{ borderColor: colors.lightBorder, background: colors.card, color: colors.textPrimary }}
+            >
+              {STRATEGY_OPTIONS.map((strategy) => (
+                <option key={strategy.value} value={strategy.value}>{strategy.label}</option>
+              ))}
+            </select>
+            <span>Detected: {STRATEGY_OPTIONS.find((strategy) => strategy.value === strategyLock.detectedKey)?.label || "Balanced BPA"}</span>
+          </div>
           <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
+          <div className="mt-1">{strategyLock.guidance}</div>
           <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
           <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: prioritizes open WR/RB/TE starters, then flex, then RB/WR upside bench depth; uses VBD, ADP, tier cliffs, target-earning WR research, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
         </details>
