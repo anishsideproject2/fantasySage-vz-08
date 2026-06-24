@@ -13,6 +13,7 @@ import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
 import { COLORS } from "./theme-colors"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 
 const QUEUE_POSITIONS = ["QB", "RB", "WR", "TE"]
 
@@ -86,7 +87,6 @@ export function FantasyDraftAssistant() {
 
   const [bestValuePosition, setBestValuePosition] = useState("All")
   const [showCopiedMessage, setShowCopiedMessage] = useState(false)
-  const [isPhoneMode, setIsPhoneMode] = useState(false)
 
   // Per-position queue of planned players (added via + button)
   const [queues, setQueues] = useState({ QB: [], RB: [], WR: [], TE: [] })
@@ -265,7 +265,7 @@ export function FantasyDraftAssistant() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+      <div className="mx-auto max-w-[1920px] px-3 py-3 sm:px-4 lg:px-5">
         <Header
           theme={theme}
           toggleTheme={toggleTheme}
@@ -292,54 +292,8 @@ export function FantasyDraftAssistant() {
           draftData={draftData}
         />
 
-        {/* Phone Mode Toggle */}
-        <div className="mb-4 flex justify-center">
-          <button
-            onClick={() => setIsPhoneMode(!isPhoneMode)}
-            className="px-4 py-2 rounded-lg font-semibold transition-colors"
-            style={{
-              backgroundColor: isPhoneMode ? colors.headingGreen : colors.card,
-              color: isPhoneMode ? "#000000" : colors.textPrimary,
-              border: `1px solid ${colors.cardBorder}`,
-            }}
-          >
-            📱 {isPhoneMode ? "Exit Phone Mode" : "Phone Mode"}
-          </button>
-        </div>
-
         {/* Main Content Grid */}
-        <div className="grid gap-4 lg:gap-6">
-          {isPhoneMode ? (
-            /* Phone Mode: Only Best Value and Team Roster side by side */
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <BestValueSection
-                colors={colors}
-                csvData={csvData}
-                draftData={draftData}
-                currentPick={currentPick}
-                bestValuePosition={bestValuePosition}
-                setBestValuePosition={setBestValuePosition}
-                lastUpdate={lastUpdate}
-                timeSinceUpdate={timeSinceUpdate}
-                getAvailablePlayers={getAvailablePlayers}
-                queues={queues}
-                addToQueue={addToQueue}
-                removeFromQueue={removeFromQueue}
-                draftedPlayers={draftedPlayers}
-                selectedTeamRosterId={selectedTeamRosterId}
-              />
-
-              <TeamRosterSection
-                colors={colors}
-                draftData={draftData}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                draftedPlayers={draftedPlayers}
-                platform={platform}
-              />
-            </div>
-          ) : (
-            <>
+        <div className="grid gap-3 lg:gap-4">
               {/* Mobile: Stack all sections vertically */}
               <div className="grid gap-4 lg:hidden">
                 <BestValueSection
@@ -413,10 +367,11 @@ export function FantasyDraftAssistant() {
                 />
               </div>
 
-              {/* Desktop: Multi-column layout with wider team roster */}
-              <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6">
-                {/* Left Column */}
-                <div className="lg:col-span-4 space-y-4">
+              {/* Desktop: Resizable command-center layout. Resize is useful during drafts; drag/reorder was intentionally avoided because stable muscle memory matters more under time pressure. */}
+              <div className="hidden lg:block">
+                <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-260px)] rounded-2xl">
+                  <ResizablePanel defaultSize={31} minSize={24} className="pr-3">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1">
                   <BestValueSection
                     colors={colors}
                     csvData={csvData}
@@ -447,10 +402,11 @@ export function FantasyDraftAssistant() {
                     draftedPlayers={draftedPlayers}
                     selectedTeamRosterId={selectedTeamRosterId}
                   />
-                </div>
-
-                {/* Middle Column - Wider for Team Roster */}
-                <div className="lg:col-span-4">
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
+                  <ResizablePanel defaultSize={38} minSize={28} className="px-3">
+                    <div className="h-full overflow-y-auto pr-1">
                   <TeamRosterSection
                     colors={colors}
                     draftData={draftData}
@@ -459,10 +415,11 @@ export function FantasyDraftAssistant() {
                     draftedPlayers={draftedPlayers}
                     platform={platform}
                   />
-                </div>
-
-                {/* Right Column */}
-                <div className="lg:col-span-4 space-y-4">
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
+                  <ResizablePanel defaultSize={31} minSize={24} className="pl-3">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1">
                   <SuggestedPicksSection
                     colors={colors}
                     draftData={draftData}
@@ -492,10 +449,10 @@ export function FantasyDraftAssistant() {
                     addToQueue={addToQueue}
                     removeFromQueue={removeFromQueue}
                   />
-                </div>
+                    </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               </div>
-            </>
-          )}
         </div>
       </div>
     </div>
