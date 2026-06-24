@@ -187,7 +187,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">
             <div
-              className="sticky top-0 z-10 grid"
+              className="grid"
               style={{ gridTemplateColumns: `3rem repeat(${numTeams}, minmax(8.25rem, 1fr))`, backgroundColor: colors.darkBlue }}
             >
               <div className="border-r px-2 py-2 text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
@@ -217,15 +217,6 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                         <div className="truncate text-[9px]" style={{ color: colors.textSecondary }}>{team.owner?.display_name}</div>
                       </div>
                     </div>
-                    {(() => {
-                      const summary = rosterSummaries.get(String(team.roster_id))
-                      return (
-                        <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-bold" style={{ color: colors.textSecondary }}>
-                          <span>{POSITION_ORDER.map((pos) => `${pos}${summary?.[pos] || 0}`).join(" ")}</span>
-                          <span style={{ color: (summary?.value || 0) >= 0 ? colors.adpPositive : colors.adpNegative }}>{(summary?.value || 0) > 0 ? "+" : ""}{summary?.value || 0}</span>
-                        </div>
-                      )
-                    })()}
                   </button>
                 )
               })}
