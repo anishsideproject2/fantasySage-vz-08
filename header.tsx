@@ -65,7 +65,7 @@ export function Header({
                 FantasySage Draft Command Center
               </h1>
               <p className="mt-1 line-clamp-2 text-xs font-medium sm:text-sm" style={{ color: colors.purple }}>
-                Live Sleeper sync, analyst boards, best values, roster build, and draft room context in one no-scroll cockpit.
+                Live Sleeper sync, analyst boards, best values, roster build, and draft room context in one scroll-friendly workflow.
               </p>
             </div>
           </div>

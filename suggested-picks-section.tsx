@@ -65,19 +65,106 @@ const getAnalystContext = (player) => {
   return FEATURED_ANALYST_CONTEXT[key] || ANALYST_CONTEXT[player.position] || ANALYST_CONTEXT.default
 }
 
+// Sources reflected in this model: FantasyPros Hero RB/Zero RB/QB strategy (May-Jun 2026),
+// Footballguys 2026 RB/WR/TE strategy guides, Yahoo prospect target-share research,
+// and Washington Post draft-efficiency research on WR/RB/QB/TE payoff curves.
 const RESEARCH_PILLARS_2026 = [
-  "2026 guides emphasize RB/WR balance: RBs are priced closer to WRs than last year, so do not blindly zero-RB past usable volume.",
-  "Elite WR scoring still drives PPR lineups; build target depth and avoid fragile touchdown-only profiles.",
-  "QB/TE are barbell positions in 1QB: take a real tier edge or wait for value instead of paying the middle tax.",
-  "Draft rooms reward tier-based VBD: ADP discount matters most when the next same-position tier is about to dry up.",
+  "Hero/Anchor RB research favors landing one early workhorse, then pivoting to target-earning WRs and selective onesie values.",
+  "Zero-RB research still works when the room gives elite WR/TE value; do not patch RB with low-upside dead-zone volume.",
+  "QB research is barbell: in 1QB, either take a true rushing/elite edge or wait past the comfort tier; Superflex stays QB-heavy.",
+  "TE research is also barbell: elite leverage or late athletic upside beats the middle-round safety trap.",
+  "WR evaluation should overweight target earning, especially prospect/young-player target share and clear No. 1 routes.",
 ]
+
+const ANALYST_MODEL_VERSION = "Analyst Predictor v2 · sourced 2026 strategy blend"
+
+const getAdpRound = (adp, teams = 12) => {
+  const value = Number.parseFloat(adp)
+  const teamCount = Number(teams) || 12
+  if (Number.isNaN(value) || teamCount <= 0) return 99
+  return Math.max(1, Math.ceil(value / teamCount))
+}
+
+const getResearchEdge = ({ player, round, adpRound, rosterNeed, rosterCounts, starterTargets, flexSlots, superFlexSlots, scoringFormat }) => {
+  const position = player.position
+  const isSuperFlex = superFlexSlots > 0
+  const hasQbStarter = (rosterCounts.QB || 0) >= (starterTargets.QB || 0)
+  const hasTeStarter = (rosterCounts.TE || 0) >= (starterTargets.TE || 0)
+  const rbCount = rosterCounts.RB || 0
+  const wrCount = rosterCounts.WR || 0
+  const flexCoreCount = FLEX_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0)
+  const flexCoreTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const needsFlexCore = flexCoreCount < flexCoreTarget
+  const ppr = scoringFormat !== "Standard"
+  const isEarlyPrice = adpRound <= 2
+  const isDeadZone = adpRound >= 3 && adpRound <= 8
+  const isLate = adpRound >= 9
+  const isYoungUpside = /rookie|2nd|second|breakout|target share|ascending/i.test(`${player.notes || ""} ${player.playerNote || ""} ${player.team || ""}`)
+
+  if (isSuperFlex && position === "QB") {
+    return { bonus: 8, label: "SF QB premium", detail: "Superflex settings override 1QB patience; starting QB scarcity is the top macro edge." }
+  }
+
+  if (position === "RB") {
+    if (rbCount === 0 && isEarlyPrice) {
+      return { bonus: 7, label: "Anchor RB fit", detail: "Hero-RB research favors one early workhorse before shifting into WR/onesie value." }
+    }
+    if (isDeadZone && rbCount >= 1) {
+      return { bonus: -6, label: "RB dead-zone fade", detail: "After an anchor RB, mid-round backs need real upside; avoid drafting name-value volume just to fill RB2." }
+    }
+    if (isDeadZone && rbCount === 0 && rosterNeed.bonus > 0) {
+      return { bonus: 2, label: "Selective RB patch", detail: "You still need RB, but the dead-zone penalty keeps this behind similarly valued WR/elite onesie options." }
+    }
+    if (isLate) {
+      return { bonus: 5, label: "Late RB upside", detail: "Late RBs with receiving, contingent, or explosive-offense paths can swing leagues if roles change." }
+    }
+  }
+
+  if (position === "WR") {
+    if (round <= 4 && (ppr || wrCount < starterTargets.WR || needsFlexCore)) {
+      return { bonus: 6, label: "Target-earner lean", detail: "Current draft research pushes early WR target volume and clear No. 1 roles as league-winning inputs." }
+    }
+    if (isDeadZone && needsFlexCore) {
+      return { bonus: 4, label: "WR over dead-zone RB", detail: "In the middle rounds, strong WR profiles usually beat fragile RB volume unless RB role clarity is exceptional." }
+    }
+    if (isLate || isYoungUpside) {
+      return { bonus: 3, label: "WR spike swing", detail: "Late WR shots should chase target-earning upside, second-year leaps, rookies, or high-octane offenses." }
+    }
+  }
+
+  if (position === "QB") {
+    if (!isSuperFlex && adpRound >= 3 && adpRound <= 4 && !hasQbStarter) {
+      return { bonus: 4, label: "Elite QB window", detail: "1QB research supports taking a true elite/rushing QB if the board breaks in rounds 3-4." }
+    }
+    if (!isSuperFlex && adpRound >= 6 && adpRound <= 8) {
+      return { bonus: -5, label: "Mid-QB trap", detail: "The middle QB comfort tier is less attractive than elite-or-late roster construction." }
+    }
+    if (!isSuperFlex && isLate && !hasQbStarter) {
+      return { bonus: 3, label: "Late QB swing", detail: "If you skipped the elite window, wait and take upside rather than paying the middle tax." }
+    }
+  }
+
+  if (position === "TE") {
+    if (!hasTeStarter && adpRound <= 4) {
+      return { bonus: 5, label: "Elite TE edge", detail: "TE research favors real positional leverage early if the player is in the elite usage tier." }
+    }
+    if (adpRound >= 5 && adpRound <= 8) {
+      return { bonus: -4, label: "TE middle fade", detail: "Middle-round safe TEs rarely separate; only override for a strong tier/value drop." }
+    }
+    if (!hasTeStarter && isLate) {
+      return { bonus: 3, label: "Late TE upside", detail: "If you miss elite TE, chase athletic/red-zone/ascending usage late instead of paying for safety." }
+    }
+  }
+
+  return { bonus: 0, label: "Research neutral", detail: "No macro strategy override; value, roster fit, and tier leverage should drive the call." }
+}
 
 const getRoundPlan = ({ round, isSuperFlex, scoringFormat }) => {
   if (isSuperFlex && round <= 3) return "Superflex: keep QB scarcity live while still comparing elite RB/WR values."
-  if (round <= 2) return scoringFormat === "Full PPR" ? "Open with elite target volume or a true anchor RB; avoid low-ceiling positional reaches." : "Prioritize bellcow RBs and elite WRs before positional cliffs appear."
-  if (round <= 5) return "Build the RB/WR starter core; 2026 rooms are pricing RBs earlier, so take volume when value is fair."
-  if (round <= 8) return "Attack WR depth, selective TE/QB tier values, and avoid the classic RB dead-zone unless role clarity is strong."
-  return "Bench rounds: chase RB contingency upside and WR spike weeks; skip redundant QB/TE in normal 1QB formats."
+  if (round <= 2) return scoringFormat === "Full PPR" ? "Open with elite target volume or a true anchor RB; avoid low-ceiling positional reaches." : "Prioritize elite WRs and true bellcow RBs before positional cliffs appear."
+  if (round <= 4) return "Build the RB/WR core, but let elite QB/TE leverage through only when the tier edge is real."
+  if (round <= 8) return "Middle rounds: prefer target-earning WRs and clear tier drops; fade RB/TE safety traps unless role clarity is strong."
+  return "Bench rounds: chase RB contingency upside, WR spike weeks, and late QB/TE athletic upside; skip redundant floor plays."
 }
 
 const getPositionMultiplier = ({ position, round, scoringFormat, isSuperFlex, rosterNeed }) => {
@@ -215,7 +302,7 @@ const getActionLabel = (player) => {
   if (player.valueDiff >= 8) return "Value smash"
   if (player.rosterReason?.includes("open")) return "Need fit"
   if (player.scarcityBonus >= 4) return "Tier break"
-  return "Queue"
+  return "Track"
 }
 
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked" }) {
@@ -322,9 +409,21 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoringFormat,
         draftType,
       })
-      const primaryStrategySignal = ocImpact || (strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
+      const adpRound = getAdpRound(player.adp, draftData?.numTeams || 12)
+      const researchEdge = getResearchEdge({
+        player,
+        round: draftRound,
+        adpRound,
+        rosterNeed,
+        rosterCounts: selectedRosterCounts,
+        starterTargets,
+        flexSlots,
+        superFlexSlots,
+        scoringFormat,
+      })
+      const primaryStrategySignal = ocImpact || (researchEdge.bonus !== 0 ? researchEdge : strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
       const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
-      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
+      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
       const playerNote = getPlayerNote(player, scoringFormat)
       const analystContext = getAnalystContext(player)
       const ocSummary = getOcTendencySummary(player)
@@ -342,12 +441,13 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
       const formatScore = clamp(50 + formatBonus * 5, 0, 100)
       const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
-      const strategyScore = clamp(50 + strategyBonus * 8, 0, 100)
+      const strategyScore = clamp(50 + strategyBonus * 7, 0, 100)
+      const researchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
       const confidenceScore = Math.round(
-        clamp(valueScore * 0.33 + expertScore * 0.18 + needScore * 0.26 + formatScore * 0.06 + scarcityScore * 0.06 + strategyScore * 0.11, 0, 100),
+        clamp(valueScore * 0.28 + expertScore * 0.17 + needScore * 0.22 + formatScore * 0.05 + scarcityScore * 0.07 + strategyScore * 0.11 + researchScore * 0.10, 0, 100),
       )
       const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
-      const hybridScore = 0.34 * valueDiff + 0.2 * expertEdge + 0.22 * rosterNeed.bonus + 0.05 * formatBonus + 0.07 * scarcityBonus + 0.12 * strategyBonus + tierUrgency
+      const hybridScore = 0.3 * valueDiff + 0.19 * expertEdge + 0.19 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.11 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
 
       return {
         ...player,
@@ -358,6 +458,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         strategyBonus,
         strategySignal,
         thematicSignal,
+        researchEdge,
         ocImpact,
         playerNote: whyPickNote,
         analystContext,
@@ -366,6 +467,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Roster", value: Math.round(needScore), detail: rosterNeed.reason },
           { label: "Tier", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? "Meaningful same-position tier drop after this player" : "No urgent tier cliff" },
+          { label: "Research", value: Math.round(researchScore), detail: `${researchEdge.label}: ${researchEdge.detail}` },
         ],
         teamCompositionInsight,
         rosterReason: rosterNeed.reason,
@@ -381,28 +483,30 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
   const topPick = suggestedPicks[0]
 
+  const isHorizontal = layout === "horizontal"
+
   return (
-    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className={isHorizontal ? "flex flex-col" : "flex h-full min-h-0 flex-col"} style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 6 • {scoringFormat} • {draftTypeLabel}
+            Live top 6 • {scoringFormat} • {draftTypeLabel}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2">
+      <CardContent className={isHorizontal ? "space-y-2 px-2 pt-0 pr-1 pb-2" : "min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2"}>
         <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
           <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
           <div className="mt-1">{roundPlan}</div>
-          <div className="mt-1 truncate" title={RESEARCH_PILLARS_2026.join(" ")}>Model: tier VBD + roster fit + ADP value + 2026 RB/WR/QB/TE market guidance.</div>
+          <div className="mt-1 truncate" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research.</div>
         </div>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className={layout === "horizontal" ? "flex gap-2 overflow-x-auto pb-1" : "space-y-2"}>
+          <div className={isHorizontal ? "flex snap-x gap-2 overflow-x-auto pb-1" : "space-y-2"}>
             {topPick && layout !== "horizontal" && (
               <div className="rounded-xl border p-3" style={{ borderColor: topPick.confidenceColor, background: `${topPick.confidenceColor}16` }}>
                 <div className="flex items-center justify-between gap-3">
@@ -423,7 +527,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               </div>
             )}
             {suggestedPicks.map((player, idx) => (
-            <div key={player.id} className={layout === "horizontal" ? "min-w-[16rem] flex-1 rounded-lg border px-2 py-2" : "rounded-lg border px-2 py-2"} style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
+            <div key={player.id} className={isHorizontal ? "min-w-[18rem] max-w-[22rem] flex-1 snap-start rounded-lg border px-2 py-2" : "rounded-lg border px-2 py-2"} style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
               <div className="flex items-center gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
@@ -440,13 +544,14 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 </div>
               </div>
               {player.playerNote && (
-                <div className={layout === "horizontal" ? "mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" : "mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug"} style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                <div className={isHorizontal ? "mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" : "mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug"} style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                  <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} {player.analystContext.whyHigh} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
                 </div>
               )}
-              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
+              <div className={isHorizontal ? "mt-2 grid grid-cols-2 gap-1.5 text-[10px]" : "mt-2 grid grid-cols-4 gap-1.5 text-[10px]"}>
                 {player.scoreCards.map((card) => (
                   <div key={card.label} className="rounded border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                     <div className="flex items-center justify-between gap-2">

@@ -265,7 +265,7 @@ export function TeamRosterSection({
   }, [teamRosterPlayers])
 
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder }}>
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -279,7 +279,7 @@ export function TeamRosterSection({
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-2">
                 <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ background: `${colors.headingGreen}22`, color: colors.headingGreen }}>
-                  Team cockpit
+                  Team roster
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.textSecondary }}>{rosterCounts.total} drafted</span>
               </div>
@@ -322,7 +322,7 @@ export function TeamRosterSection({
           </div>
         </CardContent>
       ) : (
-        <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <CardContent className="px-3 py-3">
           <div className="mb-3 grid grid-cols-4 gap-2">
             {["QB", "RB", "WR", "TE"].map((pos) => (
               <div key={pos} className="rounded-xl border px-2 py-2 text-center" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
@@ -331,7 +331,7 @@ export function TeamRosterSection({
               </div>
             ))}
           </div>
-          <div className="grid gap-2 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2">
             {fullRosterSlots.map((player, idx) => {
               const slotType = rosterTemplate[idx]
               const slotColors = getBubbleColorsForSlot(slotType, colors)
