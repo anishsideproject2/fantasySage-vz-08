@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { BubbleSymbol } from "./bubble-symbol"
-import { getOcTendencyImpact, getOcTendencySummary, getPlayerNote } from "./draft-strategy"
+import { getOcTendencyImpact, getOcTendencySummary, getPlayerNote, getTeamOcVariance, normalizeTeamAbbr } from "./draft-strategy"
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -56,6 +56,125 @@ const getTierCliff = (player, available, scoringFormat) => {
 
 
 
+
+const getReplacementBaselines = (numTeams = 12) => {
+  const teams = Number(numTeams) || 12
+  if (teams <= 10) return { QB: 11, RB: 21, WR: 31, TE: 11 }
+  if (teams >= 14) return { QB: 15, RB: 29, WR: 43, TE: 15 }
+  return { QB: 13, RB: 25, WR: 37, TE: 13 }
+}
+
+const getProjectedPoints = (player, scoringFormat) => {
+  const explicit = Number.parseFloat(player.projectedPoints ?? player.projection ?? player.points ?? player.fpts)
+  if (!Number.isNaN(explicit)) return explicit
+  const rank = getFormatAwareRank(player, scoringFormat)
+  const safeRank = Number.isNaN(rank) ? Number.parseFloat(player.adp) || 200 : rank
+  const position = String(player.position || "").toUpperCase()
+  const base = position === "QB" ? 330 : position === "TE" ? 190 : position === "RB" ? 260 : 250
+  const slope = position === "QB" ? 3.1 : position === "TE" ? 1.25 : 1.55
+  return Math.max(base - safeRank * slope, 20)
+}
+
+const getReplacementSnapshot = ({ playerPool, scoringFormat, numTeams }) => {
+  const baselines = getReplacementBaselines(numTeams)
+  return Object.fromEntries(Object.entries(baselines).map(([position, baselineRank]) => {
+    const sorted = playerPool
+      .filter((player) => player.position === position)
+      .map((player) => ({ ...player, projected: getProjectedPoints(player, scoringFormat) }))
+      .sort((a, b) => b.projected - a.projected)
+    const replacement = sorted[Math.min(Math.max(baselineRank - 1, 0), Math.max(sorted.length - 1, 0))]
+    return [position, { projected: replacement?.projected || 0, baselineRank, playerName: replacement?.name || "replacement" }]
+  }))
+}
+
+const getPicksUntilNextTurn = ({ currentPick, selectedTeamRosterId, numTeams = 12 }) => {
+  const pick = Number(currentPick) || 1
+  const teams = Number(numTeams) || 12
+  const slot = Number(selectedTeamRosterId)
+  if (!slot || slot < 1 || slot > teams) return teams
+  for (let offset = 1; offset <= teams * 2; offset += 1) {
+    const nextPick = pick + offset
+    const round = Math.ceil(nextPick / teams)
+    const pickInRound = ((nextPick - 1) % teams) + 1
+    const rosterIdOnClock = round % 2 === 1 ? pickInRound : teams - pickInRound + 1
+    if (rosterIdOnClock === slot) return offset
+  }
+  return teams
+}
+
+const getVbdProfile = ({ player, availablePlayers, scoringFormat, replacementSnapshot, picksUntilNextTurn, starterTargets, flexSlots }) => {
+  const position = player.position
+  const projected = getProjectedPoints(player, scoringFormat)
+  const replacement = replacementSnapshot[position] || { projected: 0, playerName: "replacement" }
+  const vorp = projected - replacement.projected
+  const samePosition = availablePlayers
+    .filter((candidate) => candidate.position === position)
+    .map((candidate) => ({ ...candidate, projected: getProjectedPoints(candidate, scoringFormat) }))
+    .sort((a, b) => b.projected - a.projected)
+  const nextAvailable = samePosition[Math.min(Math.max(picksUntilNextTurn, 1), Math.max(samePosition.length - 1, 0))]
+  const nextVorp = nextAvailable ? nextAvailable.projected - replacement.projected : 0
+  const vona = vorp - nextVorp
+  const starterRank = position === "QB"
+    ? starterTargets.QB
+    : position === "TE"
+      ? starterTargets.TE
+      : position === "RB"
+        ? starterTargets.RB + Math.ceil(flexSlots / 2)
+        : starterTargets.WR + Math.floor(flexSlots / 2)
+  const lastStarter = samePosition[Math.min(Math.max(starterRank - 1, 0), Math.max(samePosition.length - 1, 0))]
+  const vols = projected - (lastStarter?.projected || replacement.projected)
+  return {
+    projected: Number(projected.toFixed(1)),
+    replacementPoints: Number(replacement.projected.toFixed(1)),
+    replacementPlayer: replacement.playerName,
+    vorp: Number(vorp.toFixed(1)),
+    vona: Number(vona.toFixed(1)),
+    vols: Number(vols.toFixed(1)),
+    nextAvailableName: nextAvailable?.name || "none",
+  }
+}
+
+const getLiveScarcityProfile = ({ position, availablePlayers, draftedPlayers, replacementSnapshot, draftData, scoringFormat }) => {
+  const replacementPoints = replacementSnapshot[position]?.projected || 0
+  const aboveReplacement = availablePlayers.filter((player) => player.position === position && getProjectedPoints(player, scoringFormat) >= replacementPoints).length
+  const teams = Number(draftData?.numTeams) || 12
+  const positionNeedTarget = position === "QB" || position === "TE" ? 1 : position === "RB" ? 2 : 2
+  const rosterCounts = draftedPlayers.reduce((acc, pick) => {
+    const rosterId = String(pick.roster_id || "")
+    if (!rosterId) return acc
+    if (!acc[rosterId]) acc[rosterId] = { QB: 0, RB: 0, WR: 0, TE: 0 }
+    if (acc[rosterId][pick.position] !== undefined) acc[rosterId][pick.position] += 1
+    return acc
+  }, {})
+  const teamsStillNeeding = Array.from({ length: teams }, (_, index) => String(index + 1)).filter((rosterId) => (rosterCounts[rosterId]?.[position] || 0) < positionNeedTarget).length
+  const score = aboveReplacement > 0 ? teamsStillNeeding / aboveReplacement : teamsStillNeeding
+  return {
+    aboveReplacement,
+    teamsStillNeeding,
+    score: Number(score.toFixed(2)),
+    high: score >= 1,
+    message: `${teamsStillNeeding} teams still need ${position}; ${aboveReplacement} above-replacement options remain.`,
+  }
+}
+
+const getRosterHealth = ({ rosterCounts, starterTargets, flexSlots, scoringFormat, strategyKey }) => {
+  const starterPositions = ["QB", "RB", "WR", "TE"]
+  const positionCoverage = starterPositions.reduce((sum, position) => sum + Math.min(rosterCounts[position] || 0, starterTargets[position] || 0) * 10, 0)
+  const flexEligibleCount = FLEX_POSITIONS.reduce((sum, position) => sum + (rosterCounts[position] || 0), 0)
+  const flexTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
+  const flexCoverage = flexEligibleCount > starterTargets.RB + starterTargets.WR + starterTargets.TE ? 5 : 0
+  const formatFit = scoringFormat === "Standard"
+    ? Math.min((rosterCounts.RB || 0) * 8, 30)
+    : Math.min(((rosterCounts.WR || 0) + (rosterCounts.TE || 0)) * 7 + (rosterCounts.RB || 0) * 3, 30)
+  const strategyAdherence = strategyKey === "zero-rb" && (rosterCounts.RB || 0) === 0 ? 18 : strategyKey?.includes("hero") && (rosterCounts.RB || 0) >= 1 ? 18 : 14
+  const depth = flexEligibleCount >= flexTarget ? 5 : 0
+  const score = Math.round(Math.min(positionCoverage + flexCoverage + formatFit + strategyAdherence + depth, 100))
+  const weakest = starterPositions
+    .map((position) => ({ position, missing: Math.max((starterTargets[position] || 0) - (rosterCounts[position] || 0), 0) }))
+    .sort((a, b) => b.missing - a.missing)[0]
+  return { score, message: weakest?.missing > 0 ? `${weakest.position} needs starter depth` : "Starters stable; shift toward bench value", formatFit, strategyAdherence }
+}
+
 const ANALYST_CONTEXT = {
   default: {
     analyst: "FantasyPros consensus",
@@ -92,6 +211,273 @@ const ANALYST_CONTEXT = {
     source: "FantasyPros QB rankings",
     url: "https://www.fantasypros.com/nfl/rankings/qb-cheatsheets.php",
   },
+}
+
+
+const PLAYER_TAGS = {
+  RB: ["WORKHORSE"],
+  WR: ["TARGET_HOG"],
+  TE: ["RECEIVING_TE"],
+  QB: ["POCKET_PASSER"],
+}
+
+const TAG_ADJUSTMENTS = {
+  Standard: { PASS_CATCHER: 0, WORKHORSE: 10, COMMITTEE: -5, GOAL_LINE: 10, SLOT: 0, TARGET_HOG: 2, OUTSIDE_X: 5, ELITE_TE: 5, DUAL_THREAT: 10 },
+  "Half PPR": { PASS_CATCHER: 8, WORKHORSE: 8, COMMITTEE: -3, GOAL_LINE: -5, SLOT: 5, TARGET_HOG: 7, OUTSIDE_X: 2, ELITE_TE: 8, DUAL_THREAT: 8 },
+  "Full PPR": { PASS_CATCHER: 16, WORKHORSE: 5, COMMITTEE: -2, GOAL_LINE: -15, SLOT: 12, TARGET_HOG: 14, OUTSIDE_X: 0, ELITE_TE: 12, DUAL_THREAT: 5 },
+}
+
+const getPlayerTags = (player) => {
+  const tags = new Set(PLAYER_TAGS[player.position] || [])
+  const text = `${player.tags || ""} ${player.notes || ""} ${player.playerNote || ""}`.toUpperCase()
+  if (player.position === "RB") {
+    if (/PASS|CATCH|RECEIV|TARGET|3-?DOWN/.test(text)) tags.add("PASS_CATCHER")
+    if (/COMMITTEE|SPLIT/.test(text)) tags.add("COMMITTEE")
+    if (/HANDCUFF|BACKUP/.test(text)) tags.add("HANDCUFF")
+    if (/GOAL|TD|TOUCHDOWN/.test(text)) tags.add("GOAL_LINE")
+    if (/LOTTERY|UPSIDE|CONTINGENT/.test(text)) tags.add("LOTTERY")
+  }
+  if (player.position === "WR") {
+    if (/SLOT/.test(text)) tags.add("SLOT")
+    if (/X|OUTSIDE|DEEP|YPR/.test(text)) tags.add("OUTSIDE_X")
+    if (/RED.?ZONE|TD|TOUCHDOWN/.test(text)) tags.add("RED_ZONE_WR")
+    if (/SPEED|DEEP/.test(text)) tags.add("SPEEDSTER")
+  }
+  if (player.position === "QB" && /RUSH|DUAL|MOBILE/.test(text)) tags.add("DUAL_THREAT")
+  if (player.position === "TE" && Number.parseFloat(player.adp) <= 60) tags.add("ELITE_TE")
+  return Array.from(tags)
+}
+
+const getTagFormatAdjustment = (tags, scoringFormat) => {
+  const matrix = TAG_ADJUSTMENTS[scoringFormat] || TAG_ADJUSTMENTS["Half PPR"]
+  return tags.reduce((sum, tag) => sum + (matrix[tag] || 0), 0)
+}
+
+const getValueLabel = (valueGap) => {
+  if (valueGap >= 20) return "Elite Value"
+  if (valueGap >= 10) return "Strong Value"
+  if (valueGap >= 1) return "Slight Value"
+  if (valueGap === 0) return "On ADP"
+  if (valueGap >= -9) return "Slight Reach"
+  if (valueGap >= -19) return "Reach"
+  return "Hard Reach"
+}
+
+const getRunAlert = (draftedPlayers = []) => {
+  const recent = [...draftedPlayers].sort((a, b) => Number(b.pick_no || 0) - Number(a.pick_no || 0)).slice(0, 5)
+  const counts = recent.reduce((acc, pick) => {
+    const pos = String(pick.position || "").toUpperCase()
+    if (pos) acc[pos] = (acc[pos] || 0) + 1
+    return acc
+  }, {})
+  const [position] = Object.entries(counts).find(([, count]) => count >= 3) || []
+  return position ? { position, message: `${position} run in progress — consider joining or identifying next value.` } : null
+}
+
+
+const normalizeNameKey = (name) => String(name || "").replace(/\bKenny\s+Gainwell\b/i, "Kenneth Gainwell").toLowerCase().replace(/(\s|,)+(jr\.?|sr\.?|ii|iii|iv|v)\b/g, "").replace(/[^a-z]/g, "")
+
+const PLAYER_TIERS_2026 = {
+  jahmyrgibbs: { tier: "RB Tier 1", bonus: 8 }, bijanrobinson: { tier: "RB Tier 1", bonus: 8 },
+  saquonbarkley: { tier: "RB Tier 2", bonus: 6 }, christianmccaffrey: { tier: "RB Tier 2", bonus: 6 }, jonathantaylor: { tier: "RB Tier 2", bonus: 6 }, devonachane: { tier: "RB Tier 2", bonus: 6 },
+  jamescook: { tier: "RB Tier 3", bonus: 4 }, chasebrown: { tier: "RB Tier 3", bonus: 4 }, omarionhampton: { tier: "RB Tier 3", bonus: 4 }, ashtonjeanty: { tier: "RB Tier 3", bonus: 4 }, kennethwalker: { tier: "RB Tier 3", bonus: 4 },
+  derrickhenry: { tier: "RB Tier 4", bonus: 1 }, dandreswift: { tier: "RB Tier 4", bonus: 1 }, treveyonhenderson: { tier: "RB Tier 4", bonus: 1 }, buckyirving: { tier: "RB Tier 4", bonus: 1 },
+  javontewilliams: { tier: "RB Tier 5", bonus: -1 }, quinshonjudkins: { tier: "RB Tier 5", bonus: -1 }, bhayshultuten: { tier: "RB Tier 5", bonus: 3 }, jaydonblue: { tier: "RB Tier 5", bonus: -1 },
+  pukanacua: { tier: "WR Tier 1", bonus: 8 }, jaxonsmithnjigba: { tier: "WR Tier 1", bonus: 8 }, amonrastbrown: { tier: "WR Tier 1", bonus: 8 }, jamarrchase: { tier: "WR Tier 1", bonus: 8 },
+  justinjefferson: { tier: "WR Tier 2", bonus: 6 }, drakelondon: { tier: "WR Tier 2", bonus: 6 }, ceedeelamb: { tier: "WR Tier 2", bonus: 6 }, ajbrown: { tier: "WR Tier 2", bonus: 6 },
+  maliknabers: { tier: "WR Tier 3", bonus: 4 }, zayflowers: { tier: "WR Tier 3", bonus: 4 }, teehiggins: { tier: "WR Tier 3", bonus: 4 }, nicocollins: { tier: "WR Tier 3", bonus: 4 }, georgepickens: { tier: "WR Tier 3", bonus: 4 },
+  rasheerice: { tier: "WR Tier 4", bonus: 1 }, garrettwilson: { tier: "WR Tier 4", bonus: 1 }, chrisolave: { tier: "WR Tier 4", bonus: 1 }, devontasmith: { tier: "WR Tier 4", bonus: 1 },
+  jaylenwaddle: { tier: "WR Tier 5", bonus: 4 }, mikeevans: { tier: "WR Tier 5", bonus: 4 }, christianwatson: { tier: "WR Tier 5", bonus: 4 }, carnelltate: { tier: "WR Tier 5", bonus: 4 }, jordyntyson: { tier: "WR Tier 5", bonus: 4 },
+  joshallen: { tier: "QB Tier 1", bonus: 6 }, lamarjackson: { tier: "QB Tier 2", bonus: 3 }, drakemaye: { tier: "QB Tier 2", bonus: 4 }, jaydendaniels: { tier: "QB Tier 2", bonus: 3 }, jalenhurts: { tier: "QB Tier 2", bonus: 3 },
+  brockbowers: { tier: "TE Tier 1", bonus: 7 }, samlaporta: { tier: "TE Tier 2", bonus: 3 }, colstonloveland: { tier: "TE Tier 2", bonus: 4 }, tylerwarren: { tier: "TE Tier 2", bonus: 4 },
+}
+
+const METRIC_OVERRIDES_2026 = {
+  rickypearsall: { targetShare: 18, airYardShare: 32, snapShare: 72, tprr: 0.19, firstReadShare: 15, redZoneShare: 12 },
+  adonaimitchell: { targetShare: 16, airYardShare: 28, snapShare: 63, tprr: 0.18, firstReadShare: 13, redZoneShare: 11 },
+  parkerwashington: { targetShare: 19, airYardShare: 28, snapShare: 68, tprr: 0.20, firstReadShare: 16, redZoneShare: 14 },
+  xavierworthy: { targetShare: 18, airYardShare: 27, snapShare: 70, tprr: 0.19, firstReadShare: 15, redZoneShare: 16 },
+  jaydenhiggins: { targetShare: 19, airYardShare: 20, snapShare: 74, tprr: 0.21, firstReadShare: 17, redZoneShare: 22 },
+  joshdowns: { targetShare: 24, airYardShare: 16, snapShare: 80, tprr: 0.24, firstReadShare: 19, redZoneShare: 12 },
+  kennethgainwell: { targetShare: 15, airYardShare: 4, snapShare: 48, tprr: 0.22, firstReadShare: 12, redZoneShare: 10 },
+  bhayshultuten: { targetShare: 9, airYardShare: 3, snapShare: 62, tprr: 0.12, ypc: 4.2, redZoneShare: 17, rushShare: 48 },
+  camward: { targetShare: 0, airYardShare: 0, snapShare: 100, tprr: 0, redZoneShare: 0 },
+  tylershough: { targetShare: 0, airYardShare: 0, snapShare: 100, tprr: 0, redZoneShare: 0 },
+  colstonloveland: { targetShare: 18, airYardShare: 17, snapShare: 76, tprr: 0.23, firstReadShare: 26, redZoneShare: 26 },
+}
+
+const CATEGORY_FLAGS_2026 = {
+  bhayshultuten: { type: "SLEEPER", bonus: 8, detail: "Etienne departure/role-cleared Year 2 RB profile." },
+  tylershough: { type: "SLEEPER", bonus: 8, detail: "Kellen Moore pace offense and Year 2 continuity." },
+  kennethgainwell: { type: "SLEEPER", bonus: 8, detail: "73-catch receiving-back profile in an RB-target-friendly offense." },
+  jonathanbrooks: { type: "SLEEPER", bonus: 8, detail: "Late-round contingent RB with pedigree and role upside." },
+  jonathonbrooks: { type: "SLEEPER", bonus: 8, detail: "Late-round contingent RB with pedigree and role upside." },
+  jaydenhiggins: { type: "BREAKOUT WATCH", bonus: 6, detail: "Year 2 WR with red-zone usage and a clear WR2 path." },
+  joshdowns: { type: "BREAKOUT WATCH", bonus: 6, detail: "24% target rate and rising snap share signal target-earning upside." },
+  camward: { type: "BREAKOUT WATCH", bonus: 6, detail: "Year 2 QB with Daboll scheme-upgrade upside." },
+  tetairoamcmillan: { type: "BREAKOUT WATCH", bonus: 6, detail: "Year 2 WR rebound profile after injury-disrupted rookie season." },
+  carnelltate: { type: "BREAKOUT WATCH", bonus: 6, detail: "Rookie/young WR archetype with a path to early targets." },
+  colstonloveland: { type: "BREAKOUT WATCH", bonus: 6, detail: "Year 2 TE with red-zone first-read usage." },
+  samdarnold: { type: "BUST RISK", bonus: -20, detail: "Run-first environment, turnover risk, and limited rushing floor." },
+  bakermayfield: { type: "BUST RISK", bonus: -20, detail: "Fourth OC in four years and receiver-room regression risk." },
+  derrickhenry: { type: "MILD BUST", bonus: -10, detail: "Age-32 RB with efficiency and rushing-environment concerns." },
+  joshjacobs: { type: "MILD BUST", bonus: -10, detail: "Off-field uncertainty and value fragility." },
+  lamarjackson: { type: "MILD BUST", bonus: -10, detail: "Rushing-use trend lowers the old QB1 rushing floor." },
+  rasheerice: { type: "HIGH RISK/HIGH REWARD", bonus: -8, detail: "Legal/suspension range creates a wide outcome band." },
+}
+
+const AIR_YARDS_LOTTERY = new Set(["rickypearsall", "adonaimitchell", "parkerwashington", "xavierworthy", "jaydenhiggins", "keoncoleman", "darnellmooney", "quentinjohnston", "jalencoker"])
+const REAL_LIFE_WR2_DISCOUNTS = new Set(["jamesonwilliams", "romeodunze", "marvinharrison", "jordyntyson", "parkerwashington", "courtlandsutton", "makailemon", "chrisgodwin", "jaydenreed", "michaelpittman", "jordanaddison", "jakobimeyers", "quentinjohnston", "rickypearsall", "joshdowns", "wandalerobinson", "xavierworthy", "romeodoubs", "jaydenhiggins", "khalilshakir"])
+
+const SCHEME_INTEL_2026 = {
+  DAL: { pace: 66, paRate: 16, motionRate: 45, rzProe: 0, olGrade: 70, badges: ["Fast Pace"] },
+  NO: { pace: 66, paRate: 17, motionRate: 48, rzProe: -9, olGrade: 57, badges: ["Fast Pace", "Kellen Moore"] },
+  DET: { pace: 62, paRate: 17, motionRate: 50, rzProe: 6, olGrade: 78, badges: ["Above Avg Pace", "Strong OL"] },
+  BUF: { pace: 62, paRate: 16, motionRate: 46, rzProe: 2, olGrade: 70, badges: ["Above Avg Pace"] },
+  HOU: { pace: 61, paRate: 16, motionRate: 44, rzProe: 1, olGrade: 66, badges: ["Above Avg Pace"] },
+  SEA: { pace: 50, paRate: 15, motionRate: 58, rzProe: -9, olGrade: 62, badges: ["Run Heavy", "High Motion"] },
+  WAS: { pace: 50, paRate: 14, motionRate: 44, rzProe: -13, olGrade: 64, badges: ["Run Heavy Red Zone"] },
+  LAR: { pace: 59, paRate: 21.3, motionRate: 65, rzProe: 2, olGrade: 69, badges: ["Play Action Offense", "High Motion"] },
+  ARI: { pace: 58, paRate: 20, motionRate: 52, rzProe: 1, olGrade: 64, badges: ["Play Action Offense"] },
+  KC: { pace: 59, paRate: 20, motionRate: 50, rzProe: 6, olGrade: 71, badges: ["Play Action Offense", "Pass Heavy RZ"] },
+  GB: { pace: 58, paRate: 18, motionRate: 62, rzProe: 1, olGrade: 70, badges: ["High Motion"] },
+  BAL: { pace: 57, paRate: 18, motionRate: 48, rzProe: -12.5, olGrade: 72, badges: ["Run Heavy Red Zone"] },
+  CIN: { pace: 59, paRate: 16, motionRate: 43, rzProe: 6, olGrade: 65, badges: ["Pass Heavy RZ"] },
+  MIA: { pace: 58, paRate: 18, motionRate: 54, rzProe: 6, olGrade: 63, badges: ["Pass Heavy RZ", "New Scheme"] },
+  PHI: { pace: 57, paRate: 17, motionRate: 55, rzProe: -1, olGrade: 82, badges: ["High Motion", "Strong OL"] },
+  SF: { pace: 58, paRate: 18, motionRate: 54, rzProe: 1, olGrade: 77, badges: ["Strong OL"] },
+  CLE: { pace: 57, paRate: 18, motionRate: 46, rzProe: 1, olGrade: 54, badges: ["New Scheme", "Weak OL"] },
+  TEN: { pace: 58, paRate: 17, motionRate: 47, rzProe: 0, olGrade: 60, badges: ["Scheme Upgrade"] },
+  LV: { pace: 58, paRate: 17, motionRate: 56, rzProe: 1, olGrade: 64, badges: ["New Scheme", "High Motion"] },
+}
+
+const toMetric = (player, keys, fallback = 0) => {
+  for (const key of keys) {
+    const raw = player[key]
+    const parsed = Number.parseFloat(raw)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  return fallback
+}
+
+const getPlayerMetrics = (player) => {
+  const key = normalizeNameKey(player.name)
+  const override = METRIC_OVERRIDES_2026[key] || {}
+  return {
+    targetShare: toMetric(player, ["targetShare", "target_share", "targetSharePct"], override.targetShare ?? 12),
+    airYardShare: toMetric(player, ["airYardShare", "air_yard_share", "airYardsShare"], override.airYardShare ?? 12),
+    snapShare: toMetric(player, ["snapShare", "snap_share", "snapSharePct"], override.snapShare ?? (player.position === "RB" ? 45 : 65)),
+    tprr: toMetric(player, ["tprr", "targetsPerRouteRun"], override.tprr ?? 0.15),
+    firstReadShare: toMetric(player, ["firstReadShare", "first_read_share"], override.firstReadShare ?? 10),
+    redZoneShare: toMetric(player, ["redZoneShare", "red_zone_share", "rzShare"], override.redZoneShare ?? 10),
+    rushShare: toMetric(player, ["rushShare", "rush_share"], override.rushShare ?? 35),
+    ypc: toMetric(player, ["ypc", "yardsPerCarry"], override.ypc ?? 4.0),
+  }
+}
+
+const scalePct = (value, elite) => clamp((Number(value) / elite) * 100, 0, 100)
+
+const getOpportunityProfile = (player, scoringFormat) => {
+  const metrics = getPlayerMetrics(player)
+  const isRb = player.position === "RB"
+  const volume = isRb ? scalePct(metrics.rushShare, 65) : scalePct(metrics.targetShare, 28)
+  const field = isRb ? scalePct(metrics.snapShare, 70) : scalePct(metrics.airYardShare, 30)
+  const efficiency = isRb ? scalePct(metrics.ypc, 5.2) : scalePct(metrics.tprr, 0.28)
+  const redZone = scalePct(metrics.redZoneShare, 24)
+  const firstRead = isRb ? 50 : scalePct(metrics.firstReadShare, 22)
+  const score = Math.round(clamp(volume * 0.35 + field * 0.20 + efficiency * 0.20 + redZone * 0.15 + firstRead * 0.10, 0, 100))
+  const bonus = score >= 80 ? 12 : score >= 60 ? 8 : score >= 40 ? 2 : score >= 20 ? -4 : -8
+  const wopr = Number((1.5 * metrics.targetShare + 0.7 * metrics.airYardShare).toFixed(1))
+  const badges = []
+  if (metrics.targetShare >= 25) badges.push("Elite Target Share")
+  else if (metrics.targetShare >= 20) badges.push("Strong Target Share")
+  if (metrics.airYardShare >= 28) badges.push("Elite Air Yards")
+  else if (metrics.airYardShare >= 20) badges.push("High Air Yards")
+  if (metrics.tprr >= 0.25) badges.push("Efficient Target Hog")
+  else if (metrics.tprr >= 0.18 && metrics.targetShare >= 18) badges.push("Target Earner")
+  if (metrics.firstReadShare >= 18) badges.push("Primary Read")
+  if (metrics.redZoneShare >= 20) badges.push("Red Zone Threat")
+  if (isRb && metrics.snapShare >= 60) badges.push("Workhorse Snap Share")
+  if (isRb && metrics.snapShare < 35) badges.push("Bench Role Only")
+  if (scoringFormat === "Full PPR" && metrics.targetShare < 10 && !isRb) badges.push("Low PPR Volume")
+  return { score, bonus, wopr, metrics, badges, tier: score >= 80 ? "Elite Opportunity" : score >= 60 ? "Strong Opportunity" : score >= 40 ? "Average Opportunity" : score >= 20 ? "Limited Opportunity" : "Role Player" }
+}
+
+const getSchemeProfile = (player, tags) => {
+  const team = normalizeTeamAbbr(player.team)
+  const scheme = SCHEME_INTEL_2026[team] || { pace: 57, paRate: 16, motionRate: 45, rzProe: 0, olGrade: 65, badges: ["Scheme Continuity"] }
+  const position = player.position
+  let bonus = 0
+  if (scheme.pace >= 65 && ["QB", "RB", "WR", "TE"].includes(position)) bonus += 5
+  else if (scheme.pace >= 60 && ["QB", "RB", "WR", "TE"].includes(position)) bonus += 2
+  else if (scheme.pace <= 50) bonus += position === "RB" ? 3 : ["QB", "WR"].includes(position) ? -3 : 0
+  if (scheme.paRate >= 20 && ["WR", "TE"].includes(position)) bonus += 4
+  else if (scheme.paRate < 12 && ["WR", "TE"].includes(position)) bonus -= 3
+  if (scheme.motionRate >= 55 && (tags.includes("SLOT") || position === "TE")) bonus += 3
+  if (scheme.rzProe <= -10) bonus += position === "RB" ? 4 : position === "WR" ? -4 : 0
+  if (scheme.rzProe >= 5) bonus += ["WR", "TE"].includes(position) ? 4 : 0
+  if (scheme.olGrade >= 75 && position === "RB") bonus += 3
+  if (scheme.olGrade <= 55) bonus += position === "RB" ? -4 : position === "QB" ? -3 : 0
+  const ocChange = getTeamOcVariance(team)
+  const badges = [...scheme.badges]
+  if (ocChange) badges.push(ocChange.actualChange === false ? "Scheme Continuity" : "Scheme Change")
+  if (scheme.rzProe <= -10 && position === "WR") badges.push("TD Vacuum Risk")
+  return { ...scheme, team, bonus, badges: [...new Set(badges)] }
+}
+
+const getQbMode = ({ starterTargets, superFlexSlots }) => {
+  if ((starterTargets.QB || 0) >= 2) return "2QB"
+  if (superFlexSlots > 0) return "SUPERFLEX"
+  return "1QB"
+}
+
+const getRoundGate = ({ player, round, currentPick, rosterCounts, starterTargets, superFlexSlots, valueGap, tags }) => {
+  const qbMode = getQbMode({ starterTargets, superFlexSlots })
+  const pos = player.position
+  const nameKey = normalizeNameKey(player.name)
+  const alerts = []
+  let bonus = 0
+  let suppress = false
+  if (round <= 2 && !["SUPERFLEX", "2QB"].includes(qbMode) && ["QB", "DST", "DEF", "K"].includes(pos)) {
+    suppress = true
+    alerts.push("Anchor rounds: suppress QB/DST/K in 1QB builds.")
+  }
+  if (round <= 2 && pos === "RB" && !tags.includes("WORKHORSE")) bonus -= 12
+  if (round === 2 && (rosterCounts.RB || 0) === 0 && pos === "RB") bonus += 8
+  if (round === 2 && (rosterCounts.WR || 0) === 0 && pos === "WR") bonus += 8
+  if (round >= 3 && round <= 4) {
+    if ((rosterCounts.RB || 0) === 0 && pos === "RB") { bonus += 15; alerts.push("RB Drought Warning") }
+    if ((rosterCounts.WR || 0) === 0 && pos === "WR") { bonus += 15; alerts.push("WR Drought Warning") }
+    if (pos === "QB" && qbMode === "1QB" && nameKey !== "joshallen") { suppress = true; alerts.push("Wait on QB") }
+    if (pos === "TE" && nameKey === "brockbowers" && valueGap >= 0) { bonus += 8; alerts.push("Elite TE Gap") }
+  }
+  if (round >= 5 && round <= 7) {
+    if (pos === "QB" && (rosterCounts.QB || 0) === 0 && qbMode === "1QB") bonus += 5
+    if (pos === "WR" && REAL_LIFE_WR2_DISCOUNTS.has(nameKey)) { bonus += 6; alerts.push("Real-Life WR2 Discount") }
+  }
+  if (round >= 8 && round <= 10) {
+    if (pos === "QB" && qbMode === "SUPERFLEX" && (rosterCounts.QB || 0) < 2) { bonus += 18; alerts.push("Superflex QB2 deadline") }
+    if (pos === "QB" && qbMode === "2QB" && (rosterCounts.QB || 0) < 3) { bonus += 18; alerts.push("2QB QB3 depth deadline") }
+    if (pos === "RB" && (tags.includes("HANDCUFF") || tags.includes("LOTTERY"))) bonus += 7
+    if (pos === "WR" && AIR_YARDS_LOTTERY.has(nameKey)) { bonus += 7; alerts.push("Air Yards Lottery") }
+  }
+  if (round >= 11) {
+    if (["DST", "DEF"].includes(pos) && round < 12) suppress = true
+    if (pos === "K" && round < 14) suppress = true
+    if (/rookie|year 1|year1/i.test(`${player.notes || ""}`) || ["carnelltate", "jaydenhiggins"].includes(nameKey)) bonus += 5
+    if (pos === "QB" && ["SUPERFLEX", "2QB"].includes(qbMode)) bonus += 6
+  }
+  if (qbMode === "SUPERFLEX" && pos === "QB" && round <= 5) bonus += 25
+  if (qbMode === "2QB" && pos === "QB") bonus += round <= 3 ? 30 : round <= 7 ? 22 : 10
+  return { bonus, suppress, alerts, qbMode }
+}
+
+const getConfidenceStars = (score) => {
+  if (score >= 90) return { stars: "★★★★★", label: "High Confidence Pick" }
+  if (score >= 70) return { stars: "★★★★", label: "Solid Pick" }
+  if (score >= 50) return { stars: "★★★", label: "Moderate Confidence" }
+  if (score >= 30) return { stars: "★★", label: "Speculative" }
+  return { stars: "★", label: "High Risk — Proceed with Caution" }
 }
 
 const FEATURED_ANALYST_CONTEXT = {
@@ -534,22 +920,44 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
   const availablePlayers = getAvailablePlayers?.() || []
   const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
+  const replacementSnapshot = getReplacementSnapshot({ playerPool: availablePlayers, scoringFormat, numTeams: draftData?.numTeams || 12 })
+  const picksUntilNextTurn = getPicksUntilNextTurn({ currentPick, selectedTeamRosterId, numTeams: draftData?.numTeams || 12 })
 
   const draftedRoundsByPosition = getSelectedPickRoundsByPosition({ draftedPlayers, selectedTeamRosterId, numTeams: draftData?.numTeams || 12 })
   const strategyLock = getBuildStrategyLock({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, round: draftRound, isSuperFlex: superFlexSlots > 0, scoringFormat, draftedRoundsByPosition, strategyOverride: selectedStrategyOverride })
+  const qbMode = getQbMode({ starterTargets, superFlexSlots })
+  const rosterHealth = getRosterHealth({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, strategyKey: strategyLock.activeKey })
+
+  const positionalRunAlert = getRunAlert(draftedPlayers)
 
   const suggestedPicks = availablePlayers
     .map((player) => {
       if (player.adp === undefined || isNaN(player.adp) || !currentPick) return null
-      const valueDiff = Number.parseFloat(currentPick) - Number.parseFloat(player.adp)
+      const valueGap = Number.parseFloat(player.adp) - Number.parseFloat(currentPick)
+      const valueDiff = valueGap
       const marketAdp = Number.parseFloat(player.marketAdp || player.adp)
       const expertRank = getFormatAwareRank(player, scoringFormat)
       const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
       const rosterNeed = getRosterNeed(player.position)
-      const formatBonus = getFormatBonus(player.position)
-      if (!rosterNeed.eligible) return null
+      const vbdProfile = getVbdProfile({ player, availablePlayers, scoringFormat, replacementSnapshot, picksUntilNextTurn, starterTargets, flexSlots })
+      const liveScarcity = getLiveScarcityProfile({ position: player.position, availablePlayers, draftedPlayers, replacementSnapshot, draftData, scoringFormat })
+      let tags = getPlayerTags(player)
+      const tagFormatAdjustment = getTagFormatAdjustment(tags, scoringFormat)
+      const opportunityProfile = getOpportunityProfile(player, scoringFormat)
+      opportunityProfile.badges.forEach((badge) => tags.push(badge))
+      const schemeProfile = getSchemeProfile(player, tags)
+      const tierProfile = PLAYER_TIERS_2026[normalizeNameKey(player.name)] || { tier: `${player.position} Tier`, bonus: 0 }
+      const categoryFlag = CATEGORY_FLAGS_2026[normalizeNameKey(player.name)] || null
+      if (categoryFlag && !tags.includes(categoryFlag.type)) tags.push(categoryFlag.type)
+      if (AIR_YARDS_LOTTERY.has(normalizeNameKey(player.name))) tags.push("AIR YARDS LOTTERY")
+      tags = [...new Set(tags)]
+      const roundGate = getRoundGate({ player, round: draftRound, currentPick, rosterCounts: selectedRosterCounts, starterTargets, superFlexSlots, valueGap, tags })
+      const formatBonus = getFormatBonus(player.position) + tagFormatAdjustment / 4
+      if (!rosterNeed.eligible || roundGate.suppress) return null
       const tierCliff = getScarcityBonus(player, availablePlayers)
-      const scarcityBonus = tierCliff.bonus
+      const runScarcityBonus = positionalRunAlert?.position === player.position ? 2 : 0
+      const liveScarcityBonus = liveScarcity.high ? 3 : liveScarcity.score >= 0.6 ? 1.5 : 0
+      const scarcityBonus = tierCliff.bonus + runScarcityBonus + liveScarcityBonus
       const strategySignal = getPlayerStrategySignal(player)
       const ocImpact = getOcTendencyImpact(player, scoringFormat)
       const thematicSignal = getThematicStrategySignal({
@@ -576,9 +984,13 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoringFormat,
       })
       const manualStrategySignal = getManualStrategySignal({ strategyOverride: selectedStrategyOverride, player, round: draftRound, rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, isSuperFlex: superFlexSlots > 0 })
+      const valueLabel = getValueLabel(valueGap)
+      const isDeadZoneRb = player.position === "RB" && Number(currentPick) >= 35 && Number(currentPick) <= 80
+      const deadZoneExempt = tags.includes("WORKHORSE") || tags.includes("LOTTERY") || valueGap >= 15
+      const deadZonePenalty = isDeadZoneRb && !deadZoneExempt ? -7 : 0
       const primaryStrategySignal = ocImpact || (manualStrategySignal.bonus !== 0 ? manualStrategySignal : researchEdge.bonus !== 0 ? researchEdge : strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
       const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
-      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + manualStrategySignal.bonus + (ocImpact?.bonus || 0)) * positionMultiplier
+      const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + manualStrategySignal.bonus + roundGate.bonus + tierProfile.bonus + (ocImpact?.bonus || 0) + deadZonePenalty) * positionMultiplier
       const playerNote = getPlayerNote(player, scoringFormat)
       const analystContext = getAnalystContext(player)
       const ocSummary = getOcTendencySummary(player)
@@ -590,7 +1002,20 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         ? `${ocImpact.coordinator} ${ocImpact.bonus > 0 ? "helps" : "adds risk to"} this ${player.position} profile.`
         : playerNote || primaryStrategySignal.detail
       const teamCompositionInsight = getRosterCompositionInsight({ position: player.position, rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, round: draftRound })
-      const whyPickNote = `${valueDiff >= 0 ? "Pick for value" : "Only pick if you need the position"}: ${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP with ${rosterNeed.reason}. ${whySignal}`
+      const compositeComponents = {
+        vorp: Number((vbdProfile.vorp + tagFormatAdjustment).toFixed(1)),
+        vona: vbdProfile.vona,
+        opportunity: opportunityProfile.bonus,
+        scheme: schemeProfile.bonus,
+        category: categoryFlag?.bonus || 0,
+        roundGate: roundGate.bonus,
+        tier: tierProfile.bonus,
+        deadZone: deadZonePenalty,
+        scarcity: Number((scarcityBonus * 2 + liveScarcity.score).toFixed(1)),
+        strategy: Number(strategyBonus.toFixed(1)),
+      }
+      const compositeRank = Number(Object.values(compositeComponents).reduce((sum, value) => sum + value, 0).toFixed(1))
+      const whyPickNote = `${valueGap >= 0 ? "Pick for value" : "Only pick if you need the position"}: ${valueGap >= 0 ? "+" : ""}${valueGap.toFixed(1)} ADP value gap (${valueLabel}) with ${rosterNeed.reason}. ${roundGate.alerts.length ? `${roundGate.alerts.join("; ")}. ` : ""}${isDeadZoneRb && !deadZoneExempt ? "RB dead-zone caution applies. " : ""}${whySignal}`
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -598,15 +1023,35 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
       const strategyScore = clamp(50 + strategyBonus * 7, 0, 100)
       const researchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
+      const advancedConfidenceBonus = (opportunityProfile.score >= 70 ? 8 : 0) + (schemeProfile.bonus > 0 ? 5 : 0) + (categoryFlag?.type?.includes("BUST") ? -18 : categoryFlag ? 8 : 0)
       const confidenceScore = Math.round(
-        clamp(valueScore * 0.24 + expertScore * 0.15 + needScore * 0.30 + formatScore * 0.05 + scarcityScore * 0.07 + strategyScore * 0.09 + researchScore * 0.10, 0, 100),
+        clamp(valueScore * 0.20 + expertScore * 0.13 + needScore * 0.24 + formatScore * 0.05 + scarcityScore * 0.06 + strategyScore * 0.08 + researchScore * 0.08 + opportunityProfile.score * 0.11 + clamp(50 + schemeProfile.bonus * 6, 0, 100) * 0.05 + advancedConfidenceBonus, 0, 100),
       )
+      const confidenceStars = getConfidenceStars(confidenceScore)
       const tierUrgency = scarcityBonus >= 4 ? 2 : scarcityBonus >= 2 ? 1 : 0
       const hybridScore = 0.26 * valueDiff + 0.16 * expertEdge + 0.28 * rosterNeed.bonus + 0.04 * formatBonus + 0.07 * scarcityBonus + 0.09 * strategyBonus + 0.1 * researchEdge.bonus + tierUrgency
 
       return {
         ...player,
         valueDiff,
+        valueGap,
+        valueLabel,
+        vbdProfile,
+        liveScarcity,
+        tags,
+        tagFormatAdjustment,
+        formatAdjustedVorp: Number((compositeComponents.vorp + compositeComponents.opportunity + compositeComponents.scheme).toFixed(1)),
+        compositeRank,
+        compositeComponents,
+        opportunityProfile,
+        schemeProfile,
+        tierProfile,
+        categoryFlag,
+        roundGate,
+        confidenceStars,
+        qbMode,
+        scarcityFlag: scarcityBonus >= 3,
+        scarcityMessage: positionalRunAlert?.position === player.position ? positionalRunAlert.message : tierCliff.nextName ? `Tier drop of ${tierCliff.gap} before ${tierCliff.nextName}. ${liveScarcity.message}` : liveScarcity.message,
         expertEdge,
         formatBonus,
         scarcityBonus,
@@ -623,6 +1068,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Roster", value: Math.round(needScore), detail: rosterNeed.reason },
           { label: "Tier", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? `Meaningful ${scoringFormat} tier drop (${tierCliff.gap} to ${tierCliff.nextName || "next"})` : scarcityBonus > 0 ? `Small ${scoringFormat} tier edge (${tierCliff.gap})` : "No urgent format-adjusted tier cliff" },
+          { label: "VBD", value: Math.round(clamp(50 + vbdProfile.vorp, 0, 100)), detail: `VORP ${vbdProfile.vorp}; VONA ${vbdProfile.vona}; VOLS ${vbdProfile.vols}` },
+          { label: "Opp", value: opportunityProfile.score, detail: `${opportunityProfile.tier}: WOPR ${opportunityProfile.wopr}` },
+          { label: "Scheme", value: Math.round(clamp(50 + schemeProfile.bonus * 6, 0, 100)), detail: `${schemeProfile.badges.join(", ")} (${schemeProfile.bonus >= 0 ? "+" : ""}${schemeProfile.bonus})` },
           { label: "Research", value: Math.round(researchScore), detail: `${researchEdge.label}: ${researchEdge.detail}` },
         ],
         teamCompositionInsight,
@@ -634,7 +1082,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+    .sort((a, b) => b.compositeRank - a.compositeRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
     .slice(0, 8)
 
 
@@ -646,11 +1094,16 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Live top 8 • analyst-value confidence • {scoringFormat} • {draftTypeLabel}
+            Live top 8 • composite rank • {scoringFormat} • {draftTypeLabel} • {qbMode}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className={isHorizontal ? "space-y-2 px-2 pt-0 pr-1 pb-2" : "min-h-0 flex-1 space-y-2 overflow-visible px-2 pt-0 pr-1 pb-2"}>
+        {positionalRunAlert && (
+          <div className="rounded-xl border px-3 py-2 text-xs font-black" style={{ borderColor: colors.gold, background: `${colors.gold}18`, color: colors.gold }}>
+            {positionalRunAlert.message}
+          </div>
+        )}
         <details className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }} open>
           <summary className="cursor-pointer font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
             Current strategy: {strategyLock.label}
@@ -671,9 +1124,27 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             <span>Detected: {STRATEGY_OPTIONS.find((strategy) => strategy.value === strategyLock.detectedKey)?.label || "Balanced BPA"}</span>
           </div>
           <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
+          <div className="mt-1 font-black" style={{ color: colors.gold }}>Roster Health: {rosterHealth.score}/100 — {rosterHealth.message}</div>
           <div className="mt-1">{strategyLock.guidance}</div>
           <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
-          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: prioritizes open WR/RB/TE starters, then flex, then RB/WR upside bench depth; uses VBD, ADP, tier cliffs, target-earning WR research, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
+          <div className="mt-2 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
+            {["R1-2 Anchor", "R3-5 Support", "R6-9 Value", "R10-12 Lottery", "R13+ Stream"].map((label, index) => {
+              const active = (draftRound <= 2 && index === 0) || (draftRound >= 3 && draftRound <= 5 && index === 1) || (draftRound >= 6 && draftRound <= 9 && index === 2) || (draftRound >= 10 && draftRound <= 12 && index === 3) || (draftRound >= 13 && index === 4)
+              const palette = ["#22c55e", "#3b82f6", "#facc15", "#fb923c", "#94a3b8"]
+              return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
+            })}
+          </div>
+          <details className="mt-2 rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder }}>
+            <summary className="cursor-pointer font-black uppercase" style={{ color: colors.gold }}>Scheme Intel</summary>
+            <div className="mt-1 grid gap-1 sm:grid-cols-2">
+              {Object.entries(SCHEME_INTEL_2026).slice(0, 10).map(([team, scheme]) => (
+                <div key={team} className="rounded-md px-2 py-1" style={{ background: colors.card, color: colors.textSecondary }}>
+                  <span className="font-black" style={{ color: colors.textPrimary }}>{team}</span> · pace {scheme.pace} · PA {scheme.paRate}% · motion {scheme.motionRate}% · RZ PROE {scheme.rzProe} · OL {scheme.olGrade} · {scheme.badges.join(", ")}
+                </div>
+              ))}
+            </div>
+          </details>
+          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: now layers round gates, opportunity metrics, scheme intel, {qbMode} QB strategy, sleeper/breakout/bust flags, VBD, ADP, tier cliffs, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
         </details>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
@@ -704,17 +1175,25 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
                       <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
-                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.rosterReason}</div>
+                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
                     </div>
                     <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
                       <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
-                      <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>score</div>
+                      <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidenceStars.stars}</div>
                     </div>
                   </div>
 
                   <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Confidence:</span> {player.confidenceStars.stars} {player.confidenceStars.label}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Tags:</span> {player.tags.join(", ")} · format adjustment {player.tagFormatAdjustment >= 0 ? "+" : ""}{player.tagFormatAdjustment}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>VBD:</span> projected {player.vbdProfile.projected} · replacement {player.vbdProfile.replacementPoints} ({player.vbdProfile.replacementPlayer}) · VORP {player.vbdProfile.vorp} · VONA {player.vbdProfile.vona} vs {player.vbdProfile.nextAvailableName} · VOLS {player.vbdProfile.vols}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Opportunity:</span> {player.opportunityProfile.tier} ({player.opportunityProfile.score}/100) · target {player.opportunityProfile.metrics.targetShare}% · air yards {player.opportunityProfile.metrics.airYardShare}% · TPRR {player.opportunityProfile.metrics.tprr} · WOPR {player.opportunityProfile.wopr}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Scheme:</span> {player.schemeProfile.team} · {player.schemeProfile.badges.join(", ")} · pace {player.schemeProfile.pace} · PA {player.schemeProfile.paRate}% · motion {player.schemeProfile.motionRate}% · OL {player.schemeProfile.olGrade}</div>
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Composite:</span> VORP {player.compositeComponents.vorp}, VONA {player.compositeComponents.vona}, Opp {player.compositeComponents.opportunity}, Scheme {player.compositeComponents.scheme}, Category {player.compositeComponents.category}, Round {player.compositeComponents.roundGate}, Scarcity {player.compositeComponents.scarcity}, Strategy {player.compositeComponents.strategy} = {player.compositeRank}</div>
+                    {player.categoryFlag && <div><span className="font-black" style={{ color: colors.textPrimary }}>Category:</span> {player.categoryFlag.type} — {player.categoryFlag.detail}</div>}
+                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Tier/Scarcity:</span> {player.tierProfile.tier} · {player.scarcityMessage}</div>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
                   </div>
