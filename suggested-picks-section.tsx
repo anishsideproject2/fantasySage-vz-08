@@ -293,6 +293,7 @@ const getResearchEdge = ({ player, round, adpRound, rosterNeed, rosterCounts, st
 const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, isSuperFlex, scoringFormat, draftedRoundsByPosition = {}, strategyOverride = "auto" }) => {
   const rb = rosterCounts.RB || 0
   const wr = rosterCounts.WR || 0
+  const totalPicks = rosterCounts.total || CORE_STARTER_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0) + (rosterCounts.QB || 0)
   const coreStarterTarget = starterTargets.RB + starterTargets.WR + starterTargets.TE + flexSlots
   const coreStarterCount = CORE_STARTER_POSITIONS.reduce((sum, pos) => sum + (rosterCounts[pos] || 0), 0)
   const openCoreSlots = Math.max(coreStarterTarget - coreStarterCount, 0)
@@ -301,21 +302,21 @@ const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, 
   const earlyWrCount = (draftedRoundsByPosition.WR || []).filter((pickedRound) => pickedRound <= 5).length
   const hasEarlyTe = (draftedRoundsByPosition.TE || []).some((pickedRound) => pickedRound <= 4)
   const hasEarlyQb = (draftedRoundsByPosition.QB || []).some((pickedRound) => pickedRound <= (isSuperFlex ? 3 : 5))
-  const detectedKey = earlyRbCount >= 3 && round <= 7
-    ? "robust-rb"
-    : earlyRbCount >= 2
-      ? "double-hero-rb"
-      : earlyRbCount === 1
-        ? "hero-rb"
-        : rb === 0 && (round >= 6 || earlyWrCount >= 3)
-          ? "zero-rb"
-          : wr >= 3 && earlyRbCount <= 1
-            ? "wr-heavy"
-            : hasEarlyTe
-              ? "elite-te"
-              : hasEarlyQb
-                ? "early-qb"
-                : round <= 5 && rb === 0
+  const detectedKey = totalPicks === 0
+    ? "balanced"
+    : hasEarlyQb
+      ? "early-qb"
+      : hasEarlyTe
+        ? "elite-te"
+        : earlyRbCount >= 3 && round <= 7
+          ? "robust-rb"
+          : earlyRbCount >= 2
+            ? "double-hero-rb"
+            : rb === 0 && (round >= 6 || earlyWrCount >= 3)
+              ? "zero-rb"
+              : wr >= 3 && earlyRbCount <= 1
+                ? "wr-heavy"
+                : earlyRbCount === 1
                   ? "hero-rb"
                   : "balanced"
   const activeKey = strategyOverride && strategyOverride !== "auto" ? strategyOverride : detectedKey
