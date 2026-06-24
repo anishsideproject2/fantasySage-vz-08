@@ -7,6 +7,51 @@ import { OC_VARIANCE_SYMBOL, getOcTendencyImpact, getOcTendencySummary, getPlaye
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
 
+const getScoringFormatFromSettings = (draftData, settings = {}) => {
+  const rawFormat = String(
+    draftData?.scoringFormat || settings.scoring_type || settings.type || settings.reception_type || settings.ppr || settings.rec || "",
+  ).toLowerCase()
+  const rec = Number(settings.rec ?? settings.receptions ?? settings.points_per_reception)
+
+  if (rawFormat.includes("half") || rawFormat === "0.5" || rec === 0.5) return "Half PPR"
+  if (rawFormat.includes("ppr") || rawFormat === "1" || rec >= 1) return "Full PPR"
+  if (rawFormat.includes("standard") || rawFormat === "0" || rec === 0) return "Standard"
+  return "Format unknown"
+}
+
+const getFormatAwareRank = (player, scoringFormat) => {
+  if (scoringFormat === "Full PPR") return Number.parseFloat(player.pprRank ?? player.pprAdp ?? player.expertRank ?? player.adp)
+  if (scoringFormat === "Half PPR") return Number.parseFloat(player.halfPprRank ?? player.halfPprAdp ?? player.expertRank ?? player.adp)
+  if (scoringFormat === "Standard") return Number.parseFloat(player.standardRank ?? player.standardAdp ?? player.expertRank ?? player.adp)
+  return Number.parseFloat(player.expertRank ?? player.adp)
+}
+
+const getTierCliff = (player, available, scoringFormat) => {
+  const samePosition = available
+    .filter((candidate) => candidate.position === player.position)
+    .sort((a, b) => getFormatAwareRank(a, scoringFormat) - getFormatAwareRank(b, scoringFormat))
+  const index = samePosition.findIndex((candidate) => candidate.id === player.id)
+  const nextPlayers = samePosition.slice(index + 1, index + 4)
+  if (index < 0 || nextPlayers.length === 0) return { bonus: 0, gap: 0, nextName: null }
+
+  const rank = getFormatAwareRank(player, scoringFormat)
+  const next = nextPlayers[0]
+  const nextRank = getFormatAwareRank(next, scoringFormat)
+  const immediateGap = Number.isNaN(rank) || Number.isNaN(nextRank) ? 0 : nextRank - rank
+  const averageGap = nextPlayers.reduce((sum, candidate) => {
+    const candidateRank = getFormatAwareRank(candidate, scoringFormat)
+    return Number.isNaN(candidateRank) || Number.isNaN(rank) ? sum : sum + (candidateRank - rank)
+  }, 0) / nextPlayers.length
+  const formatMultiplier = scoringFormat === "Standard" && player.position === "RB" ? 1.2 : scoringFormat === "Full PPR" && ["WR", "TE"].includes(player.position) ? 1.15 : 1
+  const weightedGap = Math.max(immediateGap, averageGap * 0.7) * formatMultiplier
+
+  return {
+    bonus: weightedGap >= 10 ? 5 : weightedGap >= 7 ? 3 : weightedGap >= 4.5 ? 1.5 : 0,
+    gap: Number(weightedGap.toFixed(1)),
+    nextName: next?.name || null,
+  }
+}
+
 
 
 const ANALYST_CONTEXT = {
@@ -327,16 +372,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const starterCount = Object.values(starterTargets).reduce((sum, count) => sum + count, 0) + flexSlots + superFlexSlots
   const rosterSize = starterCount + benchSlots
 
-  const rawFormat = String(
-    draftData?.scoringFormat || settings.scoring_type || settings.type || settings.reception_type || settings.ppr || "",
-  ).toLowerCase()
-  const scoringFormat = rawFormat.includes("half") || rawFormat === "0.5"
-    ? "Half PPR"
-    : rawFormat.includes("ppr") || rawFormat === "1" || Number(settings.rec) >= 1
-      ? "Full PPR"
-      : rawFormat.includes("standard") || rawFormat === "0" || Number(settings.rec) === 0
-        ? "Standard"
-        : "Format unknown"
+  const scoringFormat = getScoringFormatFromSettings(draftData, settings)
   const draftType = draftData?.draftType || settings.draft_type || "snake"
   const draftTypeLabel = getDraftTypeLabel(draftType)
 
@@ -369,16 +405,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     return { bonus: 1, reason: `usable ${position} depth`, eligible: BENCH_TARGET_POSITIONS.includes(position) }
   }
 
-  const getScarcityBonus = (player, available) => {
-    const samePosition = available
-      .filter((candidate) => candidate.position === player.position)
-      .sort((a, b) => Number.parseFloat(a.adp) - Number.parseFloat(b.adp))
-    const index = samePosition.findIndex((candidate) => candidate.id === player.id)
-    const nextPlayer = samePosition[index + 1]
-    if (!nextPlayer) return 0
-    const gap = Number.parseFloat(nextPlayer.adp) - Number.parseFloat(player.adp)
-    return gap >= 12 ? 4 : gap >= 8 ? 2 : 0
-  }
+  const getScarcityBonus = (player, available) => getTierCliff(player, available, scoringFormat)
 
   const availablePlayers = getAvailablePlayers?.() || []
   const draftRound = draftData?.numTeams ? Math.floor((Number(currentPick) - 1) / draftData.numTeams) + 1 : 1
@@ -390,12 +417,13 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       if (player.adp === undefined || isNaN(player.adp) || !currentPick) return null
       const valueDiff = Number.parseFloat(currentPick) - Number.parseFloat(player.adp)
       const marketAdp = Number.parseFloat(player.marketAdp || player.adp)
-      const expertRank = Number.parseFloat(player.expertRank || player.adp)
+      const expertRank = getFormatAwareRank(player, scoringFormat)
       const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
       const rosterNeed = getRosterNeed(player.position)
       const formatBonus = getFormatBonus(player.position)
       if (!rosterNeed.eligible) return null
-      const scarcityBonus = getScarcityBonus(player, availablePlayers)
+      const tierCliff = getScarcityBonus(player, availablePlayers)
+      const scarcityBonus = tierCliff.bonus
       const strategySignal = getPlayerStrategySignal(player)
       const ocImpact = getOcTendencyImpact(player, scoringFormat)
       const thematicSignal = getThematicStrategySignal({
@@ -466,7 +494,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoreCards: [
           { label: "Value", value: Math.round(valueScore), detail: `${valueDiff >= 0 ? "+" : ""}${valueDiff.toFixed(1)} vs ADP` },
           { label: "Roster", value: Math.round(needScore), detail: rosterNeed.reason },
-          { label: "Tier", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? "Meaningful same-position tier drop after this player" : "No urgent tier cliff" },
+          { label: "Tier", value: Math.round(scarcityScore), detail: scarcityBonus >= 4 ? `Meaningful ${scoringFormat} tier drop (${tierCliff.gap} to ${tierCliff.nextName || "next"})` : scarcityBonus > 0 ? `Small ${scoringFormat} tier edge (${tierCliff.gap})` : "No urgent format-adjusted tier cliff" },
           { label: "Research", value: Math.round(researchScore), detail: `${researchEdge.label}: ${researchEdge.detail}` },
         ],
         teamCompositionInsight,
@@ -479,7 +507,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     })
     .filter(Boolean)
     .sort((a, b) => b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
-    .slice(0, 5)
+    .slice(0, 8)
 
 
   const isHorizontal = layout === "horizontal"
@@ -490,27 +518,27 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Live top 5 • ranked by confidence • {scoringFormat} • {draftTypeLabel}
+            Live top 8 • analyst-value confidence • {scoringFormat} • {draftTypeLabel}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className={isHorizontal ? "space-y-2 px-2 pt-0 pr-1 pb-2" : "min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pt-0 pr-1 pb-2"}>
+      <CardContent className={isHorizontal ? "space-y-2 px-2 pt-0 pr-1 pb-2" : "min-h-0 flex-1 space-y-2 overflow-visible px-2 pt-0 pr-1 pb-2"}>
         <div className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
           <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>2026 plan for this pick</div>
           <div className="mt-1">{roundPlan}</div>
-          <div className="mt-1 truncate" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research.</div>
+          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: VBD + roster fit + ADP + tier cliffs + barbell QB/TE + RB dead-zone/WR target-earning research.</div>
         </div>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2 pb-1">
+          <div className="grid gap-2 pb-1 sm:grid-cols-2">
             {suggestedPicks.map((player, idx) => (
               <div key={player.id} className="group relative">
                 <button
                   type="button"
-                  className="flex max-w-[13rem] items-center gap-2 rounded-full border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
+                  className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
                   aria-label={`Show details for ${player.name}`}
                 >
@@ -522,11 +550,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                 </button>
 
-                <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-[min(92vw,26rem)] translate-y-1 rounded-2xl border p-3 opacity-0 shadow-2xl transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-[min(92vw,34rem)] translate-y-1 rounded-2xl border p-3 opacity-0 shadow-2xl transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
-                      <div className="mt-1 truncate text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
+                      <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
                       <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.rosterReason}</div>
                     </div>
                     <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
