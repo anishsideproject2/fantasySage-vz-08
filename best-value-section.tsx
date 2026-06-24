@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Search, Sparkles, TrendingUp } from "lucide-react"
 import { BubbleSymbol } from "./bubble-symbol"
+import { PLAYER_NOTES, getPlayerNoteId } from "./src/data/playerNotes"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
@@ -12,6 +13,10 @@ const getAnalystRank = (player) => Number.parseFloat(player.expertRank ?? player
 
 function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
   const valueColor = getValueDiffColor(player.valueDiff)
+  const firstName = player.first_name || player.firstName || String(player.name || "").trim().split(/\s+/)[0] || ""
+  const lastName = player.last_name || player.lastName || String(player.name || "").trim().split(/\s+/).slice(1).join(" ") || ""
+  const noteId = getPlayerNoteId(firstName, lastName, player.team)
+  const note = (PLAYER_NOTES as Record<string, any>)[noteId] ?? null
 
   return (
     <div
@@ -39,6 +44,8 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
           title={player.name}
         >
           {player.name}
+          {note?.sleeper && <span className="icon-sleeper ml-1" title={note.sleeper_note}>💎</span>}
+          {note?.risk_flag && <span className="icon-risk ml-1" title={note.risk_alert}>⚠️</span>}
         </button>
         <div className="col-span-2 flex justify-center">
           <BubbleSymbol pos={player.position} colors={colors} />

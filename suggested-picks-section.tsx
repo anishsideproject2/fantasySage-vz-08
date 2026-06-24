@@ -2,8 +2,49 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { BubbleSymbol } from "./bubble-symbol"
 import { getOcTendencyImpact, getOcTendencySummary, getPlayerNote, getTeamOcVariance, normalizeTeamAbbr } from "./draft-strategy"
+import { PLAYER_NOTES, getPlayerNoteId, buildWhyNote, FORMAT_TAG_BOOSTS } from "./src/data/playerNotes"
+
+
+const getPlayerNameParts = (player) => {
+  const firstName = player.first_name || player.firstName || String(player.name || "").trim().split(/\s+/)[0] || ""
+  const lastName = player.last_name || player.lastName || String(player.name || "").trim().split(/\s+/).slice(1).join(" ") || ""
+  return { firstName, lastName }
+}
+
+const getPlayerIntelligenceNote = (player) => {
+  const { firstName, lastName } = getPlayerNameParts(player)
+  const noteId = getPlayerNoteId(firstName, lastName, player.team)
+  return (PLAYER_NOTES as Record<string, any>)[noteId] ?? null
+}
+
+const getLeagueFormatKey = (scoringFormat) => {
+  if (scoringFormat === "Half PPR") return "half_ppr"
+  if (scoringFormat === "Standard") return "standard"
+  return "ppr"
+}
+
+const computeResearchScore = ({ note, existingBaseResearch, playerValueVsAdp, leagueFormat }) => {
+  let score = existingBaseResearch ?? 50
+  if (!note) return score
+
+  score += (Number(note.opportunity || 0) / 100) * 8
+  let confidenceMultiplier = Number(note.confidence || 100) / 100
+  if (note.risk_flag) confidenceMultiplier *= 0.7
+  score *= confidenceMultiplier
+
+  if (note.sleeper && playerValueVsAdp > 10) score += 6
+
+  const formatBoost = FORMAT_TAG_BOOSTS[leagueFormat]
+  if (formatBoost && Array.isArray(note.tags) && note.tags.some((tag) => formatBoost.tags.includes(tag))) {
+    score += formatBoost.boost
+  }
+
+  return Math.min(Math.round(score), 100)
+}
 
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const BENCH_TARGET_POSITIONS = ["RB", "WR"]
@@ -972,6 +1013,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         draftType,
       })
       const adpRound = getAdpRound(player.adp, draftData?.numTeams || 12)
+      const note = getPlayerIntelligenceNote(player)
+      const leagueFormat = getLeagueFormatKey(scoringFormat)
       const researchEdge = getResearchEdge({
         player,
         round: draftRound,
@@ -988,6 +1031,13 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const isDeadZoneRb = player.position === "RB" && Number(currentPick) >= 35 && Number(currentPick) <= 80
       const deadZoneExempt = tags.includes("WORKHORSE") || tags.includes("LOTTERY") || valueGap >= 15
       const deadZonePenalty = isDeadZoneRb && !deadZoneExempt ? -7 : 0
+      const intelligenceResearchDetail = note
+        ? `${researchEdge.detail}${researchEdge.detail ? " | " : ""}${note.key_note || ""}${note.format_edge ? ` [${leagueFormat.toUpperCase()}]: ${note.format_edge}` : ""}`
+        : researchEdge.detail
+      const alertLines = []
+      if (note?.risk_flag && note?.risk_alert) alertLines.push(note.risk_alert)
+      if (note?.sleeper && note?.sleeper_note) alertLines.push(`💎 SLEEPER: ${note.sleeper_note}`)
+      const intelligenceWhyNote = buildWhyNote(note, leagueFormat)
       const primaryStrategySignal = ocImpact || (manualStrategySignal.bonus !== 0 ? manualStrategySignal : researchEdge.bonus !== 0 ? researchEdge : strategySignal.bonus !== 0 ? strategySignal : thematicSignal)
       const positionMultiplier = getPositionMultiplier({ position: player.position, round: draftRound, scoringFormat, isSuperFlex: superFlexSlots > 0, rosterNeed })
       const strategyBonus = (strategySignal.bonus + thematicSignal.bonus + researchEdge.bonus + manualStrategySignal.bonus + roundGate.bonus + tierProfile.bonus + (ocImpact?.bonus || 0) + deadZonePenalty) * positionMultiplier
@@ -1022,7 +1072,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
       const formatScore = clamp(50 + formatBonus * 5, 0, 100)
       const scarcityScore = clamp(50 + scarcityBonus * 10, 0, 100)
       const strategyScore = clamp(50 + strategyBonus * 7, 0, 100)
-      const researchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
+      const baseResearchScore = clamp(50 + researchEdge.bonus * 7, 0, 100)
+      const researchScore = computeResearchScore({ note, existingBaseResearch: baseResearchScore, playerValueVsAdp: valueDiff, leagueFormat })
       const advancedConfidenceBonus = (opportunityProfile.score >= 70 ? 8 : 0) + (schemeProfile.bonus > 0 ? 5 : 0) + (categoryFlag?.type?.includes("BUST") ? -18 : categoryFlag ? 8 : 0)
       const confidenceScore = Math.round(
         clamp(valueScore * 0.20 + expertScore * 0.13 + needScore * 0.24 + formatScore * 0.05 + scarcityScore * 0.06 + strategyScore * 0.08 + researchScore * 0.08 + opportunityProfile.score * 0.11 + clamp(50 + schemeProfile.bonus * 6, 0, 100) * 0.05 + advancedConfidenceBonus, 0, 100),
@@ -1058,7 +1109,10 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         strategyBonus,
         strategySignal,
         thematicSignal,
-        researchEdge,
+        researchEdge: { ...researchEdge, detail: intelligenceResearchDetail },
+        intelligenceNote: note,
+        intelligenceWhyNote,
+        alertLines,
         ocImpact,
         manualStrategySignal,
         playerNote: whyPickNote,
@@ -1174,7 +1228,22 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
-                      <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
+                      <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.alertLines?.length > 0 && (
+                        <div className="mb-1 flex flex-wrap gap-1">
+                          {player.intelligenceNote?.risk_flag && (
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="destructive" className="risk-badge text-[9px]">⚠️ RISK</Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>{player.intelligenceNote.risk_alert}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {player.intelligenceNote?.sleeper && <Badge variant="secondary" className="sleeper-badge bg-green-600 text-[9px] text-white hover:bg-green-600">💎 VALUE</Badge>}
+                        </div>
+                      )}
+                      {player.name}</div>
                       <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
                     </div>
                     <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
@@ -1184,6 +1253,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   </div>
 
                   <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                    {player.alertLines?.map((line) => (
+                      <div key={line} className="rounded-md px-2 py-1 font-black" style={{ background: `${player.confidenceColor}18`, color: player.confidenceColor }}>{line}</div>
+                    ))}
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
                     <div><span className="font-black" style={{ color: colors.textPrimary }}>Confidence:</span> {player.confidenceStars.stars} {player.confidenceStars.label}</div>
