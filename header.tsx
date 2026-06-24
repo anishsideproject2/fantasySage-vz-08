@@ -1,6 +1,6 @@
 "use client"
-import { useState } from "react"
-import { Moon, Sun, Copy, CheckCircle, AlertCircle } from "lucide-react"
+import { type WheelEvent, useEffect, useRef, useState } from "react"
+import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,18 @@ export function Header({
   draftData,
 }) {
   const [showFileManager, setShowFileManager] = useState(false)
+  const presetScrollerRef = useRef<HTMLDivElement | null>(null)
+  const activePresetRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    activePresetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+  }, [rankings, activeRankingIndex])
+
+  const handlePresetWheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (!presetScrollerRef.current || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
+    event.preventDefault()
+    presetScrollerRef.current.scrollBy({ left: event.deltaY, behavior: "smooth" })
+  }
 
   // Only show connected if we have draft data with actual content and no error
   const isConnected = draftData && draftData.teams && draftData.teams.length > 0 && !error && sleeperUrl.trim()
@@ -127,57 +139,59 @@ export function Header({
             <p className="text-xs" style={{ color: colors.textSecondary }}>Horizontal, always-visible ranking toggles keep the draft board above the fold.</p>
           </div>
         </div>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {RANKING_PRESET_GROUPS.map((group) => (
-            <section key={group.id} className="rounded-xl border p-2" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-wide" style={{ color: colors.gold }}>{group.label}</h3>
-                  <p className="text-[11px]" style={{ color: colors.textSecondary }}>{group.description}</p>
-                </div>
-                <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase" style={{ backgroundColor: `${colors.headingGreen}1f`, color: colors.headingGreen }}>
-                  {group.presets.length} boards
-                </span>
-              </div>
-              <div className="grid gap-2 xl:grid-cols-3">
-                {group.presets.map((preset) => {
-                  const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => loadPreset(preset.id, activeRankingIndex)}
-                      className="rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
-                      style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}1f` : colors.card }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
-                            {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
-                          </div>
-                          <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
-                          <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.gold }}>
-                            {getAccuracyAwardLabel(preset)}
-                          </div>
-                        </div>
-                        <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
-                          #{preset.accuracyRank}
-                        </span>
+        <div
+          ref={presetScrollerRef}
+          onWheel={handlePresetWheel}
+          className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2"
+          aria-label="Scrollable analyst ranking boards"
+        >
+          {RANKING_PRESET_GROUPS.flatMap((group) =>
+            group.presets.map((preset) => {
+              const isActive = rankings[activeRankingIndex]?.presetId === preset.id
+              return (
+                <button
+                  key={preset.id}
+                  ref={isActive ? activePresetRef : null}
+                  onClick={() => loadPreset(preset.id, activeRankingIndex)}
+                  className="min-h-[8.5rem] w-[18rem] shrink-0 rounded-xl border p-2 text-left transition hover:-translate-y-0.5 hover:opacity-95 sm:w-[20rem]"
+                  style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}1f` : colors.darkBlue }}
+                  aria-pressed={isActive}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+                    <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: colors.card, color: colors.gold }}>{group.label}</span>
+                    {isActive && (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: `${colors.headingGreen}26`, color: colors.headingGreen }}>
+                        <Check size={12} /> Loaded
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold" style={{ color: colors.textPrimary }}>
+                        {preset.analyst} <span className="font-semibold" style={{ color: colors.textSecondary }}>· Updated {preset.updated}</span>
                       </div>
-                      {preset.accuracyRanks && (
-                        <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                          {POSITION_RANKS.map((position) => (
-                            <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: colors.gold }}>
-                              {position} {preset.accuracyRanks?.[position] ?? "—"}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
-          ))}
+                      <div className="truncate text-[11px]" style={{ color: colors.textSecondary }}>{preset.source}</div>
+                      <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.gold }}>
+                        {getAccuracyAwardLabel(preset)}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                      #{preset.accuracyRank}
+                    </span>
+                  </div>
+                  {preset.accuracyRanks && (
+                    <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
+                      {POSITION_RANKS.map((position) => (
+                        <span key={position} className="rounded-md px-1.5 py-1 text-center font-bold" style={{ backgroundColor: colors.card, color: colors.gold }}>
+                          {position} {preset.accuracyRanks?.[position] ?? "—"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              )
+            }),
+          )}
         </div>
       </div>
 
