@@ -539,6 +539,71 @@ const getAnalystContext = (player) => {
   return FEATURED_ANALYST_CONTEXT[key] || ANALYST_CONTEXT[player.position] || ANALYST_CONTEXT.default
 }
 
+const getPlayerAdp = (player) => {
+  const adp = Number.parseFloat(player.marketAdp ?? player.adp_ppr ?? player.pprAdp ?? player.adp)
+  return Number.isNaN(adp) ? 999 : adp
+}
+
+const getAnalystCompositeRank = (player, scoringFormat) => {
+  const ranks = [
+    getFormatAwareRank(player, scoringFormat),
+    Number.parseFloat(player.expertRank),
+    Number.parseFloat(player.consensusRank),
+  ].filter((rank) => !Number.isNaN(rank) && rank > 0)
+
+  if (ranks.length === 0) return getPlayerAdp(player)
+  return ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length
+}
+
+const isPlayerInsidePickWindow = (player, windowFloor, windowCeil) => {
+  const adp = getPlayerAdp(player)
+  return adp >= windowFloor && adp <= windowCeil
+}
+
+const getSuggestionBuildType = (strategyKey) => {
+  if (["hero-rb", "double-hero-rb", "robust-rb"].includes(strategyKey)) return "HERO_RB"
+  if (["zero-rb", "wr-heavy", "elite-te"].includes(strategyKey)) return "ZERO_RB"
+  if (strategyKey === "early-qb") return "EARLY_QB"
+  return "BALANCED_BPA"
+}
+
+const getQbTierGap = (scoredWindow) => {
+  const qbs = scoredWindow
+    .filter((scored) => scored.player.position === "QB")
+    .sort((a, b) => a.analystRank - b.analystRank)
+  if (qbs.length < 2) return 0
+  return qbs[1].analystRank - qbs[0].analystRank
+}
+
+const buildSuggestionWhy = ({ player, analystRank, adp, valueDiff }, state) => {
+  const { buildType, currentPickOverall } = state
+  const lines = []
+
+  if (valueDiff > 0) {
+    lines.push(`Analyst composite rank (${analystRank.toFixed(1)}) is ${valueDiff.toFixed(1)} picks ahead of current ADP (${adp.toFixed(1)}) — analysts rate this player above market.`)
+  } else if (valueDiff < -2) {
+    lines.push(`ADP (${adp.toFixed(1)}) is ahead of analyst composite rank (${analystRank.toFixed(1)}) by ${Math.abs(valueDiff).toFixed(1)} picks — slight reach vs market.`)
+  } else {
+    lines.push(`Player is priced near analyst fair value (analyst rank ${analystRank.toFixed(1)} vs ADP ${adp.toFixed(1)}).`)
+  }
+
+  lines.push(`Surfaced at pick ${currentPickOverall} — ADP ${adp.toFixed(1)} is within the expected window.`)
+
+  const buildNotes = {
+    HERO_RB: "Hero RB build: prioritizing RB value in early rounds.",
+    ZERO_RB: "Zero RB build: targeting WR/TE value; RBs suppressed.",
+    EARLY_QB: "Early QB build: QB tier gap justifies spending here.",
+    BALANCED_BPA: "Balanced BPA: no positional bias — following analyst value.",
+  }
+  if (buildNotes[buildType]) lines.push(buildNotes[buildType])
+
+  const note = getPlayerIntelligenceNote(player)
+  if (note?.key_note) lines.push(`Research edge: ${note.key_note}`)
+  if (note?.risk_flag && note?.risk_alert) lines.push(note.risk_alert)
+
+  return lines.join(" | ")
+}
+
 // Sources reflected in this model: FantasyPros Hero RB/Zero RB/QB strategy (May-Jun 2026),
 // Footballguys 2026 RB/WR/TE strategy guides, Yahoo prospect target-share research,
 // and Washington Post draft-efficiency research on WR/RB/QB/TE payoff curves.
@@ -971,15 +1036,33 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
   const positionalRunAlert = getRunAlert(draftedPlayers)
 
+  const pickWindowBack = draftRound <= 2 ? 2 : draftRound <= 5 ? 4 : 6
+  const pickWindowForward = draftRound <= 2 ? 10 : draftRound <= 5 ? 16 : 24
+  const pickWindowFloor = Math.max(1, Number(currentPick || 1) - pickWindowBack)
+  const pickWindowCeil = Number(currentPick || 1) + pickWindowForward
+  const activeBuildType = getSuggestionBuildType(strategyLock.activeKey)
+  const qbTierGap = getQbTierGap(availablePlayers
+    .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
+    .map((player) => ({ player, analystRank: getAnalystCompositeRank(player, scoringFormat) })))
+
   const suggestedPicks = availablePlayers
+    .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
     .map((player) => {
-      if (player.adp === undefined || isNaN(player.adp) || !currentPick) return null
-      const valueGap = Number.parseFloat(player.adp) - Number.parseFloat(currentPick)
-      const valueDiff = valueGap
-      const marketAdp = Number.parseFloat(player.marketAdp || player.adp)
-      const expertRank = getFormatAwareRank(player, scoringFormat)
+      if (!currentPick) return null
+      const marketAdp = getPlayerAdp(player)
+      if (marketAdp === 999) return null
+      const analystRank = getAnalystCompositeRank(player, scoringFormat)
+      const valueGap = marketAdp - Number.parseFloat(currentPick)
+      const valueDiff = marketAdp - analystRank
+      let finalScore = valueDiff
+      const expertRank = analystRank
       const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
       const rosterNeed = getRosterNeed(player.position)
+      if (activeBuildType === "HERO_RB" && player.position === "RB" && draftRound <= 3 && selectedRosterCounts.RB < 2) finalScore += 4
+      if (activeBuildType === "ZERO_RB" && player.position === "RB" && draftRound <= 4) finalScore -= 8
+      if (activeBuildType === "ZERO_RB" && (player.position === "WR" || player.position === "TE") && draftRound <= 4) finalScore += 3
+      if (activeBuildType === "EARLY_QB" && player.position === "QB" && selectedRosterCounts.QB === 0 && qbTierGap >= 8) finalScore += 5
+      if (draftRound >= 3 && selectedRosterCounts[player.position] < (starterTargets[player.position] || 0)) finalScore += 2
       const vbdProfile = getVbdProfile({ player, availablePlayers, scoringFormat, replacementSnapshot, picksUntilNextTurn, starterTargets, flexSlots })
       const liveScarcity = getLiveScarcityProfile({ position: player.position, availablePlayers, draftedPlayers, replacementSnapshot, draftData, scoringFormat })
       let tags = getPlayerTags(player)
@@ -1065,7 +1148,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         strategy: Number(strategyBonus.toFixed(1)),
       }
       const compositeRank = Number(Object.values(compositeComponents).reduce((sum, value) => sum + value, 0).toFixed(1))
-      const whyPickNote = `${valueGap >= 0 ? "Pick for value" : "Only pick if you need the position"}: ${valueGap >= 0 ? "+" : ""}${valueGap.toFixed(1)} ADP value gap (${valueLabel}) with ${rosterNeed.reason}. ${roundGate.alerts.length ? `${roundGate.alerts.join("; ")}. ` : ""}${isDeadZoneRb && !deadZoneExempt ? "RB dead-zone caution applies. " : ""}${whySignal}`
+      const whyPickNote = buildSuggestionWhy({ player, analystRank, adp: marketAdp, valueDiff }, { currentPickOverall: Number(currentPick), buildType: activeBuildType })
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -1132,11 +1215,14 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         confidenceScore,
         confidence: getConfidenceLabel(confidenceScore),
         confidenceColor: getSignalColor(confidenceScore),
+        analystRank: Math.round(analystRank * 10) / 10,
+        adp: marketAdp,
+        finalScore: Math.round(finalScore * 10) / 10,
         hybridScore,
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.compositeRank - a.compositeRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+    .sort((a, b) => b.finalScore - a.finalScore || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
     .slice(0, 8)
 
 
