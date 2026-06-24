@@ -1,5 +1,5 @@
 "use client"
-import { type WheelEvent, useEffect, useRef, useState } from "react"
+import { type WheelEvent, useEffect, useMemo, useRef, useState } from "react"
 import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,6 +14,26 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 })
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
+
+const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
+  "half-ppr": "del-don-half-ppr",
+  "best-ball": "underdog-best-ball-june-24",
+  "full-ppr": "del-don-full-ppr",
+}
+
+const detectScoringGroupFromDraft = (draft: any) => {
+  const scoringText = [draft?.metadata?.scoring_type, draft?.settings?.scoring_type, draft?.metadata?.name, draft?.metadata?.description]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+  const receptionValue = Number(draft?.settings?.rec ?? draft?.settings?.receptions ?? draft?.settings?.rec_yd)
+
+  if (scoringText.includes("half") || scoringText.includes("0.5") || receptionValue === 0.5) return "half-ppr"
+  if (scoringText.includes("ppr") || receptionValue >= 1) return "full-ppr"
+  return null
+}
+
+const extractSleeperDraftId = (url: string) => url.match(/\/draft\/nfl\/(\d+)/)?.[1] || url.match(/sleeper\.com\/draft\/(\d+)/)?.[1] || null
 
 const getAccuracyYear = (preset: any) => preset.accuracyNote?.match(/20\d{2}/)?.[0] || ""
 
@@ -47,12 +67,60 @@ export function Header({
   draftData,
 }) {
   const [showFileManager, setShowFileManager] = useState(false)
+  const [selectedScoringGroupId, setSelectedScoringGroupId] = useState("full-ppr")
+  const [detectedScoringLabel, setDetectedScoringLabel] = useState("Defaulting to Full PPR")
   const presetScrollerRef = useRef<HTMLDivElement | null>(null)
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
 
+  const selectedScoringGroup = useMemo(
+    () => RANKING_PRESET_GROUPS.find((group) => group.id === selectedScoringGroupId) || RANKING_PRESET_GROUPS.find((group) => group.id === "full-ppr")!,
+    [selectedScoringGroupId],
+  )
+
   useEffect(() => {
     activePresetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
-  }, [rankings, activeRankingIndex])
+  }, [rankings, activeRankingIndex, selectedScoringGroupId])
+
+  useEffect(() => {
+    const draftId = extractSleeperDraftId(sleeperUrl.trim())
+    if (!draftId) {
+      setDetectedScoringLabel("Defaulting to Full PPR")
+      return
+    }
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.sleeper.com/v1/draft/${draftId}`, { signal: controller.signal })
+        if (!res.ok) return
+        const draft = await res.json()
+        const detectedGroupId = detectScoringGroupFromDraft(draft)
+        if (!detectedGroupId) {
+          setDetectedScoringLabel("Sleeper format not labeled; showing Full PPR")
+          return
+        }
+
+        setSelectedScoringGroupId(detectedGroupId)
+        setDetectedScoringLabel(`Sleeper detected ${RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.label || "format"}`)
+        const activePresetId = rankings[activeRankingIndex]?.presetId
+        const activePresetMatchesFormat = RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.presets.some((preset) => preset.id === activePresetId)
+        if (!activePresetMatchesFormat) loadPreset(DEFAULT_PRESET_BY_GROUP[detectedGroupId], activeRankingIndex)
+      } catch (err) {
+        if (!controller.signal.aborted) setDetectedScoringLabel("Could not auto-detect yet; showing Full PPR")
+      }
+    }, 400)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [activeRankingIndex, loadPreset, rankings, sleeperUrl])
+
+  const handleScoringGroupChange = (groupId: string) => {
+    setSelectedScoringGroupId(groupId)
+    setDetectedScoringLabel("Manual board format")
+    loadPreset(DEFAULT_PRESET_BY_GROUP[groupId], activeRankingIndex)
+  }
 
   const handlePresetWheel = (event: WheelEvent<HTMLDivElement>) => {
     if (!presetScrollerRef.current || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
@@ -136,7 +204,20 @@ export function Header({
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
-            <p className="text-xs" style={{ color: colors.textSecondary }}>Horizontal, always-visible ranking toggles keep the draft board above the fold.</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; use the selector to manually change format or switch boards.</p>
+          </div>
+          <div className="flex min-w-[14rem] flex-col gap-1">
+            <span className="text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>Board format</span>
+            <Select value={selectedScoringGroupId} onValueChange={handleScoringGroupChange}>
+              <SelectTrigger className="h-9" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RANKING_PRESET_GROUPS.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>{group.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div
@@ -145,8 +226,8 @@ export function Header({
           className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2"
           aria-label="Scrollable analyst ranking boards"
         >
-          {RANKING_PRESET_GROUPS.flatMap((group) =>
-            group.presets.map((preset) => {
+          {selectedScoringGroup.presets.map((preset) => {
+              const group = selectedScoringGroup
               const isActive = rankings[activeRankingIndex]?.presetId === preset.id
               return (
                 <button
@@ -190,8 +271,7 @@ export function Header({
                   )}
                 </button>
               )
-            }),
-          )}
+            })}
         </div>
       </div>
 
