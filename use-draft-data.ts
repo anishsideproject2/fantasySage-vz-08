@@ -17,10 +17,18 @@ export function useDraftData(csvData) {
   const [timeSinceUpdate, setTimeSinceUpdate] = useState(0)
 
   const intervalRef = useRef(null)
+  const syncInFlightRef = useRef(false)
+  const sleeperDraftCacheRef = useRef({ draftId: null, draft: null, users: [], rosters: [] })
 
   const normalizeName = (name) => {
     if (!name) return ""
-    return name
+
+    const canonicalName = String(name)
+      // Sleeper now returns Kenny Gainwell while several analyst boards still
+      // carry Kenneth Gainwell. Treat them as the same player for draft matching.
+      .replace(/\bKenny\s+Gainwell\b/i, "Kenneth Gainwell")
+
+    return canonicalName
       .toLowerCase()
       .replace(/(\s|,)+(jr\.?|sr\.?|ii|iii|iv|v)\b/g, "")
       .replace(/[^a-z]/g, "")
@@ -44,29 +52,37 @@ export function useDraftData(csvData) {
         const draftId = extractSleeperDraftId(sleeperUrl)
         if (!draftId) throw new Error("Invalid Sleeper URL format.")
 
-        const [draftRes, picksRes] = await Promise.all([
-          fetch(`https://api.sleeper.com/v1/draft/${draftId}`),
-          fetch(`https://api.sleeper.com/v1/draft/${draftId}/picks`),
-        ])
+        const shouldRefreshDraftMeta = isManual || sleeperDraftCacheRef.current.draftId !== draftId || !sleeperDraftCacheRef.current.draft
+        let draft = sleeperDraftCacheRef.current.draft
+        let users = sleeperDraftCacheRef.current.users
+        let rosters = sleeperDraftCacheRef.current.rosters
 
-        if (!draftRes.ok || !picksRes.ok) throw new Error("Could not fetch Sleeper draft details.")
+        const picksPromise = fetch(`https://api.sleeper.com/v1/draft/${draftId}/picks`)
 
-        const draft = await draftRes.json()
-        const picks = await picksRes.json()
-        const leagueId = draft.league_id
+        if (shouldRefreshDraftMeta) {
+          const draftRes = await fetch(`https://api.sleeper.com/v1/draft/${draftId}`)
+          if (!draftRes.ok) throw new Error("Could not fetch Sleeper draft details.")
+          draft = await draftRes.json()
 
-        let users = []
-        let rosters = []
-        if (leagueId) {
-          const [usersRes, rostersRes] = await Promise.all([
-            fetch(`https://api.sleeper.com/v1/league/${leagueId}/users`),
-            fetch(`https://api.sleeper.com/v1/league/${leagueId}/rosters`),
-          ])
-          if (usersRes.ok && rostersRes.ok) {
-            users = await usersRes.json()
-            rosters = await rostersRes.json()
+          users = []
+          rosters = []
+          if (draft.league_id) {
+            const [usersRes, rostersRes] = await Promise.all([
+              fetch(`https://api.sleeper.com/v1/league/${draft.league_id}/users`),
+              fetch(`https://api.sleeper.com/v1/league/${draft.league_id}/rosters`),
+            ])
+            if (usersRes.ok && rostersRes.ok) {
+              users = await usersRes.json()
+              rosters = await rostersRes.json()
+            }
           }
+
+          sleeperDraftCacheRef.current = { draftId, draft, users, rosters }
         }
+
+        const picksRes = await picksPromise
+        if (!picksRes.ok || !draft) throw new Error("Could not fetch Sleeper draft picks.")
+        const picks = await picksRes.json()
 
         const teams = Object.keys(draft.slot_to_roster_id)
           .sort((a, b) => Number.parseInt(a) - Number.parseInt(b))
@@ -76,8 +92,9 @@ export function useDraftData(csvData) {
             const user = roster ? users.find((u) => u.user_id === roster.owner_id) : null
             return {
               roster_id: rosterId,
-              team_name: user?.metadata?.team_name || user?.display_name || `Team ${slot}`,
-              owner: { display_name: user?.display_name || `Owner ${slot}`, avatar: user?.avatar || null },
+              team_name: roster?.metadata?.team_name || user?.metadata?.team_name || user?.display_name || `Team ${slot}`,
+              avatar: roster?.metadata?.avatar || user?.metadata?.avatar || user?.avatar || null,
+              owner: { display_name: user?.display_name || `Owner ${slot}`, avatar: user?.avatar || user?.metadata?.avatar || null },
             }
           })
 
@@ -220,15 +237,22 @@ export function useDraftData(csvData) {
     setSelectedTeamRosterId(null)
     setLastUpdate(null)
     setTimeSinceUpdate(0)
+    sleeperDraftCacheRef.current = { draftId: null, draft: null, users: [], rosters: [] }
     setError("")
   }, [platform, sleeperUrl, espnLeagueId])
 
   const handleSync = useCallback(
-    (isManual = false) => {
-      if (platform === "sleeper") {
-        fetchSleeperData(isManual)
-      } else {
-        fetchEspnData(isManual)
+    async (isManual = false) => {
+      if (syncInFlightRef.current && !isManual) return
+      syncInFlightRef.current = true
+      try {
+        if (platform === "sleeper") {
+          await fetchSleeperData(isManual)
+        } else {
+          await fetchEspnData(isManual)
+        }
+      } finally {
+        syncInFlightRef.current = false
       }
     },
     [platform, fetchSleeperData, fetchEspnData],
@@ -239,7 +263,7 @@ export function useDraftData(csvData) {
     if (isReady && csvData.length > 0) {
       handleSync()
       if (intervalRef.current) clearInterval(intervalRef.current)
-      intervalRef.current = setInterval(() => handleSync(), 850)
+      intervalRef.current = setInterval(() => handleSync(), 600)
       return () => clearInterval(intervalRef.current)
     }
   }, [platform, sleeperUrl, espnLeagueId, csvData.length, handleSync])

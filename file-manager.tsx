@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Upload, FileText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
+import { Upload, FileText, ToggleLeft, ToggleRight, Trash2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function FileManager({
@@ -64,6 +64,37 @@ export function FileManager({
           replaces whatever is loaded in that slot. You can load two sources and toggle between them.
         </p>
       </div>
+      <div className="rounded-lg border p-3" style={{ borderColor: colors.cardBorder, backgroundColor: colors.card }}>
+        <div className="mb-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>
+          Quick ranking download links
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <a
+            href="https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between rounded-md border px-3 py-2 text-xs font-bold transition hover:opacity-85"
+            style={{ borderColor: colors.lightBorder, color: colors.textPrimary, backgroundColor: colors.darkBlue }}
+          >
+            FantasyPros PPR rankings
+            <ExternalLink size={13} />
+          </a>
+          <a
+            href="https://underdognetwork.com/football"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between rounded-md border px-3 py-2 text-xs font-bold transition hover:opacity-85"
+            style={{ borderColor: colors.lightBorder, color: colors.textPrimary, backgroundColor: colors.darkBlue }}
+          >
+            Underdog football rankings
+            <ExternalLink size={13} />
+          </a>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug" style={{ color: colors.textSecondary }}>
+          Download/export a CSV from the provider, then upload it into a slot below. Keep paid account credentials out of FantasySage.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {rankings.map((ranking, index) => (
           <div key={index} className="space-y-2">

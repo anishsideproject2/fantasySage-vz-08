@@ -3,12 +3,12 @@
 import { useState, useMemo, useEffect } from "react"
 import { Header } from "./header"
 import { BestValueSection } from "./best-value-section"
-import { DraftedPlayersSection } from "./drafted-players-section"
 import { ScoreboardSection } from "./scoreboard-section"
 import { TeamRosterSection } from "./team-roster-section"
 import { AvailablePlayersSection } from "./available-players-section"
 import { PlayerQueueSection } from "./player-queue-section"
 import { SuggestedPicksSection } from "./suggested-picks-section"
+import { DraftBoardSection } from "./draft-board-section"
 import { useTheme } from "./use-theme"
 import { useDraftData } from "./use-draft-data"
 import { usePlayerData } from "./use-player-data"
@@ -117,11 +117,6 @@ export function FantasyDraftAssistant() {
   }
 
   const clearQueue = () => setQueues({ QB: [], RB: [], WR: [], TE: [] })
-
-  // Calculate draft pick counts
-  const totalPossiblePicks = draftData?.rounds && draftData?.numTeams ? draftData.rounds * draftData.numTeams : 0
-  const draftedCount = draftedPlayers?.length || 0
-  const remainingCount = totalPossiblePicks - draftedCount
 
   // Keep ranking drafted flags in sync with the active draft. This must also
   // clear flags when switching to a new draft with no picks yet.
@@ -341,13 +336,13 @@ export function FantasyDraftAssistant() {
                   selectedTeamRosterId={selectedTeamRosterId}
                 />
 
-                <DraftedPlayersSection
+                <DraftBoardSection
                   colors={colors}
-                  draftedPlayers={draftedPlayers}
                   draftData={draftData}
-                  totalPossiblePicks={totalPossiblePicks}
-                  draftedCount={draftedCount}
-                  remainingCount={remainingCount}
+                  draftedPlayers={draftedPlayers}
+                  currentPick={currentPick}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
                 />
 
                 <TeamRosterSection
@@ -406,7 +401,16 @@ export function FantasyDraftAssistant() {
                   </ResizablePanel>
                   <ResizableHandle withHandle className="w-2 rounded-full" style={{ backgroundColor: colors.cardBorder }} />
                   <ResizablePanel defaultSize={38} minSize={28} className="px-3">
-                    <div className="h-full overflow-y-auto pr-1">
+                    <div className="h-full space-y-3 overflow-y-auto pr-1">
+                  <DraftBoardSection
+                    colors={colors}
+                    draftData={draftData}
+                    draftedPlayers={draftedPlayers}
+                    currentPick={currentPick}
+                    selectedTeamRosterId={selectedTeamRosterId}
+                    setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  />
+
                   <TeamRosterSection
                     colors={colors}
                     draftData={draftData}
@@ -427,15 +431,6 @@ export function FantasyDraftAssistant() {
                     getAvailablePlayers={getAvailablePlayers}
                     draftedPlayers={draftedPlayers}
                     selectedTeamRosterId={selectedTeamRosterId}
-                  />
-
-                  <DraftedPlayersSection
-                    colors={colors}
-                    draftedPlayers={draftedPlayers}
-                    draftData={draftData}
-                    totalPossiblePicks={totalPossiblePicks}
-                    draftedCount={draftedCount}
-                    remainingCount={remainingCount}
                   />
 
                   <AvailablePlayersSection
