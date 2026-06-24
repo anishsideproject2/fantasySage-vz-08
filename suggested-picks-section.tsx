@@ -218,7 +218,7 @@ const getActionLabel = (player) => {
   return "Queue"
 }
 
-export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId }) {
+export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked" }) {
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -402,8 +402,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <>
-            {topPick && (
+          <div className={layout === "horizontal" ? "flex gap-2 overflow-x-auto pb-1" : "space-y-2"}>
+            {topPick && layout !== "horizontal" && (
               <div className="rounded-xl border p-3" style={{ borderColor: topPick.confidenceColor, background: `${topPick.confidenceColor}16` }}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -423,7 +423,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               </div>
             )}
             {suggestedPicks.map((player, idx) => (
-            <div key={player.id} className="rounded-lg border px-2 py-2" style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
+            <div key={player.id} className={layout === "horizontal" ? "min-w-[16rem] flex-1 rounded-lg border px-2 py-2" : "rounded-lg border px-2 py-2"} style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? colors.highlight : colors.tableRow }}>
               <div className="flex items-center gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="text-xs font-bold" style={{ color: colors.textSecondary }}>{idx + 1}.</span>
@@ -440,7 +440,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 </div>
               </div>
               {player.playerNote && (
-                <div className="mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                <div className={layout === "horizontal" ? "mt-2 rounded border px-2 py-1.5 text-[10px] leading-snug" : "mt-2 space-y-1 rounded border px-2 py-1.5 text-[10px] leading-snug"} style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
                   <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} {player.analystContext.whyHigh} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
@@ -459,7 +459,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               </div>
             </div>
             ))}
-          </>
+          </div>
         )}
       </CardContent>
     </Card>
