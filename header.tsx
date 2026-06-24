@@ -126,10 +126,6 @@ export function Header({
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
             <p className="text-xs" style={{ color: colors.textSecondary }}>Horizontal, always-visible ranking toggles keep the draft board above the fold.</p>
           </div>
-          <div className="hidden gap-2 text-[11px] font-semibold lg:flex" style={{ color: colors.textSecondary }}>
-            <span>Resize columns with the handles below.</span>
-            <span>Drag/reorder skipped to preserve draft-night muscle memory.</span>
-          </div>
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
           {RANKING_PRESET_GROUPS.map((group) => (
