@@ -66,34 +66,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
     { length: Math.min(visibleRoundCount, rounds) },
     (_, index) => firstVisibleRound + index,
   ).filter((round) => round >= 1 && round <= rounds)
-  const latestPickNo = draftedPlayers.length ? Math.max(...draftedPlayers.map((player) => Number(player.pick_no) || 0)) : null
-  const latestPickRef = useRef(null)
-  const currentSlot = numTeams ? getDraftSlotForPick(currentPick, numTeams) : null
-  const currentTeam = currentSlot ? teams[currentSlot - 1] : null
-  const isSelectedOnClock = currentTeam && String(currentTeam.roster_id) === String(selectedTeamRosterId)
-  const picksUntilSelected = useMemo(() => {
-    if (!numTeams || !rounds || !selectedTeamRosterId || currentPick > totalPicks) return null
-    for (let pick = currentPick; pick <= totalPicks; pick += 1) {
-      const slot = getDraftSlotForPick(pick, numTeams)
-      const team = teams[slot - 1]
-      if (team && String(team.roster_id) === String(selectedTeamRosterId)) return pick - currentPick
-    }
-    return null
-  }, [currentPick, numTeams, rounds, selectedTeamRosterId, teams, totalPicks])
-  const selectedDraftValue = useMemo(() => {
-    const selectedPlayers = (draftedPlayers || []).filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
-    const value = selectedPlayers.reduce((sum, player) => {
-      const adp = Number.parseFloat(player.adp)
-      return Number.isNaN(adp) || !player.pick_no ? sum : sum + (Number(player.pick_no) - adp)
-    }, 0)
-    return Number(value.toFixed(1))
-  }, [draftedPlayers, selectedTeamRosterId])
-
-  useEffect(() => {
-    if (!latestPickRef.current) return
-    latestPickRef.current.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" })
-  }, [latestPickNo])
-
+  const lastVisibleRound = visibleRounds[visibleRounds.length - 1] || firstVisibleRound
   if (!numTeams || !rounds) {
     return (
       <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
@@ -115,7 +88,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         <CardTitle className="flex items-center justify-between gap-2 text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
+            Rounds {firstVisibleRound}-{lastVisibleRound} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
           </span>
         </CardTitle>
         {selectedTeamRosterId && (

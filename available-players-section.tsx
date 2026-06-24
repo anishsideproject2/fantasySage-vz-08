@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Check } from "lucide-react"
+import { Search } from "lucide-react"
 import { BubbleSymbol } from "./bubble-symbol"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
@@ -15,20 +15,7 @@ export function AvailablePlayersSection({
   positionFilter,
   setPositionFilter,
   getFilteredPlayers,
-  queues = {},
-  addToQueue,
-  removeFromQueue,
 }) {
-  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
-
-  const handleToggleQueue = (player, isQueued) => {
-    if (isQueued) {
-      removeFromQueue?.(player.position, player.id)
-    } else {
-      addToQueue?.(player.position, player)
-    }
-  }
-
   return (
     <Card style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="pb-3">
@@ -86,8 +73,7 @@ export function AvailablePlayersSection({
                 borderColor: colors.lightBorder,
               }}
             >
-              <div className="col-span-1" />
-              <div className="col-span-5">Player</div>
+              <div className="col-span-6">Player</div>
               <div className="col-span-2">Pos</div>
               <div className="col-span-2">Team</div>
               <div className="col-span-2 text-right">ADP</div>
@@ -95,7 +81,6 @@ export function AvailablePlayersSection({
 
             {/* Player Rows */}
             {getFilteredPlayers().map((player, idx) => {
-              const isQueued = queuedIds.has(player.id)
               return (
                 <div
                   key={player.id}
@@ -105,25 +90,6 @@ export function AvailablePlayersSection({
                     color: colors.textPrimary,
                   }}
                 >
-                  <div className="col-span-1 flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleQueue(player, isQueued)
-                      }}
-                      className="flex items-center justify-center w-6 h-6 rounded-md transition-colors"
-                      style={{
-                        background: isQueued ? colors.headingGreen : colors.darkBlue,
-                        color: isQueued ? "#000000" : colors.gold,
-                        border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
-                      }}
-                      aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
-                      title={isQueued ? "Remove from queue" : "Add to queue"}
-                    >
-                      {isQueued ? <Check size={14} /> : <Plus size={14} />}
-                    </button>
-                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -132,7 +98,7 @@ export function AvailablePlayersSection({
                       const url = `https://www.playerprofiler.com/nfl/${slug}`
                       if (url) window.open(url, "_blank", "noopener,noreferrer")
                     }}
-                    className="col-span-5 truncate player-name-cell text-left hover:underline"
+                    className="col-span-6 truncate player-name-cell text-left hover:underline"
                   >
                     {player.name}
                   </button>

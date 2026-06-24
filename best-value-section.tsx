@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Check, Plus, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { BubbleSymbol } from "./bubble-symbol"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
@@ -19,7 +19,7 @@ const getSignalColor = (score) => {
   return "#ef4444"
 }
 
-function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
   return (
     <div
       className="rounded-lg best-value-row transition-colors duration-150"
@@ -29,25 +29,6 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
       }}
     >
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
-        <div className="col-span-1 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleQueue?.(player, isQueued)
-            }}
-            className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
-            style={{
-              background: isQueued ? colors.headingGreen : colors.darkBlue,
-              color: isQueued ? "#000000" : colors.gold,
-              border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
-            }}
-            aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
-            title={isQueued ? "Remove from queue" : "Add to queue"}
-          >
-            {isQueued ? <Check size={14} /> : <Plus size={14} />}
-          </button>
-        </div>
         <button
           type="button"
           onClick={(e) => {
@@ -55,7 +36,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueue
             const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
             window.open(`https://www.playerprofiler.com/nfl/${slug}`, "_blank", "noopener,noreferrer")
           }}
-          className="col-span-4 min-w-0 truncate player-name-cell text-left hover:underline"
+          className="col-span-5 min-w-0 truncate player-name-cell text-left hover:underline"
           title={player.name}
         >
           {player.name}
@@ -85,24 +66,11 @@ export function BestValueSection({
   lastUpdate,
   timeSinceUpdate,
   getAvailablePlayers,
-  queues = {},
-  addToQueue,
-  removeFromQueue,
   draftedPlayers = [],
   selectedTeamRosterId,
   searchTerm = "",
   setSearchTerm,
 }) {
-
-  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
-
-  const handleToggleQueue = (player, isQueued) => {
-    if (isQueued) {
-      removeFromQueue?.(player.position, player.id)
-    } else {
-      addToQueue?.(player.position, player)
-    }
-  }
 
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
@@ -445,8 +413,7 @@ export function BestValueSection({
                 borderColor: colors.lightBorder,
               }}
             >
-              <div className="col-span-1" />
-              <div className="col-span-4">Player</div>
+              <div className="col-span-5">Player</div>
               <div className="col-span-2">Pos</div>
               <div className="col-span-3 text-right">Value</div>
               <div className="col-span-2 text-right">ADP</div>
@@ -461,8 +428,6 @@ export function BestValueSection({
                 isBestValue={idx === 0}
                 colors={colors}
                 getValueDiffColor={getValueDiffColor}
-                isQueued={queuedIds.has(player.id)}
-                onToggleQueue={handleToggleQueue}
               />
             ))}
           </div>
