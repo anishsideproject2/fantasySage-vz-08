@@ -116,7 +116,7 @@ const getAnalystContext = (player) => {
 // Footballguys 2026 RB/WR/TE strategy guides, Yahoo prospect target-share research,
 // and Washington Post draft-efficiency research on WR/RB/QB/TE payoff curves.
 const RESEARCH_PILLARS_2026 = [
-  "Hero/Anchor RB research favors landing one early workhorse, then pivoting to target-earning WRs and selective onesie values.",
+  "Hero/Anchor RB is the safest default build in current analyst research: land one early workhorse when value cooperates, then pivot to target-earning WRs and selective onesie values.",
   "Double Hero RB is viable when two real workload backs fall early, but WR/TE starter gaps should still beat fragile RB3 depth.",
   "Zero-RB research still works when the room gives elite WR/TE value; do not patch RB with low-upside dead-zone volume.",
   "QB research is barbell: in 1QB, either take a true rushing/elite edge or wait past the comfort tier; Superflex stays QB-heavy.",
@@ -158,7 +158,7 @@ const getStrategyGuidance = (value, scoringFormat, isSuperFlex) => {
   const pprNote = scoringFormat === "Standard" ? "Standard scoring keeps touchdown/volume RBs in play." : "PPR scoring rewards target-earning WRs and receiving backs."
   const sfNote = isSuperFlex ? " Superflex still elevates QB scarcity." : " In 1QB, avoid QB unless elite value falls or you intentionally chose an early-QB build."
   const guidance = {
-    balanced: "Stay flexible: draft value into open starters, fill flex with RB/WR/TE, then chase RB/WR upside.",
+    balanced: "Use Anchor/Hero RB as the default spine: take one early RB when value cooperates, prioritize WR/TE target volume, fill flex, then chase RB/WR upside.",
     "hero-rb": "Protect the single early RB anchor with target-earning WRs, one TE/QB value if it falls, and late RB upside.",
     "double-hero-rb": "Two early RB anchors are already secured; aggressively catch up at WR/TE before adding more fragile RB depth.",
     "zero-rb": "Do not force RB dead-zone volume; build WR/TE/elite QB leverage, then attack late contingent and receiving RBs.",
@@ -315,12 +315,16 @@ const getBuildStrategyLock = ({ rosterCounts, starterTargets, flexSlots, round, 
               ? "elite-te"
               : hasEarlyQb
                 ? "early-qb"
-                : "balanced"
+                : round <= 5 && rb === 0
+                  ? "hero-rb"
+                  : "balanced"
   const activeKey = strategyOverride && strategyOverride !== "auto" ? strategyOverride : detectedKey
   const option = STRATEGY_OPTIONS.find((strategy) => strategy.value === activeKey)
   const label = `${option?.label || "Balanced BPA"}${strategyOverride && strategyOverride !== "auto" ? " (manual)" : ""}`
-  const next = missing.length > 0
-    ? `Fill ${missing.join("/")} starter${missing.length === 1 ? "" : "s"} before bench depth.`
+  const next = activeKey === "hero-rb" && rb === 0 && round <= 5
+    ? "Default plan: draft an anchor RB if the tier/value is right; otherwise keep taking elite WR/TE value and do not force RB dead-zone volume."
+    : missing.length > 0
+      ? `Fill ${missing.join("/")} starter${missing.length === 1 ? "" : "s"} before bench depth.`
     : openCoreSlots > 0
       ? "Fill the flex with the best RB/WR/TE value before bench depth."
       : "Starters are set; bench should be RB/WR upside, not duplicate QB/TE."
