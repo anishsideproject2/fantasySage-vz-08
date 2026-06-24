@@ -1,6 +1,8 @@
 "use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Check, Plus, Search } from "lucide-react"
 import { BubbleSymbol } from "./bubble-symbol"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
@@ -17,7 +19,7 @@ const getSignalColor = (score) => {
   return "#ef4444"
 }
 
-function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, isQueued, onToggleQueue }) {
   return (
     <div
       className="rounded-lg best-value-row transition-colors duration-150"
@@ -27,9 +29,37 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
       }}
     >
       <div className="grid grid-cols-12 items-center gap-2 px-2 py-1.5 text-sm">
-        <div className="col-span-5 min-w-0 truncate player-name-cell" title={player.name}>
-          {player.name}
+        <div className="col-span-1 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleQueue?.(player, isQueued)
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
+            style={{
+              background: isQueued ? colors.headingGreen : colors.darkBlue,
+              color: isQueued ? "#000000" : colors.gold,
+              border: `1px solid ${isQueued ? colors.headingGreen : colors.lightBorder}`,
+            }}
+            aria-label={isQueued ? `Remove ${player.name} from queue` : `Add ${player.name} to queue`}
+            title={isQueued ? "Remove from queue" : "Add to queue"}
+          >
+            {isQueued ? <Check size={14} /> : <Plus size={14} />}
+          </button>
         </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            const slug = `${player.firstName}-${player.lastName}`.toLowerCase().replace(/[^a-z-]/g, "")
+            window.open(`https://www.playerprofiler.com/nfl/${slug}`, "_blank", "noopener,noreferrer")
+          }}
+          className="col-span-4 min-w-0 truncate player-name-cell text-left hover:underline"
+          title={player.name}
+        >
+          {player.name}
+        </button>
         <div className="col-span-2 flex justify-center">
           <BubbleSymbol pos={player.position} colors={colors} />
         </div>
@@ -60,7 +90,19 @@ export function BestValueSection({
   removeFromQueue,
   draftedPlayers = [],
   selectedTeamRosterId,
+  searchTerm = "",
+  setSearchTerm,
 }) {
+
+  const queuedIds = new Set(Object.values(queues).flat().map((p) => p.id))
+
+  const handleToggleQueue = (player, isQueued) => {
+    if (isQueued) {
+      removeFromQueue?.(player.position, player.id)
+    } else {
+      addToQueue?.(player.position, player)
+    }
+  }
 
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
@@ -242,7 +284,10 @@ export function BestValueSection({
       }
     }
 
-    const filteredAvailable = available
+    const normalizedSearch = String(searchTerm || "").trim().toLowerCase()
+    const filteredAvailable = normalizedSearch
+      ? available.filter((p) => `${p.name} ${p.team} ${p.position}`.toLowerCase().includes(normalizedSearch))
+      : available
 
     return filteredAvailable
       .map((player) => {
@@ -376,6 +421,18 @@ export function BestValueSection({
             </div>
           </div>
         </div>
+        <div className="mt-3 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: colors.textSecondary }} />
+            <Input
+              placeholder="Search best values..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm?.(e.target.value)}
+              className="h-8 pl-10 text-sm"
+              style={{ background: colors.background, color: colors.textPrimary, borderColor: colors.cardBorder }}
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-0 px-2">
         <div className="overflow-y-auto max-h-[32rem]">
@@ -404,6 +461,8 @@ export function BestValueSection({
                 isBestValue={idx === 0}
                 colors={colors}
                 getValueDiffColor={getValueDiffColor}
+                isQueued={queuedIds.has(player.id)}
+                onToggleQueue={handleToggleQueue}
               />
             ))}
           </div>
