@@ -222,13 +222,13 @@ export function Header({
         <div
           ref={presetScrollerRef}
           onWheel={handlePresetWheel}
-          className="flex flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
+          className="flex w-full flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
           aria-label="Horizontally scrollable analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
             <section
               key={group.id}
-              className="flex shrink-0 items-stretch gap-2 rounded-2xl border p-2"
+              className="flex min-w-fit flex-1 shrink-0 items-stretch gap-2 rounded-2xl border p-1.5"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
               <div className="flex min-w-16 items-center justify-center rounded-xl px-2 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
@@ -247,16 +247,16 @@ export function Header({
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="min-h-[4.25rem] w-48 shrink-0 rounded-xl border px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      className="min-h-[4.75rem] w-56 flex-1 shrink-0 rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
                       style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
                       aria-pressed={isActive}
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
+                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
                           {isUnderdog ? "Best Ball · Underdog" : preset.accuracyType}
                         </span>
                         {isActive && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? "#8A5A00" : colors.headingGreen }}>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
                             <Check size={10} /> Loaded
                           </span>
                         )}
