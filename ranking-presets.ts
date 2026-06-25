@@ -5,8 +5,24 @@
 
 type RawPlayer = [number, string, string, string] // [rank, name, team, position]
 
+const getCanonicalPlayerNameKey = (name: string) =>
+  String(name || "")
+    .replace(/\bKenny\s+Gainwell\b/i, "Kenneth Gainwell")
+    .toLowerCase()
+    .replace(/(\s|,)+(jr\.?|sr\.?|ii|iii|iv|v)\b/g, "")
+    .replace(/[^a-z]/g, "")
+    .trim()
+
+
 function buildPlayers(idPrefix: string, raw: RawPlayer[]) {
-  return raw.map(([rank, name, team, position]) => {
+  const seenNames = new Set<string>()
+
+  return raw.filter(([, name]) => {
+    const canonicalName = getCanonicalPlayerNameKey(name)
+    if (seenNames.has(canonicalName)) return false
+    seenNames.add(canonicalName)
+    return true
+  }).map(([rank, name, team, position]) => {
     const nameParts = name.split(" ")
     const firstName = nameParts.shift() || ""
     const lastName = nameParts.join(" ")
@@ -27,7 +43,14 @@ function buildPlayers(idPrefix: string, raw: RawPlayer[]) {
 type UnderdogRawPlayer = [number, string, string, number] // [rank, name, position, ADP]
 
 function buildUnderdogPlayers(idPrefix: string, raw: UnderdogRawPlayer[]) {
-  return raw.map(([rank, name, position, adp]) => {
+  const seenNames = new Set<string>()
+
+  return raw.filter(([, name]) => {
+    const canonicalName = getCanonicalPlayerNameKey(name)
+    if (seenNames.has(canonicalName)) return false
+    seenNames.add(canonicalName)
+    return true
+  }).map(([rank, name, position, adp]) => {
     const nameParts = name.split(" ")
     const firstName = nameParts.shift() || ""
     const lastName = nameParts.join(" ")
@@ -49,17 +72,18 @@ function buildUnderdogPlayers(idPrefix: string, raw: UnderdogRawPlayer[]) {
 }
 
 function buildRawFromEntries(baseRaw: RawPlayer[], entries: readonly string[]): RawPlayer[] {
-  const baseLookup = new Map(baseRaw.map(([, name, team, position]) => [name, { team, position }] as const))
+  const baseLookup = new Map(baseRaw.map(([, name, team, position]) => [getCanonicalPlayerNameKey(name), { team, position }] as const))
   const rankedNames = new Set<string>()
   const rankedEntries = entries.map((entry, index): RawPlayer => {
     const [name, explicitTeam, explicitPosition] = entry.split("|")
-    rankedNames.add(name)
-    const basePlayer = baseLookup.get(name)
+    const canonicalName = getCanonicalPlayerNameKey(name)
+    rankedNames.add(canonicalName)
+    const basePlayer = baseLookup.get(canonicalName)
     return [index + 1, name, explicitTeam || basePlayer?.team || "FA", explicitPosition || basePlayer?.position || "WR"]
   })
 
   const fallbackEntries = baseRaw
-    .filter(([, name]) => !rankedNames.has(name))
+    .filter(([, name]) => !rankedNames.has(getCanonicalPlayerNameKey(name)))
     .map(([, name, team, position], index): RawPlayer => [rankedEntries.length + index + 1, name, team, position])
 
   return [...rankedEntries, ...fallbackEntries]
@@ -1487,14 +1511,14 @@ function extendRawWithFallback(primaryRaw: RawPlayer[], fallbackRaw: RawPlayer[]
 }
 
 function buildHybridRaw(baseRaw: RawPlayer[], teRaw: RawPlayer[]): RawPlayer[] {
-  const teByName = new Map(teRaw.map(([rank, name, team, position]) => [name, { rank, team, position }]))
-  const baseNames = new Set(baseRaw.map(([, name]) => name))
+  const teByName = new Map(teRaw.map(([rank, name, team, position]) => [getCanonicalPlayerNameKey(name), { rank, team, position }]))
+  const baseNames = new Set(baseRaw.map(([, name]) => getCanonicalPlayerNameKey(name)))
   const hybridEntries: RawPlayer[] = [
     ...baseRaw.map(([rank, name, team, position]): RawPlayer => {
-      const teOverride = teByName.get(name)
+      const teOverride = teByName.get(getCanonicalPlayerNameKey(name))
       return teOverride ? [teOverride.rank, name, teOverride.team || team, teOverride.position] : [rank, name, team, position]
     }),
-    ...teRaw.filter(([, name]) => !baseNames.has(name)),
+    ...teRaw.filter(([, name]) => !baseNames.has(getCanonicalPlayerNameKey(name))),
   ]
 
   return hybridEntries
