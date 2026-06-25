@@ -1074,6 +1074,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     .map((player) => ({ player, analystRank: getAnalystCompositeRank(player, scoringFormat) })))
 
   const suggestionCandidateLimit = 6
+  const suggestionDisplayCount = 3
   const topValuePlayerKeys = new Set(
     availablePlayers
       .filter(isSuggestionCandidate)
@@ -1289,7 +1290,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     .filter(Boolean)
     .sort((a, b) => b.valueDiff - a.valueDiff || b.finalScore - a.finalScore || a.analystRank - b.analystRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
 
-  const suggestedPicks = getPositionSplitSuggestions(rankedSuggestedPicks, 6)
+  const suggestedPicks = getPositionSplitSuggestions(rankedSuggestedPicks, suggestionDisplayCount)
   const positionalFallbacks = POSITION_SPLIT_ORDER
     .flatMap((position) => {
       const recommendationCount = suggestedPicks.filter((player) => player.position === position).length
@@ -1323,7 +1324,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Top 6 by position • composite rank • {scoringFormat} • {draftTypeLabel} • {qbMode}
+            Top 3 • horizontal scroll • composite rank • {scoringFormat} • {draftTypeLabel} • {qbMode}
           </span>
         </CardTitle>
       </CardHeader>
@@ -1436,32 +1437,18 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-2 pb-1">
+          <div className="flex items-end gap-2 overflow-x-auto overflow-y-visible pb-2 pt-1">
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
               return (
                 <div
                   key={playerKey}
                   tabIndex={0}
-                  className="group rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-3 hover:shadow-lg focus:-translate-y-0.5 focus:p-3 focus:outline-none focus:ring-2"
+                  className="group flex min-w-[18rem] max-w-[22rem] flex-1 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-3 hover:shadow-lg focus:-translate-y-0.5 focus:p-3 focus:outline-none focus:ring-2 sm:min-w-[20rem] lg:min-w-[17rem] xl:min-w-[18rem]"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
                   aria-label={`Expanded recommendation details for ${player.name}`}
                 >
-                  <div className="flex w-full items-center gap-2">
-                    <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
-                    <BubbleSymbol pos={player.position} colors={colors} compact />
-                    <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
-                    <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
-                    <span>{player.position}</span>
-                    <span>·</span>
-                    <span>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
-                    <span>·</span>
-                    <span>{player.confidence} confidence</span>
-                  </div>
-
-                  <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mt-2 group-hover:max-h-[52rem] group-hover:opacity-100 group-focus:mt-2 group-focus:max-h-[52rem] group-focus:opacity-100 focus-within:mt-2 focus-within:max-h-[52rem] focus-within:opacity-100">
+                  <div className="mb-0 max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mb-2 group-hover:max-h-[52rem] group-hover:opacity-100 group-focus:mb-2 group-focus:max-h-[52rem] group-focus:opacity-100 focus-within:mb-2 focus-within:max-h-[52rem] focus-within:opacity-100">
                     <div className="rounded-2xl border p-3 shadow-2xl" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1515,6 +1502,20 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="flex w-full items-center gap-2">
+                    <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
+                    <BubbleSymbol pos={player.position} colors={colors} compact />
+                    <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
+                    <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                    <span>{player.position}</span>
+                    <span>·</span>
+                    <span>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
+                    <span>·</span>
+                    <span>{player.confidence} confidence</span>
                   </div>
                 </div>
               )
