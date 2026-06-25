@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check } from "lucide-react"
+import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -151,35 +151,46 @@ export function Header({
             </div>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
-            <Select value={platform} onValueChange={setPlatform}>
-              <SelectTrigger className="h-10" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sleeper">Sleeper</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative">
-              <Input
-                type="url"
-                placeholder="Paste Sleeper draft URL…"
-                value={sleeperUrl}
-                onChange={(e) => setSleeperUrl(e.target.value)}
-                className="h-10 w-full pr-10"
-                style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}
-              />
-              {isConnected && <CheckCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.headingGreen }} />}
-              {error && <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.adpNegative }} />}
+          <div className="rounded-2xl border p-2" style={{ backgroundColor: `${colors.headingGreen}14`, borderColor: colors.headingGreen }}>
+            <div className="mb-2 flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: `${colors.headingGreen}24`, color: colors.textPrimary }}>
+              <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.headingGreen }} aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.headingGreen }}>Start here</p>
+                <p className="text-sm font-extrabold leading-tight">Paste your Sleeper draft URL below, then sync.</p>
+              </div>
             </div>
-            <Button
-              onClick={handleSync}
-              disabled={isSyncDisabled || isManualSyncing || !sleeperUrl.trim()}
-              className="h-10 font-bold hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: colors.headingGreen, color: "#000000" }}
-            >
-              {isManualSyncing ? "Syncing…" : "Sync"}
-            </Button>
+            <div className="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
+              <Select value={platform} onValueChange={setPlatform}>
+                <SelectTrigger className="h-10" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sleeper">Sleeper</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative">
+                <Input
+                  type="url"
+                  id="sleeper-draft-url"
+                  aria-label="Sleeper draft URL"
+                  placeholder="https://sleeper.com/draft/nfl/1234567890"
+                  value={sleeperUrl}
+                  onChange={(e) => setSleeperUrl(e.target.value)}
+                  className="h-10 w-full pr-10"
+                  style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}
+                />
+                {isConnected && <CheckCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.headingGreen }} />}
+                {error && <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.adpNegative }} />}
+              </div>
+              <Button
+                onClick={handleSync}
+                disabled={isSyncDisabled || isManualSyncing || !sleeperUrl.trim()}
+                className="h-10 font-bold hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: colors.headingGreen, color: "#000000" }}
+              >
+                {isManualSyncing ? "Syncing…" : "Sync"}
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
