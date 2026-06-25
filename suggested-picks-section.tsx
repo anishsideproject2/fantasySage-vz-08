@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -992,6 +993,8 @@ const getActionLabel = (player) => {
 }
 
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride }) {
+  const [expandedPlayerKey, setExpandedPlayerKey] = useState(null)
+
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -1437,18 +1440,25 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className="flex items-end gap-2 overflow-x-auto overflow-y-visible pb-2 pt-1" aria-label="Horizontally scrollable suggested picks">
+          <div className="grid grid-cols-1 items-stretch gap-2 pb-2 pt-1 md:grid-cols-3" aria-label="Suggested picks">
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
+              const isExpanded = expandedPlayerKey === playerKey
+              const valueEmoji = player.valueDiff > 10 ? "🔥" : player.valueDiff <= -10 ? "💩" : null
               return (
-                <div
+                <button
                   key={playerKey}
-                  tabIndex={0}
-                  className="group relative flex min-w-[18rem] max-w-[22rem] flex-1 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:-translate-y-0.5 focus:outline-none focus:ring-2 sm:min-w-[20rem] lg:min-w-[17rem] xl:min-w-[18rem]"
+                  type="button"
+                  onClick={() => setExpandedPlayerKey(isExpanded ? null : playerKey)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setExpandedPlayerKey(null)
+                  }}
+                  className="group relative flex min-w-0 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:-translate-y-0.5 focus:outline-none focus:ring-2"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
-                  aria-label={`Recommendation summary for ${player.name}; hover or focus to show the detail blurb to the left`}
+                  aria-expanded={isExpanded}
+                  aria-label={`Recommendation summary for ${player.name}; click, hover, or focus to show a compact draft-day summary`}
                 >
-                  <div className="pointer-events-none fixed left-[max(1rem,calc(100vw-59rem))] top-[15rem] z-50 hidden w-[min(30rem,40vw)] opacity-0 transition-all duration-200 group-hover:block group-hover:opacity-100 group-focus:block group-focus:opacity-100 group-focus-within:block group-focus-within:opacity-100 lg:-translate-x-2 lg:group-hover:translate-x-0 lg:group-focus:translate-x-0">
+                  <div className={`${isExpanded ? "block" : "hidden"} order-last mt-2 w-full transition-all duration-200 group-hover:block group-focus:block group-focus-within:block`}>
                     <div className="rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1479,18 +1489,12 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
                       <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
                         {player.alertLines?.map((line: any) => <div key={line} className="rounded-md px-2 py-1 font-black" style={{ background: `${player.confidenceColor}18`, color: player.confidenceColor }}>{line}</div>)}
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Confidence:</span> {player.confidenceStars.stars} {player.confidenceStars.label}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Tags:</span> {player.tags.join(", ")} · format adjustment {player.tagFormatAdjustment >= 0 ? "+" : ""}{player.tagFormatAdjustment}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>VBD:</span> projected {player.vbdProfile.projected} · replacement {player.vbdProfile.replacementPoints} ({player.vbdProfile.replacementPlayer}) · VORP {player.vbdProfile.vorp} · VONA {player.vbdProfile.vona} vs {player.vbdProfile.nextAvailableName} · VOLS {player.vbdProfile.vols}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Opportunity:</span> {player.opportunityProfile.tier} ({player.opportunityProfile.score}/100) · target {player.opportunityProfile.metrics.targetShare}% · air yards {player.opportunityProfile.metrics.airYardShare}% · TPRR {player.opportunityProfile.metrics.tprr} · WOPR {player.opportunityProfile.wopr}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Scheme:</span> {player.schemeProfile.team} · {player.schemeProfile.badges.join(", ")} · pace {player.schemeProfile.pace} · PA {player.schemeProfile.paRate}% · motion {player.schemeProfile.motionRate}% · OL {player.schemeProfile.olGrade}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Composite:</span> VORP {player.compositeComponents.vorp}, VONA {player.compositeComponents.vona}, Opp {player.compositeComponents.opportunity}, Scheme {player.compositeComponents.scheme}, Category {player.compositeComponents.category}, Round {player.compositeComponents.roundGate}, Scarcity {player.compositeComponents.scarcity}, Strategy {player.compositeComponents.strategy} = {player.compositeRank}</div>
-                        {player.categoryFlag && <div><span className="font-black" style={{ color: colors.textPrimary }}>Category:</span> {player.categoryFlag.type} — {player.categoryFlag.detail}</div>}
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Tier/Scarcity:</span> {player.tierProfile.tier} · {player.scarcityMessage}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
-                        <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Pick case:</span> {player.playerNote}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Roster fit:</span> {player.teamCompositionInsight}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Value:</span> {player.valueLabel} · {player.tierProfile.tier} · {player.scarcityMessage}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Opportunity:</span> {player.opportunityProfile.tier} ({player.opportunityProfile.score}/100){player.opportunityProfile.badges?.length ? ` · ${player.opportunityProfile.badges.slice(0, 2).join(", ")}` : ""}</div>
+                        {player.categoryFlag && <div><span className="font-black" style={{ color: colors.textPrimary }}>Watch out:</span> {player.categoryFlag.type} — {player.categoryFlag.detail}</div>}
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Research:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
                       </div>
 
                       <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
@@ -1508,7 +1512,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                     <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                     <BubbleSymbol pos={player.position} colors={colors} compact />
                     <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
-                    <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                    {valueEmoji && <span className="shrink-0 text-base leading-none" aria-label={player.valueDiff > 10 ? "Strong value pick" : "Poor value pick"}>{valueEmoji}</span>}
+                    <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
                     <span>{player.position}</span>
@@ -1517,7 +1522,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                     <span>·</span>
                     <span>{player.confidence} confidence</span>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
