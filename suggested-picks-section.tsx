@@ -575,19 +575,19 @@ const getQbTierGap = (scoredWindow) => {
   return qbs[1].analystRank - qbs[0].analystRank
 }
 
-const buildSuggestionWhy = ({ player, analystRank, adp, valueDiff }, state) => {
+const buildSuggestionWhy = ({ player, analystRank, valueDiff }, state) => {
   const { buildType, currentPickOverall } = state
   const lines = []
 
   if (valueDiff > 0) {
-    lines.push(`Analyst composite rank (${analystRank.toFixed(1)}) is ${valueDiff.toFixed(1)} picks ahead of current ADP (${adp.toFixed(1)}) — analysts rate this player above market.`)
+    lines.push(`Selected-board rank (${analystRank.toFixed(1)}) is ${valueDiff.toFixed(1)} picks ahead of the live pick (${currentPickOverall}) — this is a best-value faller.`)
   } else if (valueDiff < -2) {
-    lines.push(`ADP (${adp.toFixed(1)}) is ahead of analyst composite rank (${analystRank.toFixed(1)}) by ${Math.abs(valueDiff).toFixed(1)} picks — slight reach vs market.`)
+    lines.push(`Live pick (${currentPickOverall}) is ${Math.abs(valueDiff).toFixed(1)} picks ahead of selected-board rank (${analystRank.toFixed(1)}) — slight reach versus your active rankings.`)
   } else {
-    lines.push(`Player is priced near analyst fair value (analyst rank ${analystRank.toFixed(1)} vs ADP ${adp.toFixed(1)}).`)
+    lines.push(`Player is near selected-board fair value (rank ${analystRank.toFixed(1)} vs live pick ${currentPickOverall}).`)
   }
 
-  lines.push(`Surfaced at pick ${currentPickOverall} — ADP ${adp.toFixed(1)} is within the expected window.`)
+  lines.push(`Surfaced by comparing the active ranking board against pick ${currentPickOverall}.`)
 
   const buildNotes = {
     HERO_RB: "Hero RB build: prioritizing RB value in early rounds.",
@@ -617,6 +617,31 @@ const RESEARCH_PILLARS_2026 = [
 ]
 
 const ANALYST_MODEL_VERSION = "Strategy lock · 2026 analyst blend"
+
+const POSITION_SPLIT_ORDER = ["RB", "WR", "QB", "TE"]
+
+const getPositionSplitSuggestions = (players, maxPicks = 6) => {
+  const selected = []
+  const selectedIds = new Set()
+
+  POSITION_SPLIT_ORDER.forEach((position) => {
+    const match = players.find((player) => player.position === position && !selectedIds.has(String(player.id || `${player.name}-${player.team}-${player.position}`)))
+    if (match && selected.length < maxPicks) {
+      selected.push(match)
+      selectedIds.add(String(match.id || `${match.name}-${match.team}-${match.position}`))
+    }
+  })
+
+  players.forEach((player) => {
+    if (selected.length >= maxPicks) return
+    const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
+    if (selectedIds.has(playerKey)) return
+    selected.push(player)
+    selectedIds.add(playerKey)
+  })
+
+  return selected.sort((a, b) => b.valueDiff - a.valueDiff || b.finalScore - a.finalScore || a.analystRank - b.analystRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
+}
 
 const STRATEGY_OPTIONS = [
   { value: "auto", label: "Auto-detect" },
@@ -1041,37 +1066,40 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const pickWindowFloor = Math.max(1, Number(currentPick || 1) - pickWindowBack)
   const pickWindowCeil = Number(currentPick || 1) + pickWindowForward
   const activeBuildType = getSuggestionBuildType(strategyLock.activeKey)
+  const isSuggestionCandidate = (player) => {
+    const analystRank = getAnalystCompositeRank(player, scoringFormat)
+    return !Number.isNaN(analystRank) && analystRank <= pickWindowCeil
+  }
   const qbTierGap = getQbTierGap(availablePlayers
     .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
     .map((player) => ({ player, analystRank: getAnalystCompositeRank(player, scoringFormat) })))
 
-  const suggestionCandidateLimit = 3
+  const suggestionCandidateLimit = 6
   const topValuePlayerKeys = new Set(
     availablePlayers
-      .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
+      .filter(isSuggestionCandidate)
       .map((player) => {
         const analystRank = getAnalystCompositeRank(player, scoringFormat)
-        const marketAdp = getPlayerAdp(player)
-        return { player, analystRank, marketAdp, valueDiff: marketAdp - analystRank }
+        return { player, analystRank, currentPickValue: Number(currentPick || 0) - analystRank }
       })
-      .filter(({ analystRank, marketAdp }) => !Number.isNaN(analystRank) && marketAdp !== 999)
-      .sort((a, b) => b.valueDiff - a.valueDiff || a.analystRank - b.analystRank)
+      .filter(({ analystRank }) => !Number.isNaN(analystRank))
+      .sort((a, b) => b.currentPickValue - a.currentPickValue || a.analystRank - b.analystRank)
       .slice(0, suggestionCandidateLimit)
       .map(({ player }) => String(player.id || `${player.name}-${player.team}-${player.position}`)),
   )
 
-  const suggestedPicks = availablePlayers
-    .filter((player) => isPlayerInsidePickWindow(player, pickWindowFloor, pickWindowCeil))
+  const rankedSuggestedPicks = availablePlayers
+    .filter(isSuggestionCandidate)
     .map((player) => {
       if (!currentPick) return null
-      const marketAdp = getPlayerAdp(player)
-      if (marketAdp === 999) return null
       const analystRank = getAnalystCompositeRank(player, scoringFormat)
-      const valueGap = marketAdp - Number.parseFloat(currentPick)
-      const valueDiff = marketAdp - analystRank
+      if (Number.isNaN(analystRank)) return null
+      const livePick = Number.parseFloat(currentPick)
+      const valueGap = livePick - analystRank
+      const valueDiff = valueGap
       let earlyContextAdjustment = 0
       const expertRank = analystRank
-      const expertEdge = Number.isNaN(marketAdp) || Number.isNaN(expertRank) ? 0 : marketAdp - expertRank
+      const expertEdge = Number.isNaN(livePick) || Number.isNaN(expertRank) ? 0 : livePick - expertRank
       const rosterNeed = getRosterNeed(player.position)
       if (activeBuildType === "HERO_RB" && player.position === "RB" && draftRound <= 3 && selectedRosterCounts.RB < 2) earlyContextAdjustment += 4
       if (activeBuildType === "ZERO_RB" && player.position === "RB" && draftRound <= 4) earlyContextAdjustment -= 8
@@ -1112,7 +1140,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoringFormat,
         draftType,
       })
-      const adpRound = getAdpRound(player.adp, draftData?.numTeams || 12)
+      const adpRound = getAdpRound(analystRank, draftData?.numTeams || 12)
       const note = getPlayerIntelligenceNote(player)
       const leagueFormat = getLeagueFormatKey(scoringFormat)
       const researchEdge = getResearchEdge({
@@ -1127,7 +1155,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         scoringFormat,
       })
       const manualStrategySignal = getManualStrategySignal({ strategyOverride: selectedStrategyOverride, player, round: draftRound, rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, isSuperFlex: superFlexSlots > 0 })
-      const valueLabel = getValueLabel(valueGap)
+      const valueLabel = getValueLabel(valueDiff)
       const isDeadZoneRb = player.position === "RB" && Number(currentPick) >= 35 && Number(currentPick) <= 80
       const deadZoneExempt = tags.includes("WORKHORSE") || tags.includes("LOTTERY") || valueGap >= 15
       const deadZonePenalty = isDeadZoneRb && !deadZoneExempt ? -7 : 0
@@ -1165,7 +1193,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         strategy: Number(strategyBonus.toFixed(1)),
       }
       const compositeRank = Number(Object.values(compositeComponents).reduce((sum, value) => sum + value, 0).toFixed(1))
-      const whyPickNote = buildSuggestionWhy({ player, analystRank, adp: marketAdp, valueDiff }, { currentPickOverall: Number(currentPick), buildType: activeBuildType })
+      const whyPickNote = buildSuggestionWhy({ player, analystRank, valueDiff }, { currentPickOverall: Number(currentPick), buildType: activeBuildType })
       const valueScore = clamp(50 + valueDiff * 4, 0, 100)
       const expertScore = clamp(50 + expertEdge * 3, 0, 100)
       const needScore = clamp(50 + rosterNeed.bonus * 4, 0, 100)
@@ -1254,15 +1282,15 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         confidence: getConfidenceLabel(confidenceScore),
         confidenceColor: getSignalColor(confidenceScore),
         analystRank: Math.round(analystRank * 10) / 10,
-        adp: marketAdp,
+        adp: analystRank,
         finalScore: Math.round(finalScore * 10) / 10,
         hybridScore,
       }
     })
     .filter(Boolean)
     .sort((a, b) => b.valueDiff - a.valueDiff || b.finalScore - a.finalScore || a.analystRank - b.analystRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
-    .slice(0, 3)
 
+  const suggestedPicks = getPositionSplitSuggestions(rankedSuggestedPicks, 6)
 
   const isHorizontal = layout === "horizontal"
 
@@ -1272,7 +1300,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         <CardTitle className="flex items-center justify-between text-base font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>SUGGESTED PICKS</span>
           <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Live top 8 • composite rank • {scoringFormat} • {draftTypeLabel} • {qbMode}
+            Top 6 by position • composite rank • {scoringFormat} • {draftTypeLabel} • {qbMode}
           </span>
         </CardTitle>
       </CardHeader>
@@ -1329,22 +1357,22 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className={isHorizontal ? "grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2" : "grid gap-2 pb-1 sm:grid-cols-2"}>
+          <div className={isHorizontal ? "grid grid-cols-2 gap-1.5 pb-1 sm:grid-cols-3 2xl:grid-cols-6" : "grid gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3"}>
             {suggestedPicks.map((player, idx) => (
               <HoverCard key={player.id} openDelay={80} closeDelay={120}>
                 <HoverCardTrigger asChild>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
+                    className="flex w-full items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
                     style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
                     aria-label={`Show details for ${player.name}`}
                   >
                     <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
-                    <BubbleSymbol pos={player.position} colors={colors} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>
+                    <BubbleSymbol pos={player.position} colors={colors} compact />
+                    <span className="min-w-0 flex-1 truncate text-xs font-black" title={player.name}>
                       {player.name}
                     </span>
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[9px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                   </button>
                 </HoverCardTrigger>
 
@@ -1368,7 +1396,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                         </div>
                       )}
                       {player.name}</div>
-                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · ADP {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
+                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · Rank {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
                     </div>
                     <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
                       <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>

@@ -17,6 +17,22 @@ const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
 const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "half-ppr", "best-ball"]
 const UNDERDOG_PASTEL_YELLOW = "#FDE68A"
 
+const getPositionAccuracyStyle = (position: (typeof POSITION_RANKS)[number], colors: any) => {
+  const positionColors: Record<(typeof POSITION_RANKS)[number], string> = {
+    QB: colors.pillTextQB || colors.adpNegative,
+    RB: colors.pillTextRB || colors.headingGreen,
+    WR: colors.pillTextWR || colors.fantasyProsBlue,
+    TE: colors.pillTextTE || colors.gold,
+  }
+  const color = positionColors[position] || colors.textPrimary
+
+  return {
+    backgroundColor: colors.card,
+    borderColor: color,
+    color,
+  }
+}
+
 const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
   "half-ppr": "del-don-half-ppr",
   "best-ball": "underdog-best-ball-june-24",
@@ -204,7 +220,7 @@ export function Header({
           </div>
         </div>
         <div
-          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,3fr)_minmax(0,3fr)_minmax(10rem,1fr)]"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-3"
           aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
@@ -216,7 +232,7 @@ export function Header({
               <div className="flex items-center justify-center rounded-xl px-2 py-1 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
                 {group.label}
               </div>
-              <div className={`grid min-w-0 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
+              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
                 {group.presets.map((preset) => {
                   const isActive = rankings[activeRankingIndex]?.presetId === preset.id
                   const isUnderdog = group.id === "best-ball"
@@ -229,7 +245,7 @@ export function Header({
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="min-h-[4.25rem] min-w-0 rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      className="flex min-h-[4.25rem] min-w-0 flex-col rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
                       style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
                       aria-pressed={isActive}
                     >
@@ -255,9 +271,14 @@ export function Header({
                         </span>
                       </div>
                       {preset.accuracyRanks && (
-                        <div className="mt-1.5 flex gap-1 text-[9px]">
+                        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[9px]">
                           {POSITION_RANKS.map((position) => (
-                            <span key={position} className="rounded-md px-1 py-0.5 text-center font-bold" style={{ backgroundColor: colors.darkBlue, color: colors.textSecondary }}>
+                            <span
+                              key={position}
+                              className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border bg-transparent px-1.5 text-center font-black leading-none"
+                              style={getPositionAccuracyStyle(position, colors)}
+                              title={`${position} accuracy rank`}
+                            >
                               {position} {preset.accuracyRanks?.[position] ?? "—"}
                             </span>
                           ))}

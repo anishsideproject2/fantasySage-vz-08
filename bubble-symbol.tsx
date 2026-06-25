@@ -28,11 +28,11 @@ const getBubbleColorsForSlot = (pos, colors) => {
   }
 }
 
-export function BubbleSymbol({ pos, colors }) {
+export function BubbleSymbol({ pos, colors, compact = false }) {
   const { bg, text } = getBubbleColorsForSlot(pos, colors)
   return (
     <span
-      className="inline-block px-2 py-1 rounded-full text-xs font-bold border"
+      className={`${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} inline-block rounded-full border font-bold`}
       style={{
         background: bg,
         color: text,
