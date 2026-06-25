@@ -22,12 +22,6 @@ const getPositionAccuracyStyle = (colors: any) => ({
   color: colors.headingGreen,
 })
 
-const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
-  "half-ppr": "del-don-half-ppr",
-  "best-ball": "underdog-best-ball-june-24",
-  "full-ppr": "del-don-full-ppr",
-}
-
 const detectScoringGroupFromDraft = (draft: any) => {
   const scoringText = [draft?.metadata?.scoring_type, draft?.settings?.scoring_type, draft?.metadata?.name, draft?.metadata?.description]
     .filter(Boolean)
@@ -74,7 +68,7 @@ export function Header({
   draftData,
 }) {
   const [showFileManager, setShowFileManager] = useState(false)
-  const [selectedScoringGroupId, setSelectedScoringGroupId] = useState("full-ppr")
+  const [detectedScoringGroupId, setDetectedScoringGroupId] = useState<string | null>(null)
   const [detectedScoringLabel, setDetectedScoringLabel] = useState("Ready to load a board")
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
 
@@ -90,11 +84,12 @@ export function Header({
 
   useEffect(() => {
     activePresetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
-  }, [rankings, activeRankingIndex, selectedScoringGroupId])
+  }, [rankings, activeRankingIndex])
 
   useEffect(() => {
     const draftId = extractSleeperDraftId(sleeperUrl.trim())
     if (!draftId) {
+      setDetectedScoringGroupId(null)
       setDetectedScoringLabel("Ready to load a board")
       return
     }
@@ -107,18 +102,18 @@ export function Header({
         const draft = await res.json()
         const detectedGroupId = detectScoringGroupFromDraft(draft)
         if (!detectedGroupId) {
-          setDetectedScoringLabel("Sleeper format not labeled; keeping current board")
+          setDetectedScoringGroupId(null)
+          setDetectedScoringLabel("Sleeper format not labeled; choose any board")
           return
         }
 
-        setSelectedScoringGroupId(detectedGroupId)
-        setDetectedScoringLabel(`Sleeper detected ${RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.label || "format"}`)
-        const activePresetId = rankings[activeRankingIndex]?.presetId
-        const activePresetMatchesFormat = RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.presets.some((preset) => preset.id === activePresetId)
-        const activePresetIsUnderdog = RANKING_PRESET_GROUPS.find((group) => group.id === "best-ball")?.presets.some((preset) => preset.id === activePresetId)
-        if (!activePresetMatchesFormat && !activePresetIsUnderdog) loadPreset(DEFAULT_PRESET_BY_GROUP[detectedGroupId], activeRankingIndex)
+        setDetectedScoringGroupId(detectedGroupId)
+        setDetectedScoringLabel(`Sleeper detected ${RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.label || "format"}; choose any board`)
       } catch (err) {
-        if (!controller.signal.aborted) setDetectedScoringLabel("Could not auto-detect yet; keeping current board")
+        if (!controller.signal.aborted) {
+          setDetectedScoringGroupId(null)
+          setDetectedScoringLabel("Could not auto-detect yet; choose any board")
+        }
       }
     }, 400)
 
@@ -126,7 +121,7 @@ export function Header({
       window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [activeRankingIndex, loadPreset, rankings, sleeperUrl])
+  }, [sleeperUrl])
 
 
   // Only show connected if we have draft data with actual content and no error
@@ -243,8 +238,20 @@ export function Header({
               className="flex min-w-0 flex-col gap-2 rounded-xl border p-2"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
-              <div className="flex items-center justify-center rounded-lg px-2 py-1 text-center text-xs font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
-                {group.label}
+              <div
+                className="flex items-center justify-center gap-2 rounded-lg px-2 py-1 text-center text-xs font-black uppercase tracking-wide"
+                style={{
+                  backgroundColor: detectedScoringGroupId === group.id ? `${colors.headingGreen}24` : colors.card,
+                  border: `1px solid ${detectedScoringGroupId === group.id ? colors.headingGreen : "transparent"}`,
+                  color: detectedScoringGroupId === group.id ? colors.headingGreen : colors.textPrimary,
+                }}
+              >
+                <span>{group.label}</span>
+                {detectedScoringGroupId === group.id && (
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ backgroundColor: colors.headingGreen, color: "#000000" }}>
+                    Detected
+                  </span>
+                )}
               </div>
               <div className={`grid min-w-0 flex-1 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
                 {group.presets.map((preset) => {
@@ -254,8 +261,7 @@ export function Header({
                       key={preset.id}
                       ref={isActive ? activePresetRef : null}
                       onClick={() => {
-                        setSelectedScoringGroupId(group.id)
-                        setDetectedScoringLabel("Manual board selected")
+                        setDetectedScoringLabel(detectedScoringGroupId ? `${RANKING_PRESET_GROUPS.find((detectedGroup) => detectedGroup.id === detectedScoringGroupId)?.label || "Format"} detected; manual board selected` : "Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
                       className="flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
