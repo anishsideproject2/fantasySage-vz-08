@@ -18,7 +18,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
   const noteId = getPlayerNoteId(firstName, lastName, player.team)
   const note = (PLAYER_NOTES as Record<string, any>)[noteId] ?? null
   const numericValueDiff = Number.parseFloat(player.valueDiff)
-  const valueEmoji = Number.isNaN(numericValueDiff) ? null : numericValueDiff > 10 ? "🔥" : numericValueDiff <= -10 ? "💩" : null
+  const valueEmoji = Number.isNaN(numericValueDiff) ? null : numericValueDiff >= 20 ? "💎" : numericValueDiff <= -20 ? "🫏" : null
 
   return (
     <div
@@ -46,7 +46,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
           title={player.name}
         >
           {player.name}
-          {valueEmoji && <span className="ml-1" title={numericValueDiff > 10 ? "Strong value pick" : "Poor value pick"}>{valueEmoji}</span>}
+          {valueEmoji && <span className="ml-1" title={numericValueDiff >= 20 ? "Elite 20+ value pick" : "-20 or worse value fade"}>{valueEmoji}</span>}
           {note?.sleeper && <span className="icon-sleeper ml-1" title={note.sleeper_note}>💎</span>}
           {note?.risk_flag && <span className="icon-risk ml-1" title={note.risk_alert}>⚠️</span>}
         </button>

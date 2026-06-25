@@ -1419,7 +1419,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                         <span className="shrink-0 rounded-full border px-3 py-1 text-xs font-black shadow-sm" style={{ borderColor: colors.gold, background: colors.highlight, color: colors.gold }}>{fallback.confidenceScore}</span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 font-semibold">
-                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${getValueDiffColor(fallback.valueDiff)}18`, color: getValueDiffColor(fallback.valueDiff) }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${getValueDiffColor(fallback.valueDiff)}18`, color: getValueDiffColor(fallback.valueDiff) }}>{fallback.valueDiff >= 20 ? "💎 " : fallback.valueDiff <= -20 ? "🫏 " : ""}{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
                         <span style={{ color: colors.textSecondary }}>{fallback.valueLabel} · Rank {fallback.analystRank}</span>
                       </div>
                     </div>
@@ -1443,7 +1443,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
               const valueDiffColor = getValueDiffColor(player.valueDiff)
-              const valueEmoji = player.valueDiff > 10 ? "🔥" : player.valueDiff <= -10 ? "💩" : null
+              const valueEmoji = player.valueDiff >= 20 ? "💎" : player.valueDiff <= -20 ? "🫏" : null
               return (
                 <button
                   key={playerKey}
@@ -1452,7 +1452,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
                   aria-label={`Recommendation summary for ${player.name}; hover or focus to show a compact draft-day summary`}
                 >
-                  <div className="pointer-events-none absolute left-0 right-0 top-full z-50 mt-2 hidden w-full min-w-[18rem] group-hover:block group-focus:block group-focus-within:block md:left-1/2 md:right-auto md:w-[28rem] md:-translate-x-1/2">
+                  <div className={`pointer-events-none absolute top-full z-50 mt-2 hidden w-full min-w-[18rem] group-hover:block group-focus:block group-focus-within:block md:w-[28rem] ${idx === 0 ? "left-0 right-auto" : idx === suggestedPicks.length - 1 ? "left-auto right-0" : "left-0 right-0 md:left-1/2 md:right-auto md:-translate-x-1/2"}`}>
                     <div className="pointer-events-auto rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1506,7 +1506,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                     <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                     <BubbleSymbol pos={player.position} colors={colors} compact />
                     <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
-                    {valueEmoji && <span className="shrink-0 text-base leading-none" aria-label={player.valueDiff > 10 ? "Strong value pick" : "Poor value pick"}>{valueEmoji}</span>}
+                    {valueEmoji && <span className="shrink-0 text-base leading-none" aria-label={player.valueDiff >= 20 ? "Elite 20+ value pick" : "-20 or worse value fade"}>{valueEmoji}</span>}
                     <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
