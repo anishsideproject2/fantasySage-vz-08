@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown, Sparkles, FileUp } from "lucide-react"
+import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -53,8 +53,6 @@ const getAccuracyAwardLabel = (preset: any) => {
 export function Header({
   theme,
   toggleTheme,
-  modernUiEnabled,
-  toggleModernUi,
   colors,
   rankings,
   setRankings,
@@ -137,7 +135,7 @@ export function Header({
   return (
     <header className="mb-3 space-y-3">
       <div
-        className="modern-surface modern-panel rounded-2xl border p-3 shadow-sm"
+        className="rounded-2xl border p-3 shadow-sm"
         style={{ backgroundColor: colors.card, borderColor: colors.lightBorder, boxShadow: colors.shadow }}
       >
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.4fr)_minmax(320px,1fr)] xl:items-center">
@@ -196,23 +194,24 @@ export function Header({
           </div>
 
           <div className="flex flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: `${colors.purple}20`, color: colors.textPrimary }}>
+              <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.purple }} aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.purple }}>Optional next step</p>
+                <p className="text-sm font-extrabold leading-tight">Upload a custom rankings CSV for another board.</p>
+              </div>
+            </div>
             <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-              <span className="rounded-full px-3 py-1.5 text-xs font-bold" style={{ backgroundColor: colors.card, color: isConnected ? colors.headingGreen : colors.textSecondary }}>
-                {isConnected ? "● Connected" : "○ Ready to connect"}
-              </span>
               <Button
                 onClick={() => setShowFileManager(!showFileManager)}
                 className="h-10 gap-2 px-4 text-sm font-bold hover:opacity-90"
                 style={{ backgroundColor: colors.headingGreen, color: "#000000" }}
                 aria-expanded={showFileManager}
               >
-                <FileUp size={16} /> {showFileManager ? "Hide CSV Upload" : "Upload FantasyPros CSV"}
+                <FileUp size={16} /> {showFileManager ? "Hide CSV upload" : "Upload rankings CSV"}
               </Button>
               <Button onClick={handleCopyLink} size="sm" className="h-10 px-3 text-xs font-bold hover:opacity-90" style={{ backgroundColor: colors.card, color: colors.textPrimary }}>
                 <Copy size={14} className="mr-1.5" /> Share
-              </Button>
-              <Button onClick={toggleModernUi} size="sm" className="h-10 gap-1.5 px-3 text-xs font-bold border" style={{ backgroundColor: modernUiEnabled ? `${colors.purple}30` : colors.card, borderColor: modernUiEnabled ? colors.purple : colors.cardBorder, color: colors.textPrimary }} aria-pressed={modernUiEnabled}>
-                <Sparkles size={14} /> {modernUiEnabled ? "Modern On" : "Modern"}
               </Button>
               <Button onClick={toggleTheme} size="sm" className="h-10 px-3 text-xs border" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }} aria-label="Toggle light or dark theme">
                 {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
@@ -220,14 +219,14 @@ export function Header({
               {showCopiedMessage && <span className="text-xs font-semibold" style={{ color: colors.gold }}>Copied!</span>}
             </div>
             <p className="text-[11px] font-semibold leading-snug xl:text-right" style={{ color: colors.textSecondary }}>
-              Custom rankings: download a FantasyPros CSV after choosing specific analysts, then upload it here.
+              CSV imports support custom rankings from multiple sources, including Underdog rankings exports.
             </p>
           </div>
         </div>
         {error && <div className="mt-2 rounded-lg p-2 text-sm" style={{ backgroundColor: colors.adpNegative + "20", color: colors.adpNegative }}>{error}</div>}
       </div>
 
-      <div className="modern-surface modern-panel rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}>
+      <div className="rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
@@ -259,7 +258,7 @@ export function Header({
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="modern-ranking-button flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      className="flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
                       style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                       aria-pressed={isActive}
                     >
@@ -308,7 +307,7 @@ export function Header({
       </div>
 
       {showFileManager && (
-        <div className="modern-surface rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
+        <div className="rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
           <FileManager
             colors={colors}
             rankings={rankings}
