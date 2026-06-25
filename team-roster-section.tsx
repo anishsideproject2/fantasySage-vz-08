@@ -451,7 +451,6 @@ export function TeamRosterSection({
                             ) : (
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
-                                <div className="text-[10px]" style={{ color: slotColors.bg }}>Target depth and value here</div>
                               </div>
                             )}
                           </div>

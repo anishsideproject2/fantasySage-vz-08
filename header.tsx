@@ -14,24 +14,13 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 })
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
-const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "half-ppr", "best-ball"]
-const UNDERDOG_PASTEL_YELLOW = "#FDE68A"
+const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "best-ball", "half-ppr"]
 
-const getPositionAccuracyStyle = (position: (typeof POSITION_RANKS)[number], colors: any) => {
-  const positionColors: Record<(typeof POSITION_RANKS)[number], string> = {
-    QB: colors.pillTextQB || colors.adpNegative,
-    RB: colors.pillTextRB || colors.headingGreen,
-    WR: colors.pillTextWR || colors.fantasyProsBlue,
-    TE: colors.pillTextTE || colors.gold,
-  }
-  const color = positionColors[position] || colors.textPrimary
-
-  return {
-    backgroundColor: colors.card,
-    borderColor: color,
-    color,
-  }
-}
+const getPositionAccuracyStyle = (colors: any) => ({
+  backgroundColor: `${colors.headingGreen}18`,
+  borderColor: `${colors.headingGreen}88`,
+  color: colors.headingGreen,
+})
 
 const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
   "half-ppr": "del-don-half-ppr",
@@ -220,22 +209,21 @@ export function Header({
           </div>
         </div>
         <div
-          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-3"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,0.45fr)_minmax(0,1fr)]"
           aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
             <section
               key={group.id}
-              className="flex min-w-0 flex-col gap-2 rounded-2xl border p-1.5"
+              className="flex min-w-0 flex-col gap-1.5 rounded-xl border p-1.5"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
-              <div className="flex items-center justify-center rounded-xl px-2 py-1 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
+              <div className="flex items-center justify-center rounded-lg px-2 py-0.5 text-center text-[10px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
                 {group.label}
               </div>
-              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
+              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-1.5 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
                 {group.presets.map((preset) => {
                   const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-                  const isUnderdog = group.id === "best-ball"
                   return (
                     <button
                       key={preset.id}
@@ -245,16 +233,16 @@ export function Header({
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="flex min-h-[4.25rem] min-w-0 flex-col rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
-                      style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
+                      className="flex min-h-[3.5rem] min-w-0 flex-col rounded-lg border px-2 py-1 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                       aria-pressed={isActive}
                     >
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
+                      <div className="mb-0.5 flex items-center justify-between gap-2">
+                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
                           {preset.accuracyType}
                         </span>
                         {isActive && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: `${colors.headingGreen}30`, color: colors.headingGreen }}>
                             <Check size={10} /> Loaded
                           </span>
                         )}
@@ -266,17 +254,17 @@ export function Header({
                           </div>
                           <div className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{preset.source} · {preset.updated}</div>
                         </div>
-                        <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                        <span className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
                           #{preset.accuracyRank}
                         </span>
                       </div>
                       {preset.accuracyRanks && (
-                        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[9px]">
+                        <div className="mt-1 flex flex-wrap gap-1 text-[9px]">
                           {POSITION_RANKS.map((position) => (
                             <span
                               key={position}
-                              className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border bg-transparent px-1.5 text-center font-black leading-none"
-                              style={getPositionAccuracyStyle(position, colors)}
+                              className="inline-flex h-5 min-w-6 items-center justify-center rounded border px-1 text-center font-black leading-none"
+                              style={getPositionAccuracyStyle(colors)}
                               title={`${position} accuracy rank`}
                             >
                               {position} {preset.accuracyRanks?.[position] ?? "—"}

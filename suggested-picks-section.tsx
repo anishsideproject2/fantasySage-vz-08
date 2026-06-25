@@ -1310,54 +1310,79 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             {positionalRunAlert.message}
           </div>
         )}
-        <details className="rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }} open>
-          <summary className="cursor-pointer font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
-            Current strategy: {strategyLock.label}
-          </summary>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <label className="font-black uppercase tracking-wide" htmlFor="strategy-override" style={{ color: colors.textSecondary }}>Pivot strategy</label>
-            <select
-              id="strategy-override"
-              value={selectedStrategyOverride}
-              onChange={(event) => setSelectedStrategyOverride?.(event.target.value)}
-              className="rounded-md border px-2 py-1 text-[11px] font-bold outline-none"
-              style={{ borderColor: colors.lightBorder, background: colors.card, color: colors.textPrimary }}
-            >
-              {STRATEGY_OPTIONS.map((strategy) => (
-                <option key={strategy.value} value={strategy.value}>{strategy.label}</option>
-              ))}
-            </select>
-            <span>Detected: {STRATEGY_OPTIONS.find((strategy) => strategy.value === strategyLock.detectedKey)?.label || "Balanced BPA"}</span>
+        <div
+          className="group rounded-xl border p-1.5 text-[11px] leading-snug transition-all duration-200 hover:p-2 focus-within:p-2"
+          style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div className="min-w-0">
+              <div className="truncate font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
+                Current strategy: {strategyLock.label}
+              </div>
+              <div className="truncate text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
+                {strategyLock.next} · Hover for full strategy controls
+              </div>
+            </div>
+            <div className="shrink-0 rounded border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.gold, color: colors.gold, background: `${colors.gold}12` }}>
+              Health {rosterHealth.score}/100
+            </div>
           </div>
-          <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
-          <div className="mt-1 font-black" style={{ color: colors.gold }}>Roster Health: {rosterHealth.score}/100 — {rosterHealth.message}</div>
-          <div className="mt-1">{strategyLock.guidance}</div>
-          <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
-          <div className="mt-2 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
+
+          <div className="mt-1 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
             {["R1-2 Anchor", "R3-5 Support", "R6-9 Value", "R10-12 Lottery", "R13+ Stream"].map((label, index) => {
               const active = (draftRound <= 2 && index === 0) || (draftRound >= 3 && draftRound <= 5 && index === 1) || (draftRound >= 6 && draftRound <= 9 && index === 2) || (draftRound >= 10 && draftRound <= 12 && index === 3) || (draftRound >= 13 && index === 4)
               const palette = ["#22c55e", "#3b82f6", "#facc15", "#fb923c", "#94a3b8"]
               return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
             })}
           </div>
-          <details className="mt-2 rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder }}>
-            <summary className="cursor-pointer font-black uppercase" style={{ color: colors.gold }}>Scheme Intel</summary>
-            <div className="mt-1 grid gap-1 sm:grid-cols-2">
-              {Object.entries(SCHEME_INTEL_2026).slice(0, 10).map(([team, scheme]) => (
-                <div key={team} className="rounded-md px-2 py-1" style={{ background: colors.card, color: colors.textSecondary }}>
-                  <span className="font-black" style={{ color: colors.textPrimary }}>{team}</span> · pace {scheme.pace} · PA {scheme.paRate}% · motion {scheme.motionRate}% · RZ PROE {scheme.rzProe} · OL {scheme.olGrade} · {scheme.badges.join(", ")}
+
+          <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mt-2 group-hover:max-h-[34rem] group-hover:opacity-100 group-focus-within:mt-2 group-focus-within:max-h-[34rem] group-focus-within:opacity-100">
+            <div className="grid gap-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <div className="rounded-lg border px-2 py-2" style={{ borderColor: colors.lightBorder, background: colors.card }}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="font-black uppercase tracking-wide" htmlFor="strategy-override" style={{ color: colors.textSecondary }}>Pivot strategy</label>
+                  <select
+                    id="strategy-override"
+                    value={selectedStrategyOverride}
+                    onChange={(event) => setSelectedStrategyOverride?.(event.target.value)}
+                    className="rounded-md border px-2 py-1 text-[11px] font-bold outline-none"
+                    style={{ borderColor: colors.lightBorder, background: colors.card, color: colors.textPrimary }}
+                  >
+                    {STRATEGY_OPTIONS.map((strategy) => (
+                      <option key={strategy.value} value={strategy.value}>{strategy.label}</option>
+                    ))}
+                  </select>
                 </div>
-              ))}
+                <div className="mt-1">Detected: {STRATEGY_OPTIONS.find((strategy) => strategy.value === strategyLock.detectedKey)?.label || "Balanced BPA"}</div>
+                <div className="mt-1 font-black" style={{ color: colors.gold }}>Roster Health: {rosterHealth.score}/100 — {rosterHealth.message}</div>
+                <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
+              </div>
+
+              <div className="rounded-lg border px-2 py-2" style={{ borderColor: colors.lightBorder, background: colors.card }}>
+                <div>{strategyLock.guidance}</div>
+                <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
+                <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: layers round gates, opportunity metrics, scheme intel, {qbMode} QB strategy, sleeper/breakout/bust flags, VBD, ADP, tier cliffs, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
+              </div>
             </div>
-          </details>
-          <div className="mt-1" title={RESEARCH_PILLARS_2026.join(" ")}>{ANALYST_MODEL_VERSION}: now layers round gates, opportunity metrics, scheme intel, {qbMode} QB strategy, sleeper/breakout/bust flags, VBD, ADP, tier cliffs, RB dead-zone caution, and elite-or-late QB/TE rules.</div>
-        </details>
+
+            <details className="mt-2 rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder }}>
+              <summary className="cursor-pointer font-black uppercase" style={{ color: colors.gold }}>Scheme Intel</summary>
+              <div className="mt-1 grid gap-1 sm:grid-cols-2">
+                {Object.entries(SCHEME_INTEL_2026).slice(0, 10).map(([team, scheme]) => (
+                  <div key={team} className="rounded-md px-2 py-1" style={{ background: colors.card, color: colors.textSecondary }}>
+                    <span className="font-black" style={{ color: colors.textPrimary }}>{team}</span> · pace {scheme.pace} · PA {scheme.paRate}% · motion {scheme.motionRate}% · RZ PROE {scheme.rzProe} · OL {scheme.olGrade} · {scheme.badges.join(", ")}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        </div>
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className={isHorizontal ? "grid grid-cols-2 gap-1.5 pb-1 sm:grid-cols-3 2xl:grid-cols-6" : "grid gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3"}>
+          <div className={isHorizontal ? "grid grid-cols-1 gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3"}>
             {suggestedPicks.map((player, idx) => (
               <HoverCard key={player.id} openDelay={80} closeDelay={120}>
                 <HoverCardTrigger asChild>
