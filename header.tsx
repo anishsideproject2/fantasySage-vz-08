@@ -1,5 +1,5 @@
 "use client"
-import { type WheelEvent, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,7 +14,7 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
 })
 
 const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
-const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "half-ppr"]
+const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "half-ppr", "best-ball"]
 const UNDERDOG_PASTEL_YELLOW = "#FDE68A"
 
 const DEFAULT_PRESET_BY_GROUP: Record<string, string> = {
@@ -71,26 +71,15 @@ export function Header({
   const [showFileManager, setShowFileManager] = useState(false)
   const [selectedScoringGroupId, setSelectedScoringGroupId] = useState("full-ppr")
   const [detectedScoringLabel, setDetectedScoringLabel] = useState("Ready to load a board")
-  const presetScrollerRef = useRef<HTMLDivElement | null>(null)
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
 
   const quickSwitchGroups = useMemo(() => {
     const groupsById = new Map(RANKING_PRESET_GROUPS.map((group) => [group.id, group]))
-    const halfPpr = groupsById.get("half-ppr")
-    const bestBall = groupsById.get("best-ball")
 
     return QUICK_SWITCH_GROUP_ORDER.map((groupId) => {
       const group = groupsById.get(groupId)
       if (!group) return null
-      if (groupId !== "half-ppr" || !halfPpr || !bestBall) return group
-
-      return {
-        ...halfPpr,
-        presets: [
-          ...halfPpr.presets,
-          ...bestBall.presets.map((preset) => ({ ...preset, quickSwitchSubformat: "Best Ball · Underdog" })),
-        ],
-      }
+      return groupId === "best-ball" ? { ...group, label: "Underdog" } : group
     }).filter(Boolean)
   }, [])
 
@@ -121,7 +110,8 @@ export function Header({
         setDetectedScoringLabel(`Sleeper detected ${RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.label || "format"}`)
         const activePresetId = rankings[activeRankingIndex]?.presetId
         const activePresetMatchesFormat = RANKING_PRESET_GROUPS.find((group) => group.id === detectedGroupId)?.presets.some((preset) => preset.id === activePresetId)
-        if (!activePresetMatchesFormat) loadPreset(DEFAULT_PRESET_BY_GROUP[detectedGroupId], activeRankingIndex)
+        const activePresetIsUnderdog = RANKING_PRESET_GROUPS.find((group) => group.id === "best-ball")?.presets.some((preset) => preset.id === activePresetId)
+        if (!activePresetMatchesFormat && !activePresetIsUnderdog) loadPreset(DEFAULT_PRESET_BY_GROUP[detectedGroupId], activeRankingIndex)
       } catch (err) {
         if (!controller.signal.aborted) setDetectedScoringLabel("Could not auto-detect yet; keeping current board")
       }
@@ -133,12 +123,6 @@ export function Header({
     }
   }, [activeRankingIndex, loadPreset, rankings, sleeperUrl])
 
-
-  const handlePresetWheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (!presetScrollerRef.current || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
-    event.preventDefault()
-    presetScrollerRef.current.scrollBy({ left: event.deltaY, behavior: "smooth" })
-  }
 
   // Only show connected if we have draft data with actual content and no error
   const isConnected = draftData && draftData.teams && draftData.teams.length > 0 && !error && sleeperUrl.trim()
@@ -216,44 +200,42 @@ export function Header({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
-            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; swipe horizontally to load compact analyst boards by format.</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>{detectedScoringLabel}; all ranking boards are grouped by format for quick one-screen selection.</p>
           </div>
         </div>
         <div
-          ref={presetScrollerRef}
-          onWheel={handlePresetWheel}
-          className="flex w-full flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
-          aria-label="Horizontally scrollable analyst ranking boards grouped by format"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,3fr)_minmax(0,3fr)_minmax(10rem,1fr)]"
+          aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
             <section
               key={group.id}
-              className="flex min-w-fit flex-1 shrink-0 items-stretch gap-2 rounded-2xl border p-1.5"
+              className="flex min-w-0 flex-col gap-2 rounded-2xl border p-1.5"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
-              <div className="flex min-w-16 items-center justify-center rounded-xl px-2 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
+              <div className="flex items-center justify-center rounded-xl px-2 py-1 text-center text-[11px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
                 {group.label}
               </div>
-              <div className="flex flex-nowrap gap-2">
+              <div className={`grid min-w-0 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
                 {group.presets.map((preset) => {
                   const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-                  const isUnderdog = Boolean(preset.quickSwitchSubformat)
+                  const isUnderdog = group.id === "best-ball"
                   return (
                     <button
                       key={preset.id}
                       ref={isActive ? activePresetRef : null}
                       onClick={() => {
-                        setSelectedScoringGroupId(isUnderdog ? "best-ball" : group.id)
+                        setSelectedScoringGroupId(group.id)
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="min-h-[4.75rem] w-56 flex-1 shrink-0 rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      className="min-h-[4.25rem] min-w-0 rounded-xl border px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
                       style={{ borderColor: isActive ? (isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen) : colors.cardBorder, backgroundColor: isActive ? `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}2b` : colors.card }}
                       aria-pressed={isActive}
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
-                          {isUnderdog ? "Best Ball · Underdog" : preset.accuracyType}
+                          {preset.accuracyType}
                         </span>
                         {isActive && (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen}40`, color: isUnderdog ? UNDERDOG_PASTEL_YELLOW : colors.headingGreen }}>
