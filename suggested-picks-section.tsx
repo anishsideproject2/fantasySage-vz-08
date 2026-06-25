@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { BubbleSymbol } from "./bubble-symbol"
@@ -1291,6 +1290,30 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     .sort((a, b) => b.valueDiff - a.valueDiff || b.finalScore - a.finalScore || a.analystRank - b.analystRank || b.confidenceScore - a.confidenceScore || b.hybridScore - a.hybridScore)
 
   const suggestedPicks = getPositionSplitSuggestions(rankedSuggestedPicks, 6)
+  const positionalFallbacks = POSITION_SPLIT_ORDER
+    .flatMap((position) => {
+      const recommendationCount = suggestedPicks.filter((player) => player.position === position).length
+      if (recommendationCount > 0) return []
+      const fallback = availablePlayers
+        .filter((player) => player.position === position)
+        .map((player) => {
+          const analystRank = getAnalystCompositeRank(player, scoringFormat)
+          if (Number.isNaN(analystRank)) return null
+          const valueDiff = Number(currentPick || 0) - analystRank
+          const confidenceScore = Math.round(clamp(50 + valueDiff * 4, 10, 92))
+          return {
+            ...player,
+            analystRank: Math.round(analystRank * 10) / 10,
+            valueDiff,
+            valueLabel: getValueLabel(valueDiff),
+            confidenceScore,
+            confidenceColor: getSignalColor(confidenceScore),
+          }
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.valueDiff - a.valueDiff || a.analystRank - b.analystRank)[0]
+      return [{ position, recommendationCount, fallback }]
+    })
 
   const isHorizontal = layout === "horizontal"
 
@@ -1377,90 +1400,124 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             </details>
           </div>
         </div>
+        {positionalFallbacks.length > 0 && (
+          <div className="rounded-xl border px-3 py-2 text-[11px]" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
+            <div className="mb-1 font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>Best available for positions without a recommendation</div>
+            <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-4">
+              {positionalFallbacks.map(({ position, fallback }) => (
+                <div key={position} className="rounded-lg border px-2 py-1.5" style={{ borderColor: fallback ? fallback.confidenceColor : colors.lightBorder, background: fallback ? `${fallback.confidenceColor}12` : colors.card }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <BubbleSymbol pos={position} colors={colors} />
+                    {fallback ? (
+                      <span className="rounded-full border px-2.5 py-1 text-xs font-black shadow-sm" style={{ borderColor: colors.gold, background: colors.highlight, color: colors.gold }}>{fallback.confidenceScore}</span>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase" style={{ color: colors.textSecondary }}>None</span>
+                    )}
+                  </div>
+                  {fallback ? (
+                    <div className="mt-1 min-w-0">
+                      <div className="truncate font-black" style={{ color: colors.textPrimary }} title={fallback.name}>{fallback.name}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 font-semibold">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: colors.highlight, color: colors.gold }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
+                        <span style={{ color: colors.textSecondary }}>{fallback.valueLabel} · Rank {fallback.analystRank}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1 font-semibold">No available {position} with an analyst rank.</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {suggestedPicks.length === 0 ? (
           <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
           <div className={isHorizontal ? "grid grid-cols-1 gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3"}>
-            {suggestedPicks.map((player, idx) => (
-              <HoverCard key={player.id} openDelay={80} closeDelay={120}>
-                <HoverCardTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
-                    aria-label={`Show details for ${player.name}`}
-                  >
+            {suggestedPicks.map((player, idx) => {
+              const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
+              return (
+                <div
+                  key={playerKey}
+                  tabIndex={0}
+                  className="group rounded-xl border p-1.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-2 hover:shadow-lg focus:-translate-y-0.5 focus:p-2 focus:outline-none focus:ring-2"
+                  style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
+                  aria-label={`Expanded recommendation details for ${player.name}`}
+                >
+                  <div className="flex w-full items-center gap-1.5">
                     <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                     <BubbleSymbol pos={player.position} colors={colors} compact />
-                    <span className="min-w-0 flex-1 truncate text-xs font-black" title={player.name}>
-                      {player.name}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-black" title={player.name}>{player.name}</span>
                     <span className="rounded-full px-1.5 py-0.5 text-[9px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
-                  </button>
-                </HoverCardTrigger>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                    <span>{player.position}</span>
+                    <span>·</span>
+                    <span>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
+                    <span>·</span>
+                    <span>{player.confidence} confidence</span>
+                  </div>
 
-                <HoverCardContent align="start" side="bottom" sideOffset={10} collisionPadding={12} className="w-[min(92vw,34rem)] rounded-2xl border p-3 shadow-2xl" style={{ borderColor: player.confidenceColor, background: colors.card }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
-                      <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.alertLines?.length > 0 && (
-                        <div className="mb-1 flex flex-wrap gap-1">
-                          {player.intelligenceNote?.risk_flag && (
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="destructive" className="risk-badge text-[9px]">⚠️ RISK</Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>{player.intelligenceNote.risk_alert}</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                  <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mt-2 group-hover:max-h-[52rem] group-hover:opacity-100 group-focus:mt-2 group-focus:max-h-[52rem] group-focus:opacity-100 focus-within:mt-2 focus-within:max-h-[52rem] focus-within:opacity-100">
+                    <div className="rounded-2xl border p-3 shadow-2xl" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
+                          <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.alertLines?.length > 0 && (
+                            <div className="mb-1 flex flex-wrap gap-1">
+                              {player.intelligenceNote?.risk_flag && (
+                                <TooltipProvider delayDuration={0}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="destructive" className="risk-badge text-[9px]">⚠️ RISK</Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{player.intelligenceNote.risk_alert}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              {player.intelligenceNote?.sleeper && <Badge variant="secondary" className="sleeper-badge bg-green-600 text-[9px] text-white hover:bg-green-600">💎 VALUE</Badge>}
+                            </div>
                           )}
-                          {player.intelligenceNote?.sleeper && <Badge variant="secondary" className="sleeper-badge bg-green-600 text-[9px] text-white hover:bg-green-600">💎 VALUE</Badge>}
+                          {player.name}</div>
+                          <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · Rank {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
                         </div>
-                      )}
-                      {player.name}</div>
-                      <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · Rank {player.adp} · {player.valueLabel} · Composite {player.compositeRank} · Opp {player.opportunityProfile.score} · {player.rosterReason}</div>
-                    </div>
-                    <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
-                      <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
-                      <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidenceStars.stars}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                    {player.alertLines?.map((line) => (
-                      <div key={line} className="rounded-md px-2 py-1 font-black" style={{ background: `${player.confidenceColor}18`, color: player.confidenceColor }}>{line}</div>
-                    ))}
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Confidence:</span> {player.confidenceStars.stars} {player.confidenceStars.label}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Tags:</span> {player.tags.join(", ")} · format adjustment {player.tagFormatAdjustment >= 0 ? "+" : ""}{player.tagFormatAdjustment}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>VBD:</span> projected {player.vbdProfile.projected} · replacement {player.vbdProfile.replacementPoints} ({player.vbdProfile.replacementPlayer}) · VORP {player.vbdProfile.vorp} · VONA {player.vbdProfile.vona} vs {player.vbdProfile.nextAvailableName} · VOLS {player.vbdProfile.vols}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Opportunity:</span> {player.opportunityProfile.tier} ({player.opportunityProfile.score}/100) · target {player.opportunityProfile.metrics.targetShare}% · air yards {player.opportunityProfile.metrics.airYardShare}% · TPRR {player.opportunityProfile.metrics.tprr} · WOPR {player.opportunityProfile.wopr}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Scheme:</span> {player.schemeProfile.team} · {player.schemeProfile.badges.join(", ")} · pace {player.schemeProfile.pace} · PA {player.schemeProfile.paRate}% · motion {player.schemeProfile.motionRate}% · OL {player.schemeProfile.olGrade}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Composite:</span> VORP {player.compositeComponents.vorp}, VONA {player.compositeComponents.vona}, Opp {player.compositeComponents.opportunity}, Scheme {player.compositeComponents.scheme}, Category {player.compositeComponents.category}, Round {player.compositeComponents.roundGate}, Scarcity {player.compositeComponents.scarcity}, Strategy {player.compositeComponents.strategy} = {player.compositeRank}</div>
-                    {player.categoryFlag && <div><span className="font-black" style={{ color: colors.textPrimary }}>Category:</span> {player.categoryFlag.type} — {player.categoryFlag.detail}</div>}
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Tier/Scarcity:</span> {player.tierProfile.tier} · {player.scarcityMessage}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
-                    <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
-                    {player.scoreCards.map((card) => (
-                      <div key={card.label} className="rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span>
-                          <span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span>
+                        <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
+                          <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
+                          <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidenceStars.stars}</div>
                         </div>
-                        <div className="mt-0.5 leading-snug" title={card.detail}>{card.detail}</div>
                       </div>
-                    ))}
+
+                      <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                        {player.alertLines?.map((line: any) => <div key={line} className="rounded-md px-2 py-1 font-black" style={{ background: `${player.confidenceColor}18`, color: player.confidenceColor }}>{line}</div>)}
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Why:</span> {player.playerNote}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Team build:</span> {player.teamCompositionInsight}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Confidence:</span> {player.confidenceStars.stars} {player.confidenceStars.label}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Tags:</span> {player.tags.join(", ")} · format adjustment {player.tagFormatAdjustment >= 0 ? "+" : ""}{player.tagFormatAdjustment}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>VBD:</span> projected {player.vbdProfile.projected} · replacement {player.vbdProfile.replacementPoints} ({player.vbdProfile.replacementPlayer}) · VORP {player.vbdProfile.vorp} · VONA {player.vbdProfile.vona} vs {player.vbdProfile.nextAvailableName} · VOLS {player.vbdProfile.vols}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Opportunity:</span> {player.opportunityProfile.tier} ({player.opportunityProfile.score}/100) · target {player.opportunityProfile.metrics.targetShare}% · air yards {player.opportunityProfile.metrics.airYardShare}% · TPRR {player.opportunityProfile.metrics.tprr} · WOPR {player.opportunityProfile.wopr}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Scheme:</span> {player.schemeProfile.team} · {player.schemeProfile.badges.join(", ")} · pace {player.schemeProfile.pace} · PA {player.schemeProfile.paRate}% · motion {player.schemeProfile.motionRate}% · OL {player.schemeProfile.olGrade}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Composite:</span> VORP {player.compositeComponents.vorp}, VONA {player.compositeComponents.vona}, Opp {player.compositeComponents.opportunity}, Scheme {player.compositeComponents.scheme}, Category {player.compositeComponents.category}, Round {player.compositeComponents.roundGate}, Scarcity {player.compositeComponents.scarcity}, Strategy {player.compositeComponents.strategy} = {player.compositeRank}</div>
+                        {player.categoryFlag && <div><span className="font-black" style={{ color: colors.textPrimary }}>Category:</span> {player.categoryFlag.type} — {player.categoryFlag.detail}</div>}
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Tier/Scarcity:</span> {player.tierProfile.tier} · {player.scarcityMessage}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>Research edge:</span> {player.researchEdge.label} — {player.researchEdge.detail}</div>
+                        <div><span className="font-black" style={{ color: colors.textPrimary }}>{player.analystContext.analyst} note:</span> {player.analystContext.fact} <a className="font-bold underline" href={player.analystContext.url} target="_blank" rel="noreferrer">Source</a></div>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
+                        {player.scoreCards.map((card: any) => (
+                          <div key={card.label} className="rounded-lg border px-2 py-1" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                            <div className="flex items-center justify-between gap-2"><span className="font-bold" style={{ color: colors.textPrimary }}>{card.label}</span><span className="font-bold" style={{ color: getSignalColor(card.value) }}>{card.value}</span></div>
+                            <div className="mt-0.5 leading-snug" title={card.detail}>{card.detail}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </HoverCardContent>
-              </HoverCard>
-            ))}
+                </div>
+              )
+            })}
           </div>
         )}
       </CardContent>
