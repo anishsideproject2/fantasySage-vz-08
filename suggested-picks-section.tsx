@@ -1437,19 +1437,19 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className="flex items-end gap-2 overflow-x-auto overflow-y-visible pb-2 pt-1">
+          <div className="flex items-end gap-2 overflow-x-auto overflow-y-visible pb-2 pt-1" aria-label="Horizontally scrollable suggested picks">
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
               return (
                 <div
                   key={playerKey}
                   tabIndex={0}
-                  className="group flex min-w-[18rem] max-w-[22rem] flex-1 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-3 hover:shadow-lg focus:-translate-y-0.5 focus:p-3 focus:outline-none focus:ring-2 sm:min-w-[20rem] lg:min-w-[17rem] xl:min-w-[18rem]"
+                  className="group relative flex min-w-[18rem] max-w-[22rem] flex-1 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:-translate-y-0.5 focus:outline-none focus:ring-2 sm:min-w-[20rem] lg:min-w-[17rem] xl:min-w-[18rem]"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
-                  aria-label={`Expanded recommendation details for ${player.name}`}
+                  aria-label={`Recommendation summary for ${player.name}; hover or focus to show the detail blurb to the left`}
                 >
-                  <div className="mb-0 max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mb-2 group-hover:max-h-[52rem] group-hover:opacity-100 group-focus:mb-2 group-focus:max-h-[52rem] group-focus:opacity-100 focus-within:mb-2 focus-within:max-h-[52rem] focus-within:opacity-100">
-                    <div className="rounded-2xl border p-3 shadow-2xl" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                  <div className="pointer-events-none fixed left-[max(1rem,calc(100vw-59rem))] top-[15rem] z-50 hidden w-[min(30rem,40vw)] opacity-0 transition-all duration-200 group-hover:block group-hover:opacity-100 group-focus:block group-focus:opacity-100 group-focus-within:block group-focus-within:opacity-100 lg:-translate-x-2 lg:group-hover:translate-x-0 lg:group-focus:translate-x-0">
+                    <div className="rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
