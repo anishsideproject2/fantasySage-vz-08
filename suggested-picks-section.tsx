@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -966,6 +965,8 @@ const getSignalColor = (score) => {
   return "#ef4444"
 }
 
+const getValueDiffColor = (valueDiff) => Number(valueDiff) >= 0 ? "#22c55e" : "#ef4444"
+
 const getRosterCompositionInsight = ({ position, rosterCounts, starterTargets, flexSlots, scoringFormat, round }) => {
   const rb = rosterCounts.RB || 0
   const wr = rosterCounts.WR || 0
@@ -993,8 +994,6 @@ const getActionLabel = (player) => {
 }
 
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride }) {
-  const [expandedPlayerKey, setExpandedPlayerKey] = useState(null)
-
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -1420,7 +1419,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                         <span className="shrink-0 rounded-full border px-3 py-1 text-xs font-black shadow-sm" style={{ borderColor: colors.gold, background: colors.highlight, color: colors.gold }}>{fallback.confidenceScore}</span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 font-semibold">
-                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: colors.highlight, color: colors.gold }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${getValueDiffColor(fallback.valueDiff)}18`, color: getValueDiffColor(fallback.valueDiff) }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
                         <span style={{ color: colors.textSecondary }}>{fallback.valueLabel} · Rank {fallback.analystRank}</span>
                       </div>
                     </div>
@@ -1443,23 +1442,18 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           <div className="grid grid-cols-1 items-stretch gap-2 pb-2 pt-1 md:grid-cols-3" aria-label="Suggested picks">
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
-              const isExpanded = expandedPlayerKey === playerKey
+              const valueDiffColor = getValueDiffColor(player.valueDiff)
               const valueEmoji = player.valueDiff > 10 ? "🔥" : player.valueDiff <= -10 ? "💩" : null
               return (
                 <button
                   key={playerKey}
                   type="button"
-                  onClick={() => setExpandedPlayerKey(isExpanded ? null : playerKey)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setExpandedPlayerKey(null)
-                  }}
                   className="group relative flex min-w-0 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:-translate-y-0.5 focus:outline-none focus:ring-2"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
-                  aria-expanded={isExpanded}
-                  aria-label={`Recommendation summary for ${player.name}; click, hover, or focus to show a compact draft-day summary`}
+                  aria-label={`Recommendation summary for ${player.name}; hover or focus to show a compact draft-day summary`}
                 >
-                  <div className={`${isExpanded ? "block" : "hidden"} order-last mt-2 w-full transition-all duration-200 group-hover:block group-focus:block group-focus-within:block`}>
-                    <div className="rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                  <div className="pointer-events-none absolute left-0 right-0 top-full z-50 mt-2 hidden w-full min-w-[18rem] group-hover:block group-focus:block group-focus-within:block md:left-1/2 md:right-auto md:w-[28rem] md:-translate-x-1/2">
+                    <div className="pointer-events-auto rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
@@ -1518,7 +1512,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                   <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
                     <span>{player.position}</span>
                     <span>·</span>
-                    <span>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
+                    <span className="rounded-full px-2 py-0.5 font-black" style={{ background: `${valueDiffColor}18`, color: valueDiffColor }}>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
                     <span>·</span>
                     <span>{player.confidence} confidence</span>
                   </div>
