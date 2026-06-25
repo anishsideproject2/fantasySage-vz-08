@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown } from "lucide-react"
+import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown, Sparkles, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -53,6 +53,8 @@ const getAccuracyAwardLabel = (preset: any) => {
 export function Header({
   theme,
   toggleTheme,
+  modernUiEnabled,
+  toggleModernUi,
   colors,
   rankings,
   setRankings,
@@ -135,7 +137,7 @@ export function Header({
   return (
     <header className="mb-3 space-y-3">
       <div
-        className="rounded-2xl border p-3 shadow-sm"
+        className="modern-surface modern-panel rounded-2xl border p-3 shadow-sm"
         style={{ backgroundColor: colors.card, borderColor: colors.lightBorder, boxShadow: colors.shadow }}
       >
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.4fr)_minmax(320px,1fr)] xl:items-center">
@@ -193,26 +195,39 @@ export function Header({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-            <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: colors.darkBlue, color: isConnected ? colors.headingGreen : colors.textSecondary }}>
-              {isConnected ? "● Connected" : "○ Ready to connect"}
-            </span>
-            <Button onClick={() => setShowFileManager(!showFileManager)} size="sm" className="h-8 hover:opacity-90" style={{ backgroundColor: colors.headingGreen, color: "#000000" }}>
-              {showFileManager ? "Hide Upload" : "Upload CSV"}
-            </Button>
-            <Button onClick={handleCopyLink} size="sm" className="h-8 px-2 text-xs hover:opacity-90" style={{ backgroundColor: colors.darkBlue, color: colors.textPrimary }}>
-              <Copy size={12} className="mr-1" /> Share
-            </Button>
-            <Button onClick={toggleTheme} size="sm" className="h-8 px-2 text-xs border" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
-              {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
-            </Button>
-            {showCopiedMessage && <span className="text-xs font-semibold" style={{ color: colors.gold }}>Copied!</span>}
+          <div className="flex flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
+            <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
+              <span className="rounded-full px-3 py-1.5 text-xs font-bold" style={{ backgroundColor: colors.card, color: isConnected ? colors.headingGreen : colors.textSecondary }}>
+                {isConnected ? "● Connected" : "○ Ready to connect"}
+              </span>
+              <Button
+                onClick={() => setShowFileManager(!showFileManager)}
+                className="h-10 gap-2 px-4 text-sm font-bold hover:opacity-90"
+                style={{ backgroundColor: colors.headingGreen, color: "#000000" }}
+                aria-expanded={showFileManager}
+              >
+                <FileUp size={16} /> {showFileManager ? "Hide CSV Upload" : "Upload FantasyPros CSV"}
+              </Button>
+              <Button onClick={handleCopyLink} size="sm" className="h-10 px-3 text-xs font-bold hover:opacity-90" style={{ backgroundColor: colors.card, color: colors.textPrimary }}>
+                <Copy size={14} className="mr-1.5" /> Share
+              </Button>
+              <Button onClick={toggleModernUi} size="sm" className="h-10 gap-1.5 px-3 text-xs font-bold border" style={{ backgroundColor: modernUiEnabled ? `${colors.purple}30` : colors.card, borderColor: modernUiEnabled ? colors.purple : colors.cardBorder, color: colors.textPrimary }} aria-pressed={modernUiEnabled}>
+                <Sparkles size={14} /> {modernUiEnabled ? "Modern On" : "Modern"}
+              </Button>
+              <Button onClick={toggleTheme} size="sm" className="h-10 px-3 text-xs border" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }} aria-label="Toggle light or dark theme">
+                {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+              </Button>
+              {showCopiedMessage && <span className="text-xs font-semibold" style={{ color: colors.gold }}>Copied!</span>}
+            </div>
+            <p className="text-[11px] font-semibold leading-snug xl:text-right" style={{ color: colors.textSecondary }}>
+              Custom rankings: download a FantasyPros CSV after choosing specific analysts, then upload it here.
+            </p>
           </div>
         </div>
         {error && <div className="mt-2 rounded-lg p-2 text-sm" style={{ backgroundColor: colors.adpNegative + "20", color: colors.adpNegative }}>{error}</div>}
       </div>
 
-      <div className="rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}>
+      <div className="modern-surface modern-panel rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.lightBorder }}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>Analyst board quick switch</h2>
@@ -226,13 +241,13 @@ export function Header({
           {quickSwitchGroups.map((group: any) => (
             <section
               key={group.id}
-              className="flex min-w-0 flex-col gap-1.5 rounded-xl border p-1.5"
+              className="flex min-w-0 flex-col gap-2 rounded-xl border p-2"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
-              <div className="flex items-center justify-center rounded-lg px-2 py-0.5 text-center text-[10px] font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
+              <div className="flex items-center justify-center rounded-lg px-2 py-1 text-center text-xs font-black uppercase tracking-wide" style={{ backgroundColor: colors.card, color: colors.headingGreen }}>
                 {group.label}
               </div>
-              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-1.5 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
+              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
                 {group.presets.map((preset) => {
                   const isActive = rankings[activeRankingIndex]?.presetId === preset.id
                   return (
@@ -244,37 +259,37 @@ export function Header({
                         setDetectedScoringLabel("Manual board selected")
                         loadPreset(preset.id, activeRankingIndex)
                       }}
-                      className="flex min-h-[3.5rem] min-w-0 flex-col rounded-lg border px-2 py-1 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                      className="modern-ranking-button flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
                       style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                       aria-pressed={isActive}
                     >
                       <div className="mb-0.5 flex items-center justify-between gap-2">
-                        <span className="truncate text-[10px] font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
+                        <span className="truncate text-xs font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
                           {preset.accuracyType}
                         </span>
                         {isActive && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: `${colors.headingGreen}30`, color: colors.headingGreen }}>
-                            <Check size={10} /> Loaded
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: `${colors.headingGreen}30`, color: colors.headingGreen }}>
+                            <Check size={14} /> Loaded
                           </span>
                         )}
                       </div>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="truncate text-xs font-bold" style={{ color: colors.textPrimary }}>
+                          <div className="truncate text-sm font-extrabold sm:text-[15px]" style={{ color: colors.textPrimary }}>
                             {preset.analyst}
                           </div>
-                          <div className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{preset.source} · {preset.updated}</div>
+                          <div className="truncate text-xs" style={{ color: colors.textSecondary }}>{preset.source} · {preset.updated}</div>
                         </div>
-                        <span className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
+                        <span className="shrink-0 rounded-lg border px-2 py-1 text-xs font-black" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
                           #{preset.accuracyRank}
                         </span>
                       </div>
                       {preset.accuracyRanks && (
-                        <div className="mt-1 flex flex-wrap gap-1 text-[9px]">
+                        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
                           {POSITION_RANKS.map((position) => (
                             <span
                               key={position}
-                              className="inline-flex h-5 min-w-6 items-center justify-center rounded border px-1 text-center font-black leading-none"
+                              className="inline-flex h-6 min-w-8 items-center justify-center rounded-md border px-1.5 text-center font-black leading-none"
                               style={getPositionAccuracyStyle(colors)}
                               title={`${position} accuracy rank`}
                             >
@@ -293,7 +308,7 @@ export function Header({
       </div>
 
       {showFileManager && (
-        <div className="rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
+        <div className="modern-surface rounded-2xl border p-3" style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
           <FileManager
             colors={colors}
             rankings={rankings}

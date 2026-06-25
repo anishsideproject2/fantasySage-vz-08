@@ -22,7 +22,7 @@ const normalizePlayerName = (name) => {
 }
 
 export function FantasyDraftAssistant() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, modernUiEnabled, toggleModernUi } = useTheme()
   const colors = useMemo(() => COLORS[theme], [theme])
 
   const {
@@ -106,9 +106,11 @@ export function FantasyDraftAssistant() {
 
   return (
     <div
-      className="min-h-screen w-full font-sans transition-colors duration-300"
+      className={`min-h-screen w-full font-sans transition-colors duration-300 ${modernUiEnabled ? "modern-ui" : ""}`}
       style={{
-        background: colors.background,
+        background: modernUiEnabled
+          ? `radial-gradient(circle at top left, ${colors.purple}30, transparent 30rem), radial-gradient(circle at top right, ${colors.headingGreen}24, transparent 34rem), ${colors.background}`
+          : colors.background,
         fontFamily: "'Space Grotesk', 'Inter', sans-serif",
       }}
     >
@@ -147,12 +149,45 @@ export function FantasyDraftAssistant() {
         .player-row:hover .player-name-cell {
           color: ${colors.textPrimary} !important;
         }
+
+        .modern-ui {
+          background-attachment: fixed;
+        }
+
+        .modern-ui .modern-surface {
+          backdrop-filter: blur(18px);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        }
+
+        .modern-ui .modern-panel {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .modern-ui .modern-panel::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(135deg, ${colors.headingGreen}18, transparent 35%, ${colors.purple}14);
+        }
+
+        .modern-ui .modern-panel > * {
+          position: relative;
+          z-index: 1;
+        }
+
+        .modern-ui .modern-ranking-button {
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 28px rgba(0, 0, 0, 0.14);
+        }
       `}</style>
 
       <div className="mx-auto flex min-h-screen max-w-[1920px] flex-col px-3 py-3 sm:px-4 lg:px-5">
         <Header
           theme={theme}
           toggleTheme={toggleTheme}
+          modernUiEnabled={modernUiEnabled}
+          toggleModernUi={toggleModernUi}
           colors={colors}
           rankings={rankings}
           setRankings={setRankings}
