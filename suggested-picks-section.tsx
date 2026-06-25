@@ -1403,27 +1403,28 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
         {positionalFallbacks.length > 0 && (
           <div className="rounded-xl border px-3 py-2 text-[11px]" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
             <div className="mb-1 font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>Best available for positions without a recommendation</div>
-            <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2">
               {positionalFallbacks.map(({ position, fallback }) => (
-                <div key={position} className="rounded-lg border px-2 py-1.5" style={{ borderColor: fallback ? fallback.confidenceColor : colors.lightBorder, background: fallback ? `${fallback.confidenceColor}12` : colors.card }}>
-                  <div className="flex items-center justify-between gap-2">
+                <div key={position} className="flex min-h-[4.25rem] w-full items-center gap-3 rounded-lg border px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: fallback ? fallback.confidenceColor : colors.lightBorder, background: fallback ? `${fallback.confidenceColor}12` : colors.card }}>
+                  <div className="shrink-0">
                     <BubbleSymbol pos={position} colors={colors} />
-                    {fallback ? (
-                      <span className="rounded-full border px-2.5 py-1 text-xs font-black shadow-sm" style={{ borderColor: colors.gold, background: colors.highlight, color: colors.gold }}>{fallback.confidenceScore}</span>
-                    ) : (
-                      <span className="text-[9px] font-black uppercase" style={{ color: colors.textSecondary }}>None</span>
-                    )}
                   </div>
                   {fallback ? (
-                    <div className="mt-1 min-w-0">
-                      <div className="truncate font-black" style={{ color: colors.textPrimary }} title={fallback.name}>{fallback.name}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="truncate text-sm font-black" style={{ color: colors.textPrimary }} title={fallback.name}>{fallback.name}</div>
+                        <span className="shrink-0 rounded-full border px-3 py-1 text-xs font-black shadow-sm" style={{ borderColor: colors.gold, background: colors.highlight, color: colors.gold }}>{fallback.confidenceScore}</span>
+                      </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 font-semibold">
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: colors.highlight, color: colors.gold }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: colors.highlight, color: colors.gold }}>{fallback.valueDiff >= 0 ? "+" : ""}{fallback.valueDiff.toFixed(1)} value</span>
                         <span style={{ color: colors.textSecondary }}>{fallback.valueLabel} · Rank {fallback.analystRank}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-1 font-semibold">No available {position} with an analyst rank.</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] font-black uppercase" style={{ color: colors.textSecondary }}>None</div>
+                      <div className="mt-1 font-semibold">No available {position} with an analyst rank.</div>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1435,22 +1436,22 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
             Connect a draft or load players to see pick suggestions.
           </div>
         ) : (
-          <div className={isHorizontal ? "grid grid-cols-1 gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-1.5 pb-1 sm:grid-cols-2 xl:grid-cols-3"}>
+          <div className="grid grid-cols-1 gap-2 pb-1">
             {suggestedPicks.map((player, idx) => {
               const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
               return (
                 <div
                   key={playerKey}
                   tabIndex={0}
-                  className="group rounded-xl border p-1.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-2 hover:shadow-lg focus:-translate-y-0.5 focus:p-2 focus:outline-none focus:ring-2"
+                  className="group rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:p-3 hover:shadow-lg focus:-translate-y-0.5 focus:p-3 focus:outline-none focus:ring-2"
                   style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
                   aria-label={`Expanded recommendation details for ${player.name}`}
                 >
-                  <div className="flex w-full items-center gap-1.5">
-                    <span className="text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
+                  <div className="flex w-full items-center gap-2">
+                    <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                     <BubbleSymbol pos={player.position} colors={colors} compact />
-                    <span className="min-w-0 flex-1 truncate text-xs font-black" title={player.name}>{player.name}</span>
-                    <span className="rounded-full px-1.5 py-0.5 text-[9px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
+                    <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
                     <span>{player.position}</span>
