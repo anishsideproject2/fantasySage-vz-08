@@ -48,6 +48,7 @@ export function FileManager({
   const getShareOptions = (index) => ({
     publish: Boolean(publishBySlot[index]),
     analyst: metadataBySlot[index]?.analyst || "",
+    analysts: metadataBySlot[index]?.analyst || "",
     format: metadataBySlot[index]?.format || "",
     updated: metadataBySlot[index]?.updated || "",
   })
@@ -70,7 +71,10 @@ export function FileManager({
   }
 
   const loadPastedRankings = (index) => {
-    const result = handleRankingsPaste?.(pasteBySlot[index] || "", index, getShareOptions(index))
+    const result = handleRankingsPaste?.(pasteBySlot[index] || "", index, {
+      ...getShareOptions(index),
+      publish: canPublish(index),
+    })
     setStatusBySlot((prev) => ({ ...prev, [index]: result?.message || "Paste processed." }))
     if (result?.ok) setPasteBySlot((prev) => ({ ...prev, [index]: "" }))
   }
@@ -212,15 +216,14 @@ export function FileManager({
                   onChange={(e) => setPublishBySlot((prev) => ({ ...prev, [index]: e.target.checked }))}
                   className="mt-0.5"
                 />
-                Make this uploaded FantasyPros custom rankings set available to everyone
+                Make this uploaded CSV rankings set available to everyone
               </label>
               <p className="mt-1 leading-snug" style={{ color: colors.textSecondary }}>
-                Optional: leave this off to use the upload privately. Shared entries are visible to every browser and only the latest 25 are kept.
+                Optional for CSV uploads: leave this off to use the upload privately. Pasted rankings are shared automatically when Analyst(s), format, and update date are filled in. Shared entries are visible to every browser and only the latest 25 are kept.
               </p>
-              {publishBySlot[index] && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <Input
-                    placeholder="Analyst"
+                    placeholder="Analyst(s), comma-separated"
                     value={metadataBySlot[index]?.analyst || ""}
                     onChange={(e) => updateMetadata(index, "analyst", e.target.value)}
                     className="h-9 text-xs"
@@ -243,11 +246,10 @@ export function FileManager({
                   />
                   {!canPublish(index) && (
                     <div className="sm:col-span-3" style={{ color: colors.gold }}>
-                      Fill out all three fields before choosing a file if you want this upload shared.
+                      Fill out analyst(s), format, and update date before choosing a file if you want this upload shared.
                     </div>
                   )}
                 </div>
-              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -265,6 +267,9 @@ export function FileManager({
 
             <div className="rounded-lg border p-3 text-xs" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
               <div className="mb-2 font-semibold" style={{ color: colors.textPrimary }}>Paste FantasyPros table rows</div>
+              <p className="mb-2 leading-snug" style={{ color: colors.textSecondary }}>
+                Pasted rankings load into this slot. If Analyst(s), format, and update date are filled above, the pasted set is also added to the shared quick-switch library for everyone.
+              </p>
               <Textarea
                 placeholder="Paste rows with Rank, Player, Pos, Team, Bye, ECR, vs. ECR, ADP..."
                 value={pasteBySlot[index] || ""}
@@ -280,7 +285,7 @@ export function FileManager({
                 className="mt-2 h-8 text-xs font-bold"
                 style={{ backgroundColor: colors.purple, color: colors.textPrimary }}
               >
-                Load pasted rankings into slot {index + 1}
+                Load{canPublish(index) ? " and share" : ""} pasted rankings into slot {index + 1}
               </Button>
             </div>
           </div>
@@ -297,7 +302,7 @@ export function FileManager({
               <div key={set.id} className="rounded-md border p-3" style={{ borderColor: colors.lightBorder, backgroundColor: colors.darkBlue }}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-bold" style={{ color: colors.textPrimary }}>{set.analyst}</div>
+                    <div className="font-bold" style={{ color: colors.textPrimary }}>{set.analysts?.length ? set.analysts.join(", ") : set.analyst}</div>
                     <div className="text-xs" style={{ color: colors.textSecondary }}>{set.format} · Updated {set.updated} · {set.playerCount} players</div>
                     <div className="text-[11px]" style={{ color: colors.textSecondary }}>{set.name}</div>
                   </div>

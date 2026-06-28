@@ -16,6 +16,7 @@ type RankingSet = {
   id?: string
   name?: string
   analyst?: string
+  analysts?: string[]
   format?: string
   updated?: string
   playerCount?: number
@@ -88,6 +89,14 @@ function trimText(value: unknown, fallback = "") {
   return String(value || fallback).trim().slice(0, MAX_TEXT_FIELD_LENGTH)
 }
 
+function normalizeAnalysts(value: unknown) {
+  const rawAnalysts = Array.isArray(value) ? value : String(value || "").split(/,|\s+&\s+|\s+and\s+/i)
+
+  return rawAnalysts
+    .map((analyst) => trimText(analyst))
+    .filter(Boolean)
+}
+
 function finiteNumber(value: unknown, fallback: number) {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : fallback
@@ -121,7 +130,8 @@ function sanitizeRankingPlayer(player: unknown, index: number): RankingPlayer | 
 
 function sanitizeRankingSet(set: RankingSet): RankingSet | null {
   if (!set || typeof set !== "object") return null
-  const analyst = trimText(set.analyst)
+  const analysts = normalizeAnalysts(set.analysts?.length ? set.analysts : set.analyst)
+  const analyst = analysts.join(", ")
   const format = trimText(set.format)
   const updated = trimText(set.updated)
   const data = Array.isArray(set.data)
@@ -134,6 +144,7 @@ function sanitizeRankingSet(set: RankingSet): RankingSet | null {
     id: trimText(set.id, `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
     name: trimText(set.name, analyst),
     analyst,
+    analysts,
     format,
     updated,
     playerCount: data.length,
