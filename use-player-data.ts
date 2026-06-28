@@ -7,6 +7,8 @@ const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const DEFAULT_RANKING_PRESET_ID = "del-don-full-ppr"
 const CUSTOM_RANKING_LIBRARY_KEY = "fantasy-sage-custom-ranking-library"
+const CUSTOM_RANKING_LIBRARY_LIMIT = 25
+const CUSTOM_RANKING_LIBRARY_API = "/api/custom-rankings"
 
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
@@ -20,22 +22,62 @@ export function usePlayerData() {
   const [customRankingSets, setCustomRankingSets] = useState([])
 
   useEffect(() => {
-    try {
-      const savedSets = window.localStorage.getItem(CUSTOM_RANKING_LIBRARY_KEY)
-      if (savedSets) setCustomRankingSets(JSON.parse(savedSets))
-    } catch (err) {
-      console.error("Custom rankings library load error:", err)
+    let ignore = false
+
+    const loadCustomRankingSets = async () => {
+      try {
+        const response = await fetch(CUSTOM_RANKING_LIBRARY_API, { cache: "no-store" })
+        if (!response.ok) throw new Error(`Custom rankings request failed: ${response.status}`)
+        const { sets } = await response.json()
+        if (!ignore) setCustomRankingSets(Array.isArray(sets) ? sets.slice(0, CUSTOM_RANKING_LIBRARY_LIMIT) : [])
+      } catch (err) {
+        console.error("Custom rankings library load error:", err)
+        try {
+          const savedSets = window.localStorage.getItem(CUSTOM_RANKING_LIBRARY_KEY)
+          if (savedSets && !ignore) setCustomRankingSets(JSON.parse(savedSets).slice(0, CUSTOM_RANKING_LIBRARY_LIMIT))
+        } catch (localErr) {
+          console.error("Custom rankings local fallback load error:", localErr)
+        }
+      }
+    }
+
+    loadCustomRankingSets()
+
+    return () => {
+      ignore = true
     }
   }, [])
 
   const saveCustomRankingSets = useCallback((sets) => {
-    setCustomRankingSets(sets)
+    const limitedSets = sets.slice(0, CUSTOM_RANKING_LIBRARY_LIMIT)
+    setCustomRankingSets(limitedSets)
     try {
-      window.localStorage.setItem(CUSTOM_RANKING_LIBRARY_KEY, JSON.stringify(sets))
+      window.localStorage.setItem(CUSTOM_RANKING_LIBRARY_KEY, JSON.stringify(limitedSets))
+    } catch (err) {
+      console.error("Custom rankings local fallback save error:", err)
+    }
+  }, [])
+
+  const addCustomRankingSet = useCallback(async (customSet) => {
+    const optimisticSets = [customSet, ...customRankingSets.filter((set) => set.id !== customSet.id)].slice(
+      0,
+      CUSTOM_RANKING_LIBRARY_LIMIT,
+    )
+    saveCustomRankingSets(optimisticSets)
+
+    try {
+      const response = await fetch(CUSTOM_RANKING_LIBRARY_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ set: customSet }),
+      })
+      if (!response.ok) throw new Error(`Custom rankings save failed: ${response.status}`)
+      const { sets } = await response.json()
+      if (Array.isArray(sets)) saveCustomRankingSets(sets)
     } catch (err) {
       console.error("Custom rankings library save error:", err)
     }
-  }, [])
+  }, [customRankingSets, saveCustomRankingSets])
 
   const normalizeRankingUpdateDate = (dateValue = "") => {
     const trimmedDate = String(dateValue).trim()
@@ -137,13 +179,13 @@ export function usePlayerData() {
           playerCount: players.length,
           data: players.map((player) => ({ ...player, drafted: false })),
         }
-        saveCustomRankingSets([customSet, ...customRankingSets])
+        addCustomRankingSet(customSet)
       }
 
       setActiveRankingIndex(rankingIndex)
       return { ok: true, message: `${players.length} pasted rankings loaded.` }
     },
-    [buildPlayersFromFantasyProsText, customRankingSets, saveCustomRankingSets],
+    [addCustomRankingSet, buildPlayersFromFantasyProsText],
   )
 
   const handleFileUpload = useCallback(
@@ -233,7 +275,7 @@ export function usePlayerData() {
                   playerCount: players.length,
                   data: players.map((player) => ({ ...player, drafted: false })),
                 }
-                saveCustomRankingSets([customSet, ...customRankingSets])
+                addCustomRankingSet(customSet)
               }
 
               if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {
@@ -314,7 +356,7 @@ export function usePlayerData() {
                   playerCount: players.length,
                   data: players.map((player) => ({ ...player, drafted: false })),
                 }
-                saveCustomRankingSets([customSet, ...customRankingSets])
+                addCustomRankingSet(customSet)
               }
 
               // Set as active if it's the first ranking or if current active is empty
@@ -330,7 +372,7 @@ export function usePlayerData() {
         skipEmptyLines: true,
       })
     },
-    [isPapaParseLoaded, rankings, activeRankingIndex, saveCustomRankingSets, customRankingSets],
+    [addCustomRankingSet, isPapaParseLoaded, rankings, activeRankingIndex],
   )
 
   const saveLoadedRankingSet = useCallback((rankingIndex = activeRankingIndex, metadata = {}) => {
@@ -355,9 +397,9 @@ export function usePlayerData() {
       playerCount: ranking.data.length,
       data: ranking.data.map((player) => ({ ...player, drafted: false })),
     }
-    saveCustomRankingSets([customSet, ...customRankingSets])
+    addCustomRankingSet(customSet)
     return { ok: true, message: `${customSet.playerCount} rankings saved to the quick switch board.` }
-  }, [activeRankingIndex, customRankingSets, rankings, saveCustomRankingSets])
+  }, [activeRankingIndex, addCustomRankingSet, rankings])
 
   const loadCustomRankingSet = useCallback((setId, rankingIndex = 0) => {
     const customSet = customRankingSets.find((set) => set.id === setId)
@@ -377,7 +419,16 @@ export function usePlayerData() {
   }, [customRankingSets])
 
   const removeCustomRankingSet = useCallback((setId) => {
-    saveCustomRankingSets(customRankingSets.filter((set) => set.id !== setId))
+    const nextSets = customRankingSets.filter((set) => set.id !== setId)
+    saveCustomRankingSets(nextSets)
+
+    fetch(`${CUSTOM_RANKING_LIBRARY_API}?id=${encodeURIComponent(setId)}`, { method: "DELETE" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Custom rankings delete failed: ${response.status}`)
+        const { sets } = await response.json()
+        if (Array.isArray(sets)) saveCustomRankingSets(sets)
+      })
+      .catch((err) => console.error("Custom rankings library delete error:", err))
   }, [customRankingSets, saveCustomRankingSets])
 
   const loadPreset = useCallback(
