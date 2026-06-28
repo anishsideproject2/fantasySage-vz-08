@@ -6,6 +6,7 @@ import { findPresetById } from "./ranking-presets"
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const DEFAULT_RANKING_PRESET_ID = "del-don-full-ppr"
+const CUSTOM_RANKING_LIBRARY_KEY = "fantasy-sage-custom-ranking-library"
 
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
@@ -16,6 +17,25 @@ export function usePlayerData() {
   const [isPapaParseLoaded, setIsPapaParseLoaded] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [positionFilter, setPositionFilter] = useState("All")
+  const [customRankingSets, setCustomRankingSets] = useState([])
+
+  useEffect(() => {
+    try {
+      const savedSets = window.localStorage.getItem(CUSTOM_RANKING_LIBRARY_KEY)
+      if (savedSets) setCustomRankingSets(JSON.parse(savedSets))
+    } catch (err) {
+      console.error("Custom rankings library load error:", err)
+    }
+  }, [])
+
+  const saveCustomRankingSets = useCallback((sets) => {
+    setCustomRankingSets(sets)
+    try {
+      window.localStorage.setItem(CUSTOM_RANKING_LIBRARY_KEY, JSON.stringify(sets))
+    } catch (err) {
+      console.error("Custom rankings library save error:", err)
+    }
+  }, [])
 
   useEffect(() => {
     const script = document.createElement("script")
@@ -41,7 +61,7 @@ export function usePlayerData() {
   }
 
   const handleFileUpload = useCallback(
-    (event, rankingIndex = 0) => {
+    (event, rankingIndex = 0, shareOptions = {}) => {
       const file = event.target.files[0]
       if (!file) return
       if (!isPapaParseLoaded || typeof window.Papa === "undefined") {
@@ -100,17 +120,36 @@ export function usePlayerData() {
                   }
                 })
 
+              const name = file.name.replace(".csv", "")
+              const metadata = {
+                analyst: shareOptions.analyst?.trim() || "",
+                format: shareOptions.format?.trim() || "",
+                updated: shareOptions.updated?.trim() || "",
+              }
+
               // Update the specific ranking
               setRankings((prev) => {
                 const newRankings = [...prev]
                 newRankings[rankingIndex] = {
                   data: players,
-                  name: file.name.replace(".csv", ""),
+                  name,
+                  metadata,
                 }
                 return newRankings
               })
 
               // Set as active if it's the first ranking or if current active is empty
+              if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
+                const customSet = {
+                  id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  name,
+                  ...metadata,
+                  playerCount: players.length,
+                  data: players.map((player) => ({ ...player, drafted: false })),
+                }
+                saveCustomRankingSets([customSet, ...customRankingSets])
+              }
+
               if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {
                 setActiveRankingIndex(rankingIndex)
               }
@@ -163,15 +202,34 @@ export function usePlayerData() {
                   }
                 })
 
+              const name = file.name.replace(".csv", "")
+              const metadata = {
+                analyst: shareOptions.analyst?.trim() || "",
+                format: shareOptions.format?.trim() || "",
+                updated: shareOptions.updated?.trim() || "",
+              }
+
               // Update the specific ranking
               setRankings((prev) => {
                 const newRankings = [...prev]
                 newRankings[rankingIndex] = {
                   data: players,
-                  name: file.name.replace(".csv", ""),
+                  name,
+                  metadata,
                 }
                 return newRankings
               })
+
+              if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
+                const customSet = {
+                  id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  name,
+                  ...metadata,
+                  playerCount: players.length,
+                  data: players.map((player) => ({ ...player, drafted: false })),
+                }
+                saveCustomRankingSets([customSet, ...customRankingSets])
+              }
 
               // Set as active if it's the first ranking or if current active is empty
               if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {
@@ -186,8 +244,29 @@ export function usePlayerData() {
         skipEmptyLines: true,
       })
     },
-    [isPapaParseLoaded, rankings, activeRankingIndex],
+    [isPapaParseLoaded, rankings, activeRankingIndex, saveCustomRankingSets, customRankingSets],
   )
+
+  const loadCustomRankingSet = useCallback((setId, rankingIndex = 0) => {
+    const customSet = customRankingSets.find((set) => set.id === setId)
+    if (!customSet) return
+
+    setRankings((prev) => {
+      const newRankings = [...prev]
+      newRankings[rankingIndex] = {
+        data: customSet.data.map((player) => ({ ...player, drafted: false })),
+        name: `${customSet.analyst} (${customSet.format})`,
+        customSetId: customSet.id,
+        metadata: { analyst: customSet.analyst, format: customSet.format, updated: customSet.updated },
+      }
+      return newRankings
+    })
+    setActiveRankingIndex(rankingIndex)
+  }, [customRankingSets])
+
+  const removeCustomRankingSet = useCallback((setId) => {
+    saveCustomRankingSets(customRankingSets.filter((set) => set.id !== setId))
+  }, [customRankingSets, saveCustomRankingSets])
 
   const loadPreset = useCallback(
     (presetId, rankingIndex = 0) => {
@@ -273,6 +352,9 @@ export function usePlayerData() {
     csvData: getActiveRankingData(), // For backward compatibility
     handleFileUpload,
     loadPreset,
+    customRankingSets,
+    loadCustomRankingSet,
+    removeCustomRankingSet,
     isPapaParseLoaded,
     searchTerm,
     setSearchTerm,

@@ -33,6 +33,9 @@ export function FantasyDraftAssistant() {
     csvData,
     handleFileUpload,
     loadPreset,
+    customRankingSets,
+    loadCustomRankingSet,
+    removeCustomRankingSet,
     isPapaParseLoaded,
     searchTerm,
     setSearchTerm,
@@ -161,6 +164,9 @@ export function FantasyDraftAssistant() {
           setActiveRankingIndex={setActiveRankingIndex}
           handleFileUpload={handleFileUpload}
           loadPreset={loadPreset}
+          customRankingSets={customRankingSets}
+          loadCustomRankingSet={loadCustomRankingSet}
+          removeCustomRankingSet={removeCustomRankingSet}
           isPapaParseLoaded={isPapaParseLoaded}
           platform={platform}
           setPlatform={setPlatform}
