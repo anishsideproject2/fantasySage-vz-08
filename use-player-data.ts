@@ -89,6 +89,26 @@ export function usePlayerData() {
     return trimmedDate
   }
 
+  const normalizeAnalysts = (analystValue = "") => {
+    const rawAnalysts = Array.isArray(analystValue) ? analystValue : String(analystValue).split(/,|\s+&\s+|\s+and\s+/i)
+
+    return rawAnalysts
+      .map((analyst) => String(analyst || "").trim())
+      .filter(Boolean)
+  }
+
+  const buildRankingMetadata = (shareOptions = {}, defaults = {}) => {
+    const analysts = normalizeAnalysts(shareOptions.analysts || shareOptions.analyst || defaults.analysts || defaults.analyst)
+    const analyst = analysts.join(", ")
+
+    return {
+      analyst,
+      analysts,
+      format: shareOptions.format?.trim() || defaults.format || "",
+      updated: normalizeRankingUpdateDate(shareOptions.updated || defaults.updated),
+    }
+  }
+
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
@@ -158,12 +178,8 @@ export function usePlayerData() {
       const players = buildPlayersFromFantasyProsText(rawText)
       if (players.length === 0) return { ok: false, message: "No FantasyPros ranking rows found." }
 
-      const metadata = {
-        analyst: shareOptions.analyst?.trim() || "Pasted FantasyPros Rankings",
-        format: shareOptions.format?.trim() || "PPR",
-        updated: normalizeRankingUpdateDate(shareOptions.updated),
-      }
-      const name = `${metadata.analyst}${metadata.format ? ` (${metadata.format})` : ""}`
+      const metadata = buildRankingMetadata(shareOptions)
+      const name = `${metadata.analyst || "Pasted FantasyPros Rankings"}${metadata.format ? ` (${metadata.format})` : ""}`
 
       setRankings((prev) => {
         const newRankings = [...prev]
@@ -171,7 +187,9 @@ export function usePlayerData() {
         return newRankings
       })
 
-      if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
+      const shouldShare = metadata.analyst && metadata.format && metadata.updated
+
+      if (shouldShare) {
         const customSet = {
           id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           name,
@@ -183,7 +201,12 @@ export function usePlayerData() {
       }
 
       setActiveRankingIndex(rankingIndex)
-      return { ok: true, message: `${players.length} pasted rankings loaded.` }
+      return {
+        ok: true,
+        message: shouldShare
+          ? `${players.length} pasted rankings loaded and shared.`
+          : `${players.length} pasted rankings loaded. Add analyst(s), format, and update date to share.`,
+      }
     },
     [addCustomRankingSet, buildPlayersFromFantasyProsText],
   )
@@ -249,11 +272,7 @@ export function usePlayerData() {
                 })
 
               const name = file.name.replace(".csv", "")
-              const metadata = {
-                analyst: shareOptions.analyst?.trim() || "",
-                format: shareOptions.format?.trim() || "",
-                updated: normalizeRankingUpdateDate(shareOptions.updated),
-              }
+              const metadata = buildRankingMetadata(shareOptions)
 
               // Update the specific ranking
               setRankings((prev) => {
@@ -331,11 +350,7 @@ export function usePlayerData() {
                 })
 
               const name = file.name.replace(".csv", "")
-              const metadata = {
-                analyst: shareOptions.analyst?.trim() || "",
-                format: shareOptions.format?.trim() || "",
-                updated: normalizeRankingUpdateDate(shareOptions.updated),
-              }
+              const metadata = buildRankingMetadata(shareOptions)
 
               // Update the specific ranking
               setRankings((prev) => {
@@ -380,9 +395,11 @@ export function usePlayerData() {
     if (!ranking?.data?.length) return { ok: false, message: "No rankings loaded in that slot." }
 
     const rankingMetadata = ranking.metadata || {}
-    const analyst = metadata.analyst?.trim() || rankingMetadata.analyst || ranking.name || "Custom Rankings"
-    const format = metadata.format?.trim() || rankingMetadata.format || "PPR"
-    const updated = normalizeRankingUpdateDate(metadata.updated || rankingMetadata.updated)
+    const normalizedMetadata = buildRankingMetadata(metadata, rankingMetadata)
+    const analyst = normalizedMetadata.analyst || ranking.name || "Custom Rankings"
+    const analysts = normalizedMetadata.analysts.length ? normalizedMetadata.analysts : [analyst]
+    const format = normalizedMetadata.format || "PPR"
+    const updated = normalizedMetadata.updated
 
     if (!analyst || !format || !updated) {
       return { ok: false, message: "Analyst, format, and update date are required." }
@@ -392,6 +409,7 @@ export function usePlayerData() {
       id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: ranking.name || analyst,
       analyst,
+      analysts,
       format,
       updated,
       playerCount: ranking.data.length,
@@ -411,7 +429,7 @@ export function usePlayerData() {
         data: customSet.data.map((player) => ({ ...player, drafted: false })),
         name: `${customSet.analyst} (${customSet.format})`,
         customSetId: customSet.id,
-        metadata: { analyst: customSet.analyst, format: customSet.format, updated: customSet.updated },
+        metadata: { analyst: customSet.analyst, analysts: customSet.analysts || [customSet.analyst], format: customSet.format, updated: customSet.updated },
       }
       return newRankings
     })
