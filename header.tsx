@@ -53,6 +53,7 @@ export function Header({
   activeRankingIndex,
   setActiveRankingIndex,
   handleFileUpload,
+  handleRankingsPaste,
   loadPreset,
   customRankingSets,
   saveLoadedRankingSet,
