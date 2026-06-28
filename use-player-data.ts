@@ -37,6 +37,16 @@ export function usePlayerData() {
     }
   }, [])
 
+  const normalizeRankingUpdateDate = (dateValue = "") => {
+    const trimmedDate = String(dateValue).trim()
+    const slashDate = trimmedDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+    if (slashDate) {
+      const [, month, day, year] = slashDate
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+    }
+    return trimmedDate
+  }
+
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
@@ -59,6 +69,82 @@ export function usePlayerData() {
       .replace(/[^a-z]/g, "")
       .trim()
   }
+
+
+  const buildPlayersFromFantasyProsText = useCallback((rawText) => {
+    const seenRanks = new Set()
+
+    return String(rawText || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.split(/\t+/).map((cell) => cell.trim()))
+      .filter((cells) => /^\d+$/.test(cells[0] || "") && cells.length >= 3)
+      .filter((cells) => {
+        if (seenRanks.has(cells[0])) return false
+        seenRanks.add(cells[0])
+        return true
+      })
+      .map((cells, index) => {
+        const rank = Number.parseInt(cells[0], 10)
+        const name = cells[1] || ""
+        const nameParts = name.split(" ")
+        const firstName = nameParts.shift() || ""
+        const lastName = nameParts.join(" ")
+        const position = (cells[2] || "").replace(/\d/g, "").toUpperCase() || "FLEX"
+        const team = cells[3] || "FA"
+        const adpValue = Number.parseFloat(cells[7])
+
+        return {
+          id: `pasted-${rank || index + 1}`,
+          name,
+          firstName,
+          lastName,
+          position,
+          team,
+          adp: rank || (!Number.isNaN(adpValue) ? adpValue : index + 1),
+          expertRank: rank || index + 1,
+          marketAdp: !Number.isNaN(adpValue) ? adpValue : rank || index + 1,
+          value: 0,
+          drafted: false,
+        }
+      })
+  }, [])
+
+  const handleRankingsPaste = useCallback(
+    (rawText, rankingIndex = 0, shareOptions = {}) => {
+      const players = buildPlayersFromFantasyProsText(rawText)
+      if (players.length === 0) return { ok: false, message: "No FantasyPros ranking rows found." }
+
+      const metadata = {
+        analyst: shareOptions.analyst?.trim() || "Pasted FantasyPros Rankings",
+        format: shareOptions.format?.trim() || "PPR",
+        updated: normalizeRankingUpdateDate(shareOptions.updated),
+      }
+      const name = `${metadata.analyst}${metadata.format ? ` (${metadata.format})` : ""}`
+
+      setRankings((prev) => {
+        const newRankings = [...prev]
+        newRankings[rankingIndex] = { data: players, name, metadata }
+        return newRankings
+      })
+
+      if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
+        const customSet = {
+          id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name,
+          ...metadata,
+          playerCount: players.length,
+          data: players.map((player) => ({ ...player, drafted: false })),
+        }
+        saveCustomRankingSets([customSet, ...customRankingSets])
+      }
+
+      setActiveRankingIndex(rankingIndex)
+      return { ok: true, message: `${players.length} pasted rankings loaded.` }
+    },
+    [buildPlayersFromFantasyProsText, customRankingSets, saveCustomRankingSets],
+  )
 
   const handleFileUpload = useCallback(
     (event, rankingIndex = 0, shareOptions = {}) => {
@@ -124,7 +210,7 @@ export function usePlayerData() {
               const metadata = {
                 analyst: shareOptions.analyst?.trim() || "",
                 format: shareOptions.format?.trim() || "",
-                updated: shareOptions.updated?.trim() || "",
+                updated: normalizeRankingUpdateDate(shareOptions.updated),
               }
 
               // Update the specific ranking
@@ -206,7 +292,7 @@ export function usePlayerData() {
               const metadata = {
                 analyst: shareOptions.analyst?.trim() || "",
                 format: shareOptions.format?.trim() || "",
-                updated: shareOptions.updated?.trim() || "",
+                updated: normalizeRankingUpdateDate(shareOptions.updated),
               }
 
               // Update the specific ranking
@@ -246,6 +332,32 @@ export function usePlayerData() {
     },
     [isPapaParseLoaded, rankings, activeRankingIndex, saveCustomRankingSets, customRankingSets],
   )
+
+  const saveLoadedRankingSet = useCallback((rankingIndex = activeRankingIndex, metadata = {}) => {
+    const ranking = rankings[rankingIndex]
+    if (!ranking?.data?.length) return { ok: false, message: "No rankings loaded in that slot." }
+
+    const rankingMetadata = ranking.metadata || {}
+    const analyst = metadata.analyst?.trim() || rankingMetadata.analyst || ranking.name || "Custom Rankings"
+    const format = metadata.format?.trim() || rankingMetadata.format || "PPR"
+    const updated = normalizeRankingUpdateDate(metadata.updated || rankingMetadata.updated)
+
+    if (!analyst || !format || !updated) {
+      return { ok: false, message: "Analyst, format, and update date are required." }
+    }
+
+    const customSet = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: ranking.name || analyst,
+      analyst,
+      format,
+      updated,
+      playerCount: ranking.data.length,
+      data: ranking.data.map((player) => ({ ...player, drafted: false })),
+    }
+    saveCustomRankingSets([customSet, ...customRankingSets])
+    return { ok: true, message: `${customSet.playerCount} rankings saved to the quick switch board.` }
+  }, [activeRankingIndex, customRankingSets, rankings, saveCustomRankingSets])
 
   const loadCustomRankingSet = useCallback((setId, rankingIndex = 0) => {
     const customSet = customRankingSets.find((set) => set.id === setId)
@@ -351,8 +463,10 @@ export function usePlayerData() {
     setActiveRankingIndex,
     csvData: getActiveRankingData(), // For backward compatibility
     handleFileUpload,
+    handleRankingsPaste,
     loadPreset,
     customRankingSets,
+    saveLoadedRankingSet,
     loadCustomRankingSet,
     removeCustomRankingSet,
     isPapaParseLoaded,

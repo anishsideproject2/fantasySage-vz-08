@@ -34,6 +34,7 @@ export function FantasyDraftAssistant() {
     handleFileUpload,
     loadPreset,
     customRankingSets,
+    saveLoadedRankingSet,
     loadCustomRankingSet,
     removeCustomRankingSet,
     isPapaParseLoaded,
@@ -165,6 +166,7 @@ export function FantasyDraftAssistant() {
           handleFileUpload={handleFileUpload}
           loadPreset={loadPreset}
           customRankingSets={customRankingSets}
+          saveLoadedRankingSet={saveLoadedRankingSet}
           loadCustomRankingSet={loadCustomRankingSet}
           removeCustomRankingSet={removeCustomRankingSet}
           isPapaParseLoaded={isPapaParseLoaded}

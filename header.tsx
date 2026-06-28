@@ -55,6 +55,7 @@ export function Header({
   handleFileUpload,
   loadPreset,
   customRankingSets,
+  saveLoadedRankingSet,
   loadCustomRankingSet,
   removeCustomRankingSet,
   isPapaParseLoaded,
@@ -77,13 +78,27 @@ export function Header({
 
   const quickSwitchGroups = useMemo(() => {
     const groupsById = new Map(RANKING_PRESET_GROUPS.map((group) => [group.id, group]))
+    const getCustomGroupId = (format = "") => {
+      const normalizedFormat = String(format).toLowerCase()
+      if (normalizedFormat.includes("best ball") || normalizedFormat.includes("underdog")) return "best-ball"
+      if (normalizedFormat.includes("half") || normalizedFormat.includes("0.5")) return "half-ppr"
+      return "full-ppr"
+    }
 
     return QUICK_SWITCH_GROUP_ORDER.map((groupId) => {
       const group = groupsById.get(groupId)
       if (!group) return null
-      return groupId === "best-ball" ? { ...group, label: "Underdog" } : group
+      const customPresets = customRankingSets
+        .filter((set: any) => getCustomGroupId(set.format) === groupId)
+        .map((set: any) => ({ ...set, isCustom: true }))
+
+      return {
+        ...group,
+        label: groupId === "best-ball" ? "Underdog" : group.label,
+        presets: [...group.presets, ...customPresets],
+      }
     }).filter(Boolean)
-  }, [])
+  }, [customRankingSets])
 
   useEffect(() => {
     activePresetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
@@ -256,59 +271,67 @@ export function Header({
                   </span>
                 )}
               </div>
-              <div className={`grid min-w-0 flex-1 grid-cols-1 gap-2 ${group.id === "best-ball" ? "" : "sm:grid-cols-3"}`}>
-                {group.presets.map((preset) => {
-                  const isActive = rankings[activeRankingIndex]?.presetId === preset.id
-                  return (
-                    <button
-                      key={preset.id}
-                      ref={isActive ? activePresetRef : null}
-                      onClick={() => {
-                        setDetectedScoringLabel(detectedScoringGroupId ? `${RANKING_PRESET_GROUPS.find((detectedGroup) => detectedGroup.id === detectedScoringGroupId)?.label || "Format"} detected; manual board selected` : "Manual board selected")
-                        loadPreset(preset.id, activeRankingIndex)
-                      }}
-                      className="flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
-                      style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
-                      aria-pressed={isActive}
-                    >
-                      <div className="mb-0.5 flex items-center justify-between gap-2">
-                        <span className="truncate text-xs font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
-                          {preset.accuracyType}
-                        </span>
-                        {isActive && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: `${colors.headingGreen}30`, color: colors.headingGreen }}>
-                            <Check size={14} /> Loaded
+              <div className="min-w-0 overflow-x-auto pb-1">
+                <div className={`grid min-w-max grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-2 ${group.id === "best-ball" ? "sm:auto-cols-[minmax(15rem,1fr)]" : "sm:auto-cols-[minmax(15rem,32%)]"}`}>
+                  {group.presets.map((preset) => {
+                    const isActive = preset.isCustom
+                      ? rankings[activeRankingIndex]?.customSetId === preset.id
+                      : rankings[activeRankingIndex]?.presetId === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        ref={isActive ? activePresetRef : null}
+                        onClick={() => {
+                          setDetectedScoringLabel(detectedScoringGroupId ? `${RANKING_PRESET_GROUPS.find((detectedGroup) => detectedGroup.id === detectedScoringGroupId)?.label || "Format"} detected; manual board selected` : "Manual board selected")
+                          if (preset.isCustom) {
+                            loadCustomRankingSet(preset.id, activeRankingIndex)
+                          } else {
+                            loadPreset(preset.id, activeRankingIndex)
+                          }
+                        }}
+                        className="flex min-h-[4.4rem] min-w-0 flex-col rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                        style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
+                        aria-pressed={isActive}
+                      >
+                        <div className="mb-0.5 flex items-center justify-between gap-2">
+                          <span className="truncate text-xs font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
+                            {preset.isCustom ? "Custom" : preset.accuracyType}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-extrabold sm:text-[15px]" style={{ color: colors.textPrimary }}>
-                            {preset.analyst}
-                          </div>
-                          <div className="truncate text-xs" style={{ color: colors.textSecondary }}>{preset.source} · {preset.updated}</div>
-                        </div>
-                        <span className="shrink-0 rounded-lg border px-2 py-1 text-xs font-black" style={getAccuracyTypeStyle(preset.accuracyType, colors)}>
-                          #{preset.accuracyRank}
-                        </span>
-                      </div>
-                      {preset.accuracyRanks && (
-                        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                          {POSITION_RANKS.map((position) => (
-                            <span
-                              key={position}
-                              className="inline-flex h-6 min-w-8 items-center justify-center rounded-md border px-1.5 text-center font-black leading-none"
-                              style={getPositionAccuracyStyle(colors)}
-                              title={`${position} accuracy rank`}
-                            >
-                              {position} {preset.accuracyRanks?.[position] ?? "—"}
+                          {isActive && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: `${colors.headingGreen}30`, color: colors.headingGreen }}>
+                              <Check size={14} /> Loaded
                             </span>
-                          ))}
+                          )}
                         </div>
-                      )}
-                    </button>
-                  )
-                })}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-extrabold sm:text-[15px]" style={{ color: colors.textPrimary }}>
+                              {preset.analyst}
+                            </div>
+                            <div className="truncate text-xs" style={{ color: colors.textSecondary }}>{preset.isCustom ? `${preset.format} · Updated ${preset.updated} · ${preset.playerCount} players` : `${preset.source} · ${preset.updated}`}</div>
+                          </div>
+                          <span className="shrink-0 rounded-lg border px-2 py-1 text-xs font-black" style={getAccuracyTypeStyle(preset.isCustom ? "Draft" : preset.accuracyType, colors)}>
+                            {preset.isCustom ? "Mine" : `#${preset.accuracyRank}`}
+                          </span>
+                        </div>
+                        {preset.accuracyRanks && (
+                          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                            {POSITION_RANKS.map((position) => (
+                              <span
+                                key={position}
+                                className="inline-flex h-6 min-w-8 items-center justify-center rounded-md border px-1.5 text-center font-black leading-none"
+                                style={getPositionAccuracyStyle(colors)}
+                                title={`${position} accuracy rank`}
+                              >
+                                {position} {preset.accuracyRanks?.[position] ?? "—"}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </section>
           ))}
@@ -324,7 +347,9 @@ export function Header({
             activeRankingIndex={activeRankingIndex}
             setActiveRankingIndex={setActiveRankingIndex}
             handleFileUpload={handleFileUpload}
+            handleRankingsPaste={handleRankingsPaste}
             customRankingSets={customRankingSets}
+            saveLoadedRankingSet={saveLoadedRankingSet}
             loadCustomRankingSet={loadCustomRankingSet}
             removeCustomRankingSet={removeCustomRankingSet}
             isPapaParseLoaded={isPapaParseLoaded}
