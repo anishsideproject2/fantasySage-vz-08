@@ -65,8 +65,9 @@ export function FileManager({
     return Boolean(metadata.analyst?.trim() && metadata.format?.trim() && metadata.updated?.trim())
   }
 
-  const saveLoadedToLibrary = (index) => {
-    const result = saveLoadedRankingSet?.(index, getShareOptions(index))
+  const saveLoadedToLibrary = async (index) => {
+    setStatusBySlot((prev) => ({ ...prev, [index]: "Saving shared rankings..." }))
+    const result = await saveLoadedRankingSet?.(index, getShareOptions(index))
     setStatusBySlot((prev) => ({ ...prev, [index]: result?.message || "Saved." }))
   }
 

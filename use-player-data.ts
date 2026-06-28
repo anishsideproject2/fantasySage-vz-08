@@ -7,6 +7,7 @@ const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
 const DEFAULT_RANKING_PRESET_ID = "del-don-full-ppr"
 const CUSTOM_RANKING_LIBRARY_KEY = "fantasy-sage-custom-ranking-library"
+const LOADED_RANKINGS_KEY = "fantasy-sage-loaded-rankings"
 const CUSTOM_RANKING_LIBRARY_LIMIT = 25
 const CUSTOM_RANKING_LIBRARY_API = "/api/custom-rankings"
 
@@ -20,6 +21,27 @@ export function usePlayerData() {
   const [searchTerm, setSearchTerm] = useState("")
   const [positionFilter, setPositionFilter] = useState("All")
   const [customRankingSets, setCustomRankingSets] = useState([])
+  const [hasRestoredRankings, setHasRestoredRankings] = useState(false)
+
+  useEffect(() => {
+    try {
+      const savedRankings = window.localStorage.getItem(LOADED_RANKINGS_KEY)
+      if (savedRankings) {
+        const parsed = JSON.parse(savedRankings)
+        const savedSlots = Array.isArray(parsed.rankings) ? parsed.rankings.slice(0, 2) : []
+        if (savedSlots.some((ranking) => ranking?.data?.length || ranking?.presetId || ranking?.customSetId)) {
+          setRankings([0, 1].map((index) => ({ data: [], name: null, ...(savedSlots[index] || {}) })))
+          if (Number.isInteger(parsed.activeRankingIndex)) {
+            setActiveRankingIndex(Math.max(0, Math.min(1, parsed.activeRankingIndex)))
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Loaded rankings restore error:", err)
+    } finally {
+      setHasRestoredRankings(true)
+    }
+  }, [])
 
   useEffect(() => {
     let ignore = false
@@ -48,6 +70,25 @@ export function usePlayerData() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!hasRestoredRankings) return
+
+    try {
+      window.localStorage.setItem(
+        LOADED_RANKINGS_KEY,
+        JSON.stringify({
+          activeRankingIndex,
+          rankings: rankings.slice(0, 2).map((ranking) => ({
+            ...ranking,
+            data: (ranking.data || []).map((player) => ({ ...player, drafted: false })),
+          })),
+        }),
+      )
+    } catch (err) {
+      console.error("Loaded rankings save error:", err)
+    }
+  }, [activeRankingIndex, hasRestoredRankings, rankings])
+
   const saveCustomRankingSets = useCallback((sets) => {
     const limitedSets = sets.slice(0, CUSTOM_RANKING_LIBRARY_LIMIT)
     setCustomRankingSets(limitedSets)
@@ -74,8 +115,10 @@ export function usePlayerData() {
       if (!response.ok) throw new Error(`Custom rankings save failed: ${response.status}`)
       const { sets } = await response.json()
       if (Array.isArray(sets)) saveCustomRankingSets(sets)
+      return { ok: true, message: "Shared rankings saved for everyone." }
     } catch (err) {
       console.error("Custom rankings library save error:", err)
+      return { ok: false, message: "Saved in this browser, but sharing to other browsers failed." }
     }
   }, [customRankingSets, saveCustomRankingSets])
 
@@ -390,7 +433,7 @@ export function usePlayerData() {
     [addCustomRankingSet, isPapaParseLoaded, rankings, activeRankingIndex],
   )
 
-  const saveLoadedRankingSet = useCallback((rankingIndex = activeRankingIndex, metadata = {}) => {
+  const saveLoadedRankingSet = useCallback(async (rankingIndex = activeRankingIndex, metadata = {}) => {
     const ranking = rankings[rankingIndex]
     if (!ranking?.data?.length) return { ok: false, message: "No rankings loaded in that slot." }
 
@@ -415,8 +458,13 @@ export function usePlayerData() {
       playerCount: ranking.data.length,
       data: ranking.data.map((player) => ({ ...player, drafted: false })),
     }
-    addCustomRankingSet(customSet)
-    return { ok: true, message: `${customSet.playerCount} rankings saved to the quick switch board.` }
+    const shareResult = await addCustomRankingSet(customSet)
+    return {
+      ok: shareResult?.ok !== false,
+      message: shareResult?.ok === false
+        ? `${customSet.playerCount} rankings saved in this browser. ${shareResult.message}`
+        : `${customSet.playerCount} rankings saved to the shared quick switch board.`,
+    }
   }, [activeRankingIndex, addCustomRankingSet, rankings])
 
   const loadCustomRankingSet = useCallback((setId, rankingIndex = 0) => {
@@ -479,11 +527,13 @@ export function usePlayerData() {
   )
 
   useEffect(() => {
-    const hasLoadedRankings = rankings.some((ranking) => ranking.data.length > 0 || ranking.presetId)
+    if (!hasRestoredRankings) return
+
+    const hasLoadedRankings = rankings.some((ranking) => ranking.data.length > 0 || ranking.presetId || ranking.customSetId)
     if (!hasLoadedRankings) {
       loadPreset(DEFAULT_RANKING_PRESET_ID, 0)
     }
-  }, [loadPreset, rankings])
+  }, [hasRestoredRankings, loadPreset, rankings])
 
   const getActiveRankingData = useCallback(() => {
     return rankings[activeRankingIndex]?.data || []
