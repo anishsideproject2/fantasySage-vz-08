@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Upload, FileText, ToggleLeft, ToggleRight, Trash2, ExternalLink, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 export function FileManager({
   colors,
@@ -11,6 +12,8 @@ export function FileManager({
   activeRankingIndex,
   setActiveRankingIndex,
   handleFileUpload,
+  handleRankingsPaste,
+  saveLoadedRankingSet,
   customRankingSets = [],
   loadCustomRankingSet,
   removeCustomRankingSet,
@@ -19,6 +22,8 @@ export function FileManager({
   const [dragOver, setDragOver] = useState(false)
   const [publishBySlot, setPublishBySlot] = useState({})
   const [metadataBySlot, setMetadataBySlot] = useState({})
+  const [pasteBySlot, setPasteBySlot] = useState({})
+  const [statusBySlot, setStatusBySlot] = useState({})
 
   const handleDrop = (e, index) => {
     e.preventDefault()
@@ -57,6 +62,17 @@ export function FileManager({
   const canPublish = (index) => {
     const metadata = metadataBySlot[index] || {}
     return Boolean(metadata.analyst?.trim() && metadata.format?.trim() && metadata.updated?.trim())
+  }
+
+  const saveLoadedToLibrary = (index) => {
+    const result = saveLoadedRankingSet?.(index, getShareOptions(index))
+    setStatusBySlot((prev) => ({ ...prev, [index]: result?.message || "Saved." }))
+  }
+
+  const loadPastedRankings = (index) => {
+    const result = handleRankingsPaste?.(pasteBySlot[index] || "", index, getShareOptions(index))
+    setStatusBySlot((prev) => ({ ...prev, [index]: result?.message || "Paste processed." }))
+    if (result?.ok) setPasteBySlot((prev) => ({ ...prev, [index]: "" }))
   }
 
   const removeRanking = (index) => {
@@ -232,6 +248,40 @@ export function FileManager({
                   )}
                 </div>
               )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!rankings[index]?.data?.length || !canPublish(index)}
+                  onClick={() => saveLoadedToLibrary(index)}
+                  className="h-8 text-xs font-bold"
+                  style={{ backgroundColor: colors.purple, color: colors.textPrimary }}
+                >
+                  Save loaded set to quick switch
+                </Button>
+                {statusBySlot[index] && <span className="self-center text-[11px]" style={{ color: colors.textSecondary }}>{statusBySlot[index]}</span>}
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-3 text-xs" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+              <div className="mb-2 font-semibold" style={{ color: colors.textPrimary }}>Paste FantasyPros table rows</div>
+              <Textarea
+                placeholder="Paste rows with Rank, Player, Pos, Team, Bye, ECR, vs. ECR, ADP..."
+                value={pasteBySlot[index] || ""}
+                onChange={(e) => setPasteBySlot((prev) => ({ ...prev, [index]: e.target.value }))}
+                className="min-h-24 text-xs"
+                style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                disabled={!pasteBySlot[index]?.trim()}
+                onClick={() => loadPastedRankings(index)}
+                className="mt-2 h-8 text-xs font-bold"
+                style={{ backgroundColor: colors.purple, color: colors.textPrimary }}
+              >
+                Load pasted rankings into slot {index + 1}
+              </Button>
             </div>
           </div>
         ))}

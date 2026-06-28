@@ -676,9 +676,9 @@ const DEL_DON_HALF_PPR_UPDATED_ENTRIES = [
   'Jeremiyah Love|ARI|RB',
   'Rashee Rice|KC|WR',
   'Trey McBride|ARI|TE',
-  'George Pickens|DAL|WR',
   'DeVonta Smith|PHI|WR',
-  'Zay Flowers|BAL|WR',
+  'George Pickens|DAL|WR',
+  'Garrett Wilson|NYJ|WR',
   'Kyren Williams|LAR|RB',
   'Travis Etienne Jr.|NO|RB',
   'Colston Loveland|CHI|TE',
@@ -688,8 +688,8 @@ const DEL_DON_HALF_PPR_UPDATED_ENTRIES = [
   'Breece Hall|NYJ|RB',
   'Lamar Jackson|BAL|QB',
   'Josh Allen|BUF|QB',
-  'Tee Higgins|CIN|WR',
   'Malik Nabers|NYG|WR',
+  'Tee Higgins|CIN|WR',
   'Emeka Egbuka|TB|WR',
   'Terry McLaurin|WAS|WR',
   'Tetairoa McMillan|CAR|WR',
@@ -1243,10 +1243,10 @@ const ERICKSON_6_18_PPR_ENTRIES = [
 const ERICKSON_RAW: RawPlayer[] = buildRawFromEntries(ERICKSON_BASE_RAW, ERICKSON_6_18_PPR_ENTRIES)
 
 // ---------------------------------------------------------------------------
-// FULL PPR — Dalton Del Don (The Deep Shot), updated 6/22
+// FULL PPR — Dalton Del Don (The Deep Shot), updated 6/28
 // FantasyPros in-season accuracy: #6 in 2025
 // ---------------------------------------------------------------------------
-const DEL_DON_6_22_PPR_ENTRIES = [
+const DEL_DON_6_28_PPR_ENTRIES = [
   "Ja'Marr Chase|CIN|WR",
   'Jahmyr Gibbs|DET|RB',
   'Puka Nacua|LAR|WR',
@@ -1264,15 +1264,15 @@ const DEL_DON_6_22_PPR_ENTRIES = [
   'Rashee Rice|KC|WR',
   'Trey McBride|ARI|TE',
   'Chase Brown|CIN|RB',
-  'George Pickens|DAL|WR',
   'DeVonta Smith|PHI|WR',
-  'Zay Flowers|BAL|WR',
+  'George Pickens|DAL|WR',
+  'Garrett Wilson|NYJ|WR',
   'James Cook III|BUF|RB',
   'Brock Bowers|LV|TE',
   'Kenneth Walker III|KC|RB',
   'Omarion Hampton|LAC|RB',
   'Lamar Jackson|BAL|QB',
-  'Garrett Wilson|NYJ|WR',
+  'Zay Flowers|BAL|WR',
   'Josh Allen|BUF|QB',
   'Luther Burden III|CHI|WR',
   'Chris Olave|NO|WR',
@@ -1281,16 +1281,16 @@ const DEL_DON_6_22_PPR_ENTRIES = [
   'Colston Loveland|CHI|TE',
   'Saquon Barkley|PHI|RB',
   'Jeremiyah Love|ARI|RB',
-  'Tee Higgins|CIN|WR',
   'Malik Nabers|NYG|WR',
+  'Tee Higgins|CIN|WR',
   'Drake Maye|NE|QB',
   'Terry McLaurin|WAS|WR',
   'Travis Etienne Jr.|NO|RB',
-  'Tetairoa McMillan|CAR|WR',
-  'Derrick Henry|BAL|RB',
-  'Ladd McConkey|LAC|WR',
-  'Breece Hall|NYJ|RB',
   'Emeka Egbuka|TB|WR',
+  'Breece Hall|NYJ|RB',
+  'Ladd McConkey|LAC|WR',
+  'Derrick Henry|BAL|RB',
+  'Tetairoa McMillan|CAR|WR',
   'Jaylen Waddle|DEN|WR',
   'Kyren Williams|LAR|RB',
   'Javonte Williams|DAL|RB',
@@ -1299,10 +1299,10 @@ const DEL_DON_6_22_PPR_ENTRIES = [
   'Cam Skattebo|NYG|RB',
   'Christian Watson|GB|WR',
   'Rome Odunze|CHI|WR',
-  'David Montgomery|HOU|RB',
+  'Josh Jacobs|GB|RB',
   'Joe Burrow|CIN|QB',
   'Davante Adams|LAR|WR',
-  'Josh Jacobs|GB|RB',
+  'David Montgomery|HOU|RB',
   'Tyler Warren|IND|TE',
   'Bhayshul Tuten|JAC|RB',
   'Caleb Williams|CHI|QB',
@@ -1349,7 +1349,7 @@ const DEL_DON_6_22_PPR_ENTRIES = [
   'Ricky Pearsall|SF|WR'
 ] as const
 
-const DEL_DON_RAW: RawPlayer[] = buildRawFromEntries(ERICKSON_RAW, DEL_DON_6_22_PPR_ENTRIES)
+const DEL_DON_RAW: RawPlayer[] = buildRawFromEntries(ERICKSON_RAW, DEL_DON_6_28_PPR_ENTRIES)
 
 
 // ---------------------------------------------------------------------------
@@ -1623,7 +1623,7 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         id: "hybrid-full-ppr",
         analyst: "Sage Rankings",
         source: "Hybrid: Dalton Del Don + James Emrick-Wilson TE",
-        updated: "6/22",
+        updated: "6/28",
         accuracyRank: 1,
         accuracyType: "Hybrid",
         accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 5, K: 31, DST: 30, IDP: "-" },
@@ -1647,7 +1647,7 @@ export const RANKING_PRESET_GROUPS: ScoringGroup[] = [
         id: "del-don-full-ppr",
         analyst: "Dalton Del Don",
         source: "The Deep Shot",
-        updated: "6/22",
+        updated: "6/28",
         accuracyRank: 6,
         accuracyType: "In-season",
         accuracyRanks: { QB: 9, RB: 12, WR: 13, TE: 10, K: 31, DST: 30, IDP: "-" },
