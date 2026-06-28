@@ -212,10 +212,10 @@ export function FileManager({
                   onChange={(e) => setPublishBySlot((prev) => ({ ...prev, [index]: e.target.checked }))}
                   className="mt-0.5"
                 />
-                Make this uploaded FantasyPros custom rankings set available in the custom library
+                Make this uploaded FantasyPros custom rankings set available to everyone
               </label>
               <p className="mt-1 leading-snug" style={{ color: colors.textSecondary }}>
-                Optional: leave this off to use the upload privately. Shared library entries require analyst, format, and last update date.
+                Optional: leave this off to use the upload privately. Shared entries are visible to every browser and only the latest 25 are kept.
               </p>
               {publishBySlot[index] && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -243,7 +243,7 @@ export function FileManager({
                   />
                   {!canPublish(index) && (
                     <div className="sm:col-span-3" style={{ color: colors.gold }}>
-                      Fill out all three fields before choosing a file if you want this upload added to the library.
+                      Fill out all three fields before choosing a file if you want this upload shared.
                     </div>
                   )}
                 </div>
@@ -290,7 +290,7 @@ export function FileManager({
       {customRankingSets.length > 0 && (
         <div className="rounded-lg border p-3" style={{ borderColor: colors.cardBorder, backgroundColor: colors.card }}>
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>
-            <Users size={16} style={{ color: colors.purple }} /> Custom rankings library
+            <Users size={16} style={{ color: colors.purple }} /> Shared custom rankings library (latest 25)
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {customRankingSets.map((set) => (
