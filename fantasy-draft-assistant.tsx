@@ -32,6 +32,7 @@ export function FantasyDraftAssistant() {
     setActiveRankingIndex,
     csvData,
     handleFileUpload,
+    handleRankingsPaste,
     loadPreset,
     customRankingSets,
     saveLoadedRankingSet,
@@ -164,6 +165,7 @@ export function FantasyDraftAssistant() {
           activeRankingIndex={activeRankingIndex}
           setActiveRankingIndex={setActiveRankingIndex}
           handleFileUpload={handleFileUpload}
+          handleRankingsPaste={handleRankingsPaste}
           loadPreset={loadPreset}
           customRankingSets={customRankingSets}
           saveLoadedRankingSet={saveLoadedRankingSet}
