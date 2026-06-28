@@ -54,6 +54,9 @@ export function Header({
   setActiveRankingIndex,
   handleFileUpload,
   loadPreset,
+  customRankingSets,
+  loadCustomRankingSet,
+  removeCustomRankingSet,
   isPapaParseLoaded,
   platform,
   setPlatform,
@@ -321,6 +324,9 @@ export function Header({
             activeRankingIndex={activeRankingIndex}
             setActiveRankingIndex={setActiveRankingIndex}
             handleFileUpload={handleFileUpload}
+            customRankingSets={customRankingSets}
+            loadCustomRankingSet={loadCustomRankingSet}
+            removeCustomRankingSet={removeCustomRankingSet}
             isPapaParseLoaded={isPapaParseLoaded}
           />
         </div>

@@ -1,7 +1,8 @@
 "use client"
 import { useState } from "react"
-import { Upload, FileText, ToggleLeft, ToggleRight, Trash2, ExternalLink } from "lucide-react"
+import { Upload, FileText, ToggleLeft, ToggleRight, Trash2, ExternalLink, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export function FileManager({
   colors,
@@ -10,9 +11,14 @@ export function FileManager({
   activeRankingIndex,
   setActiveRankingIndex,
   handleFileUpload,
+  customRankingSets = [],
+  loadCustomRankingSet,
+  removeCustomRankingSet,
   isPapaParseLoaded,
 }) {
   const [dragOver, setDragOver] = useState(false)
+  const [publishBySlot, setPublishBySlot] = useState({})
+  const [metadataBySlot, setMetadataBySlot] = useState({})
 
   const handleDrop = (e, index) => {
     e.preventDefault()
@@ -20,7 +26,7 @@ export function FileManager({
     const files = e.dataTransfer.files
     if (files.length > 0) {
       const mockEvent = { target: { files } }
-      handleFileUpload(mockEvent, index)
+      handleFileUpload(mockEvent, index, getShareOptions(index))
     }
   }
 
@@ -32,6 +38,25 @@ export function FileManager({
   const handleDragLeave = (e) => {
     e.preventDefault()
     setDragOver(false)
+  }
+
+  const getShareOptions = (index) => ({
+    publish: Boolean(publishBySlot[index]),
+    analyst: metadataBySlot[index]?.analyst || "",
+    format: metadataBySlot[index]?.format || "",
+    updated: metadataBySlot[index]?.updated || "",
+  })
+
+  const updateMetadata = (index, field, value) => {
+    setMetadataBySlot((prev) => ({
+      ...prev,
+      [index]: { ...(prev[index] || {}), [field]: value },
+    }))
+  }
+
+  const canPublish = (index) => {
+    const metadata = metadataBySlot[index] || {}
+    return Boolean(metadata.analyst?.trim() && metadata.format?.trim() && metadata.updated?.trim())
   }
 
   const removeRanking = (index) => {
@@ -129,7 +154,7 @@ export function FileManager({
               <input
                 type="file"
                 accept=".csv"
-                onChange={(e) => handleFileUpload(e, index)}
+                onChange={(e) => handleFileUpload(e, index, getShareOptions(index))}
                 disabled={!isPapaParseLoaded}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
@@ -162,9 +187,86 @@ export function FileManager({
                 )}
               </div>
             </div>
+
+            <div className="rounded-lg border p-3 text-xs" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
+              <label className="flex items-start gap-2 font-semibold" style={{ color: colors.textPrimary }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(publishBySlot[index])}
+                  onChange={(e) => setPublishBySlot((prev) => ({ ...prev, [index]: e.target.checked }))}
+                  className="mt-0.5"
+                />
+                Make this uploaded FantasyPros custom rankings set available in the custom library
+              </label>
+              <p className="mt-1 leading-snug" style={{ color: colors.textSecondary }}>
+                Optional: leave this off to use the upload privately. Shared library entries require analyst, format, and last update date.
+              </p>
+              {publishBySlot[index] && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <Input
+                    placeholder="Analyst"
+                    value={metadataBySlot[index]?.analyst || ""}
+                    onChange={(e) => updateMetadata(index, "analyst", e.target.value)}
+                    className="h-9 text-xs"
+                    style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }}
+                  />
+                  <Input
+                    placeholder="Format, e.g. PPR"
+                    value={metadataBySlot[index]?.format || ""}
+                    onChange={(e) => updateMetadata(index, "format", e.target.value)}
+                    className="h-9 text-xs"
+                    style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }}
+                  />
+                  <Input
+                    type="date"
+                    aria-label="Last ranking update date"
+                    value={metadataBySlot[index]?.updated || ""}
+                    onChange={(e) => updateMetadata(index, "updated", e.target.value)}
+                    className="h-9 text-xs"
+                    style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }}
+                  />
+                  {!canPublish(index) && (
+                    <div className="sm:col-span-3" style={{ color: colors.gold }}>
+                      Fill out all three fields before choosing a file if you want this upload added to the library.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {customRankingSets.length > 0 && (
+        <div className="rounded-lg border p-3" style={{ borderColor: colors.cardBorder, backgroundColor: colors.card }}>
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>
+            <Users size={16} style={{ color: colors.purple }} /> Custom rankings library
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {customRankingSets.map((set) => (
+              <div key={set.id} className="rounded-md border p-3" style={{ borderColor: colors.lightBorder, backgroundColor: colors.darkBlue }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-bold" style={{ color: colors.textPrimary }}>{set.analyst}</div>
+                    <div className="text-xs" style={{ color: colors.textSecondary }}>{set.format} · Updated {set.updated} · {set.playerCount} players</div>
+                    <div className="text-[11px]" style={{ color: colors.textSecondary }}>{set.name}</div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeCustomRankingSet(set.id)} className="h-7 w-7 p-0 hover:bg-red-500/20">
+                    <Trash2 size={12} className="text-red-500" />
+                  </Button>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {rankings.map((_, index) => (
+                    <Button key={index} size="sm" onClick={() => loadCustomRankingSet(set.id, index)} className="h-8 text-xs font-bold" style={{ backgroundColor: colors.purple, color: colors.textPrimary }}>
+                      Load slot {index + 1}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Toggle Between Rankings - Made Larger */}
       {hasMultipleRankings && (
