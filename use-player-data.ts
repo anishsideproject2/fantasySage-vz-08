@@ -115,10 +115,10 @@ export function usePlayerData() {
       if (!response.ok) throw new Error(`Custom rankings save failed: ${response.status}`)
       const { sets } = await response.json()
       if (Array.isArray(sets)) saveCustomRankingSets(sets)
-      return { ok: true, message: "Shared rankings saved for everyone." }
+      return { ok: true, message: "Rankings saved to the repo-backed text file." }
     } catch (err) {
       console.error("Custom rankings library save error:", err)
-      return { ok: false, message: "Saved in this browser, but sharing to other browsers failed." }
+      return { ok: false, message: "Saved in this browser, but saving to the repo-backed text file failed." }
     }
   }, [customRankingSets, saveCustomRankingSets])
 
@@ -463,7 +463,7 @@ export function usePlayerData() {
       ok: shareResult?.ok !== false,
       message: shareResult?.ok === false
         ? `${customSet.playerCount} rankings saved in this browser. ${shareResult.message}`
-        : `${customSet.playerCount} rankings saved to the shared quick switch board.`,
+        : `${customSet.playerCount} rankings saved to the repo-backed quick switch file.`,
     }
   }, [activeRankingIndex, addCustomRankingSet, rankings])
 

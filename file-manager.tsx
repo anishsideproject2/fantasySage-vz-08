@@ -220,7 +220,7 @@ export function FileManager({
                 Make this uploaded CSV rankings set available to everyone
               </label>
               <p className="mt-1 leading-snug" style={{ color: colors.textSecondary }}>
-                Optional for CSV uploads: leave this off to use the upload privately. Pasted rankings are shared automatically when Analyst(s), format, and update date are filled in. Shared entries are visible to every browser and only the latest 25 are kept.
+                Optional for CSV uploads: leave this off to use the upload privately. Pasted rankings are shared automatically when Analyst(s), format, and update date are filled in. Published entries are written to the repo-backed data/custom-rankings.json text file, so other users can pull the same quick-switch boards; only the latest 25 are kept.
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <Input
@@ -269,7 +269,7 @@ export function FileManager({
             <div className="rounded-lg border p-3 text-xs" style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}>
               <div className="mb-2 font-semibold" style={{ color: colors.textPrimary }}>Paste FantasyPros table rows</div>
               <p className="mb-2 leading-snug" style={{ color: colors.textSecondary }}>
-                Pasted rankings load into this slot. If Analyst(s), format, and update date are filled above, the pasted set is also added to the shared quick-switch library for everyone.
+                Pasted rankings load into this slot. If Analyst(s), format, and update date are filled above, the pasted set is also added to the repo-backed quick-switch file for everyone.
               </p>
               <Textarea
                 placeholder="Paste rows with Rank, Player, Pos, Team, Bye, ECR, vs. ECR, ADP..."
@@ -296,7 +296,7 @@ export function FileManager({
       {customRankingSets.length > 0 && (
         <div className="rounded-lg border p-3" style={{ borderColor: colors.cardBorder, backgroundColor: colors.card }}>
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>
-            <Users size={16} style={{ color: colors.purple }} /> Shared custom rankings library (latest 25)
+            <Users size={16} style={{ color: colors.purple }} /> Repo-backed custom rankings file (latest 25)
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {customRankingSets.map((set) => (

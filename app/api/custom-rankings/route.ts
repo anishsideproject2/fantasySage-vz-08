@@ -9,7 +9,7 @@ const MAX_CUSTOM_RANKINGS = 25
 const MAX_REQUEST_BYTES = 1_000_000
 const MAX_PLAYERS_PER_RANKING = 600
 const MAX_TEXT_FIELD_LENGTH = 120
-const DATA_DIR = path.join(process.cwd(), ".data")
+const DATA_DIR = path.join(process.cwd(), "data")
 const DATA_FILE = path.join(DATA_DIR, "custom-rankings.json")
 
 type RankingSet = {
