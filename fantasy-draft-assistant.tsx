@@ -65,6 +65,7 @@ export function FantasyDraftAssistant() {
   const [bestValuePosition, setBestValuePosition] = useState("All")
   const [showCopiedMessage, setShowCopiedMessage] = useState(false)
   const [selectedStrategyOverride, setSelectedStrategyOverride] = useState("auto")
+  const [isDraftBoardMaximized, setIsDraftBoardMaximized] = useState(false)
 
   // Keep ranking drafted flags in sync with the active draft. This must also
   // clear flags when switching to a new draft with no picks yet.
@@ -231,6 +232,8 @@ export function FantasyDraftAssistant() {
               selectedTeamRosterId={selectedTeamRosterId}
               setSelectedTeamRosterId={setSelectedTeamRosterId}
               visibleRoundCount={null}
+              isMaximized={isDraftBoardMaximized}
+              onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
             />
           </div>
 
@@ -283,6 +286,8 @@ export function FantasyDraftAssistant() {
                   selectedTeamRosterId={selectedTeamRosterId}
                   setSelectedTeamRosterId={setSelectedTeamRosterId}
                   visibleRoundCount={null}
+                  isMaximized={isDraftBoardMaximized}
+                  onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
                 />
               </div>
             </div>
