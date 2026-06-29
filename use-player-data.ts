@@ -11,6 +11,35 @@ const LOADED_RANKINGS_KEY = "fantasy-sage-loaded-rankings"
 const CUSTOM_RANKING_LIBRARY_LIMIT = 25
 const CUSTOM_RANKING_LIBRARY_API = "/api/custom-rankings"
 
+const toFiniteNumber = (value, fallback) => {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : fallback
+}
+
+const buildRepoRankingSetPayload = (customSet) => ({
+  id: customSet.id,
+  name: customSet.name,
+  analyst: customSet.analyst,
+  analysts: customSet.analysts,
+  format: customSet.format,
+  updated: customSet.updated,
+  playerCount: customSet.playerCount,
+  data: (customSet.data || []).map((player, index) => ({
+    id: String(player.id || `row-${index}`),
+    name: String(player.name || "").trim(),
+    firstName: String(player.firstName || "").trim(),
+    lastName: String(player.lastName || "").trim(),
+    position: String(player.position || "FLEX").trim().toUpperCase(),
+    team: String(player.team || "N/A").trim(),
+    adp: toFiniteNumber(player.adp, index + 1),
+    expertRank: player.expertRank === undefined ? undefined : toFiniteNumber(player.expertRank, index + 1),
+    marketAdp: player.marketAdp === undefined ? undefined : toFiniteNumber(player.marketAdp, index + 1),
+    projectedPoints: player.projectedPoints === undefined ? undefined : toFiniteNumber(player.projectedPoints, 0),
+    value: toFiniteNumber(player.value, 0),
+    drafted: false,
+  })),
+})
+
 export function usePlayerData() {
   const [rankings, setRankings] = useState([
     { data: [], name: null },
@@ -110,10 +139,13 @@ export function usePlayerData() {
       const response = await fetch(CUSTOM_RANKING_LIBRARY_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ set: customSet }),
+        body: JSON.stringify({ set: buildRepoRankingSetPayload(customSet) }),
       })
-      if (!response.ok) throw new Error(`Custom rankings save failed: ${response.status}`)
-      const { sets } = await response.json()
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result?.error || `Custom rankings save failed: ${response.status}`)
+      }
+      const { sets } = result
       if (Array.isArray(sets)) saveCustomRankingSets(sets)
       return { ok: true, message: "Rankings saved to the repo-backed text file." }
     } catch (err) {
