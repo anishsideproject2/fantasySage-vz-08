@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef } from "react"
+import { Maximize2, Minimize2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
 
@@ -58,7 +59,7 @@ const getValueLabel = (value) => {
   return "🫏 Reach"
 }
 
-export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null }) {
+export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized }) {
   const teams = draftData?.teams || []
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
@@ -137,13 +138,28 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+    <Card className={`flex h-full min-h-0 flex-col ${isMaximized ? "fixed inset-3 z-50 shadow-2xl sm:inset-4" : ""}`} style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="px-3 pb-2 pt-3">
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
           <span>LIVE DRAFT BOARD</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-            Showing {shouldLimitRounds ? `rounds ${firstVisibleRound}-${lastVisibleRound}` : `all ${rounds} rounds`} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+              Showing {shouldLimitRounds ? `rounds ${firstVisibleRound}-${lastVisibleRound}` : `all ${rounds} rounds`} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
+            </span>
+            {onToggleMaximized && (
+              <button
+                type="button"
+                onClick={onToggleMaximized}
+                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide transition hover:opacity-85 focus:outline-none focus:ring-2"
+                style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textPrimary }}
+                aria-label={isMaximized ? "Minimize draft board" : "Maximize draft board"}
+                title={isMaximized ? "Minimize draft board" : "Maximize draft board"}
+              >
+                {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                {isMaximized ? "Minimize" : "Maximize"}
+              </button>
+            )}
+          </div>
         </CardTitle>
         <div className="mt-2 grid gap-2 text-xs font-bold sm:grid-cols-3">
           <div className="rounded-xl border px-3 py-2" style={{ borderColor: isSelectedOnClock ? colors.headingGreen : colors.lightBorder, background: isSelectedOnClock ? `${colors.headingGreen}22` : colors.tableRow, color: isSelectedOnClock ? colors.headingGreen : colors.textSecondary }}>
