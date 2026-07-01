@@ -17,12 +17,19 @@ export function useDraftData(csvData) {
   const [currentPick, setCurrentPick] = useState(1)
   const [selectedTeamRosterId, setSelectedTeamRosterIdState] = useState(null)
   const [selectedSleeperUserId, setSelectedSleeperUserId] = useState(null)
+  const [sleeperUsername, setSleeperUsernameState] = useState("")
   const [lastUpdate, setLastUpdate] = useState(null)
   const [timeSinceUpdate, setTimeSinceUpdate] = useState(0)
 
   const intervalRef = useRef(null)
   const syncInFlightRef = useRef(false)
   const sleeperDraftCacheRef = useRef({})
+
+  const setSleeperUsername = useCallback((value) => {
+    const username = String(value || "").trim().replace(/^@+/, "")
+    setSleeperUsernameState(username)
+    if (!username) setSelectedSleeperUserId(null)
+  }, [])
 
   const getSleeperUserIdForRosterId = useCallback((teams, rosterId) => {
     const team = (teams || []).find((candidate) => String(candidate.roster_id) === String(rosterId))
@@ -77,6 +84,14 @@ export function useDraftData(csvData) {
       if (user?.user_id && !usersById.has(String(user.user_id))) usersById.set(String(user.user_id), user)
     })
     return Array.from(usersById.values())
+  }
+
+  const fetchSleeperUserByUsername = async (username) => {
+    const normalizedUsername = String(username || "").trim().replace(/^@+/, "")
+    if (!normalizedUsername) return null
+
+    const userRes = await fetch(`https://api.sleeper.app/v1/user/${encodeURIComponent(normalizedUsername)}`)
+    return userRes.ok ? userRes.json() : null
   }
 
   const fetchSleeperUsersByIds = async (userIds, existingUsers = []) => {
@@ -169,8 +184,12 @@ export function useDraftData(csvData) {
 
         const draftOrderUserIds = Object.keys(draft.draft_order || {})
         const rosterOwnerIds = rosters.map((roster) => roster?.owner_id).filter(Boolean)
-        const fetchedUsers = await fetchSleeperUsersByIds([...draftOrderUserIds, ...rosterOwnerIds], users)
-        users = mergeSleeperUsersById(users, fetchedUsers)
+        const [fetchedUsers, selectedSleeperUser] = await Promise.all([
+          fetchSleeperUsersByIds([...draftOrderUserIds, ...rosterOwnerIds], users),
+          sleeperUsername ? fetchSleeperUserByUsername(sleeperUsername) : Promise.resolve(null),
+        ])
+        users = mergeSleeperUsersById(users, selectedSleeperUser?.user_id ? [...fetchedUsers, selectedSleeperUser] : fetchedUsers)
+        const sleeperUsernameUserId = selectedSleeperUser?.user_id || null
         sleeperDraftCacheRef.current[draftId] = { draft, users, rosters }
 
         const picksRes = await picksPromise
@@ -247,8 +266,9 @@ export function useDraftData(csvData) {
         setError("")
         setLastUpdate(Date.now())
         setSelectedTeamRosterIdState((previousRosterId) => {
-          const selectedUserTeam = selectedSleeperUserId
-            ? teams.find((team) => String(team.user_id || team.owner?.user_id) === String(selectedSleeperUserId))
+          const preferredUserId = sleeperUsernameUserId || selectedSleeperUserId
+          const selectedUserTeam = preferredUserId
+            ? teams.find((team) => String(team.user_id || team.owner?.user_id) === String(preferredUserId))
             : null
           const nextRosterId = selectedUserTeam?.roster_id || (teams.some((team) => String(team.roster_id) === String(previousRosterId)) ? previousRosterId : teams[0]?.roster_id || null)
           const nextUserId = getSleeperUserIdForRosterId(teams, nextRosterId)
@@ -262,7 +282,7 @@ export function useDraftData(csvData) {
         else setIsLoading(false)
       }
     },
-    [sleeperUrl, csvData, activeSleeperUrlIndex, selectedSleeperUserId, getSleeperUserIdForRosterId],
+    [sleeperUrl, csvData, activeSleeperUrlIndex, selectedSleeperUserId, sleeperUsername, getSleeperUserIdForRosterId],
   )
 
   const fetchEspnData = useCallback(
@@ -351,12 +371,12 @@ export function useDraftData(csvData) {
     setDraftedPlayers([])
     setCurrentPick(1)
     setSelectedTeamRosterIdState(null)
-    setSelectedSleeperUserId(null)
+    if (!sleeperUsername) setSelectedSleeperUserId(null)
     setLastUpdate(null)
     setTimeSinceUpdate(0)
     sleeperDraftCacheRef.current = {}
     setError("")
-  }, [platform, sleeperUrls.join("|"), espnLeagueId])
+  }, [platform, sleeperUrls.join("|"), espnLeagueId, sleeperUsername])
 
   const handleSync = useCallback(
     async (isManual = false) => {
@@ -495,6 +515,8 @@ export function useDraftData(csvData) {
     currentPick,
     selectedTeamRosterId,
     selectedSleeperUserId,
+    sleeperUsername,
+    setSleeperUsername,
     setSelectedTeamRosterId,
     lastUpdate,
     timeSinceUpdate,

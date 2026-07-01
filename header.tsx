@@ -69,6 +69,8 @@ export function Header({
   setActiveSleeperUrlIndex,
   autoSwitchSleeperDrafts = true,
   setAutoSwitchSleeperDrafts,
+  sleeperUsername = "",
+  setSleeperUsername,
   handleSync,
   isManualSyncing,
   isSyncDisabled,
@@ -181,10 +183,10 @@ export function Header({
               <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.headingGreen }} aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.headingGreen }}>Start here</p>
-                <p className="text-sm font-extrabold leading-tight">Paste each Sleeper draft URL into its own bar, then sync.</p>
+                <p className="text-sm font-extrabold leading-tight">Paste each Sleeper draft URL, add your Sleeper username once, then sync.</p>
               </div>
             </div>
-            <div className="grid flex-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
+            <div className="grid flex-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_minmax(9rem,0.45fr)_7rem]">
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="h-10" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
                   <SelectValue />
@@ -213,6 +215,15 @@ export function Header({
                   )
                 })}
               </div>
+              <Input
+                id="sleeper-username"
+                aria-label="Sleeper username"
+                placeholder="Your Sleeper username"
+                value={sleeperUsername}
+                onChange={(e) => setSleeperUsername?.(e.target.value)}
+                className="h-10 w-full text-xs"
+                style={{ backgroundColor: colors.darkBlue, borderColor: sleeperUsername ? colors.purple : colors.cardBorder, color: colors.textPrimary }}
+              />
               <Button
                 onClick={handleSync}
                 disabled={isSyncDisabled || isManualSyncing || !sleeperUrl.trim()}
@@ -279,7 +290,7 @@ export function Header({
               {showCopiedMessage && <span className="text-xs font-semibold" style={{ color: colors.gold }}>Copied!</span>}
             </div>
             <p className="text-[11px] font-semibold leading-snug xl:text-right" style={{ color: colors.textSecondary }}>
-              CSV imports support custom rankings from multiple sources, including Underdog rankings exports.
+              CSV imports support custom rankings from multiple sources, including Underdog rankings exports. The username field is optional, but lets FantasySage auto-lock your roster.
             </p>
           </div>
         </div>
