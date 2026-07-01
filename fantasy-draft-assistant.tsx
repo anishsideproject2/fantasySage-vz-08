@@ -250,16 +250,15 @@ export function FantasyDraftAssistant() {
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
               selectedStrategyOverride={selectedStrategyOverride}
               maximizedTopContent={(
-                <div className="max-h-[38vh] min-h-[16rem] overflow-hidden">
-                  <TeamRosterSection
-                    colors={colors}
-                    draftData={draftData}
-                    selectedTeamRosterId={selectedTeamRosterId}
-                    setSelectedTeamRosterId={setSelectedTeamRosterId}
-                    draftedPlayers={draftedPlayers}
-                    platform={platform}
-                  />
-                </div>
+                <TeamRosterSection
+                  colors={colors}
+                  draftData={draftData}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  setSelectedTeamRosterId={setSelectedTeamRosterId}
+                  draftedPlayers={draftedPlayers}
+                  platform={platform}
+                  variant="compact"
+                />
               )}
             />
           </div>
@@ -317,16 +316,15 @@ export function FantasyDraftAssistant() {
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
                   selectedStrategyOverride={selectedStrategyOverride}
                   maximizedTopContent={(
-                    <div className="max-h-[38vh] min-h-[16rem] overflow-hidden">
-                      <TeamRosterSection
-                        colors={colors}
-                        draftData={draftData}
-                        selectedTeamRosterId={selectedTeamRosterId}
-                        setSelectedTeamRosterId={setSelectedTeamRosterId}
-                        draftedPlayers={draftedPlayers}
-                        platform={platform}
-                      />
-                    </div>
+                    <TeamRosterSection
+                      colors={colors}
+                      draftData={draftData}
+                      selectedTeamRosterId={selectedTeamRosterId}
+                      setSelectedTeamRosterId={setSelectedTeamRosterId}
+                      draftedPlayers={draftedPlayers}
+                      platform={platform}
+                      variant="compact"
+                    />
                   )}
                 />
               </div>

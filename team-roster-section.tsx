@@ -259,6 +259,7 @@ export function TeamRosterSection({
   setSelectedTeamRosterId,
   draftedPlayers,
   platform,
+  variant = "full",
 }) {
   const getSelectedTeamRosterPlayers = useCallback(() => {
     if (!selectedTeamRosterId || !draftedPlayers?.length) return []
@@ -321,6 +322,70 @@ export function TeamRosterSection({
     if (!teamRosterPlayers.length) return null
     return Math.max(...teamRosterPlayers.map((p) => p.pick_no))
   }, [teamRosterPlayers])
+
+
+  if (variant === "compact") {
+    return (
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden shadow-2xl" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+        <CardHeader className="border-b px-2.5 py-2" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              {selectedTeamOwnerAvatarUrl ? (
+                <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName || selectedTeamName} className="h-8 w-8 shrink-0 rounded-lg border object-cover" style={{ borderColor: colors.headingGreen }} />
+              ) : (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
+                  <User size={15} style={{ color: colors.headingGreen }} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-widest" style={{ color: colors.headingGreen }}>Selected roster</div>
+                <div className="truncate text-sm font-black" style={{ color: colors.textPrimary }}>{selectedTeamName}</div>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+
+        {!selectedTeamRosterId ? (
+          <CardContent className="p-2">
+            <div className="rounded-lg border border-dashed px-3 py-4 text-center text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+              Select a draft slot to preview its roster.
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent className="min-h-0 flex-1 overflow-y-auto p-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {fullRosterSlots.map((player, index) => {
+                const slotType = rosterTemplate[index] || "BN"
+                const slotColors = getBubbleColorsForSlot(slotType, colors)
+                const isRecentPick = player && player.pick_no === mostRecentPickNo
+                const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
+
+                return (
+                  <div key={index + "-compact-" + (player?.id || "empty")} className="min-w-0 rounded-lg border px-1.5 py-1.5" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${slotColors.bg}14, ${colors.card})`, borderColor: isRecentPick ? colors.headingGreen : `${slotColors.bg}66`, boxShadow: `inset 3px 0 0 ${slotColors.bg}`, opacity: player ? 1 : 0.72 }}>
+                    <div className="mb-1 flex items-center justify-between gap-1">
+                      <span className="rounded px-1.5 py-0.5 text-[8px] font-black" style={{ background: `${slotColors.bg}24`, color: slotColors.bg }}>{POSITION_LABELS[slotType] || slotType}</span>
+                      {player?.pick_no && <span className="text-[8px] font-bold" style={{ color: colors.textSecondary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</span>}
+                    </div>
+                    {player ? (
+                      <>
+                        <div className="truncate text-[11px] font-black leading-tight" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
+                        <div className="mt-0.5 flex items-center justify-between gap-1 text-[9px]" style={{ color: colors.textSecondary }}>
+                          <span className="truncate">{player.position} · {getTeamAbbr(player.team)}</span>
+                          {value !== null && <span className="font-black" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</span>}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="truncate text-[11px] font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    )
+  }
 
   return (
     <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>

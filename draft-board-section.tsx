@@ -221,13 +221,13 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
           })}
           <span>Green outline = current pick</span>
           <span>Purple wash = selected team</span>
-          {selectedSummary && (
+          {selectedSummary && !isMaximized && (
             <span className="ml-auto">Selected roster: {POSITION_ORDER.map((pos) => `${pos} ${selectedSummary[pos] || 0}`).join(" · ")}</span>
           )}
         </div>
       </CardHeader>
       {isMaximized && maximizedTopContent && (
-        <div className="px-2 pb-2">
+        <div className="pointer-events-auto absolute bottom-4 right-4 z-20 max-h-[42vh] w-[min(30rem,calc(100vw-3rem))] overflow-hidden rounded-2xl">
           {maximizedTopContent}
         </div>
       )}
