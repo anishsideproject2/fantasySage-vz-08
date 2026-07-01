@@ -251,7 +251,7 @@ export function FantasyDraftAssistant() {
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
               selectedStrategyOverride={selectedStrategyOverride}
               maximizedTopContent={(
-                <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
+                <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(24rem,1.35fr)_minmax(16rem,0.65fr)]">
                   <SuggestedPicksSection
                     colors={colors}
                     draftData={draftData}
@@ -347,7 +347,7 @@ export function FantasyDraftAssistant() {
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
                   selectedStrategyOverride={selectedStrategyOverride}
                   maximizedTopContent={(
-                    <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
+                    <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(24rem,1.35fr)_minmax(16rem,0.65fr)]">
                       <SuggestedPicksSection
                         colors={colors}
                         draftData={draftData}
