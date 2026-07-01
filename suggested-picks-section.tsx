@@ -1390,53 +1390,66 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
   if (compact) {
     return (
-      <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+      <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
         <CardHeader className="px-3 pb-2 pt-3">
           <CardTitle className="flex items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
             <span>TOP SUGGESTED PICKS</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-              {scoringFormat} • {draftTypeLabel} • {qbMode}
+              Pick {currentPick} • {scoringFormat} • {qbMode}
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-3 pt-0 pb-3">
-          <div className="mb-2 rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
-                Strategy: <span style={{ color: colors.headingGreen }}>{strategyLock.label}</span>
-              </div>
-              <div className="rounded-lg border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.headingGreen, color: colors.headingGreen, background: `${colors.headingGreen}12` }}>Health {rosterHealth.score}/100</div>
+        <CardContent className="min-h-0 flex-1 px-3 pt-0 pb-3">
+          {positionalRunAlert && (
+            <div className="mb-2 rounded-xl border px-3 py-2 text-xs font-black" style={{ borderColor: colors.gold, background: `${colors.gold}18`, color: colors.gold }}>
+              {positionalRunAlert.message}
             </div>
-            <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
-            <div className="mt-1">{strategyLock.guidance}</div>
-            <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
-            <div className="mt-2 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[9px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
-              {["R1-2 Anchor", "R3-5 Support", "R6-9 Value", "R10-12 Lottery", "R13+ Stream"].map((label, index) => {
-                const active = (draftRound <= 2 && index === 0) || (draftRound >= 3 && draftRound <= 5 && index === 1) || (draftRound >= 6 && draftRound <= 9 && index === 2) || (draftRound >= 10 && draftRound <= 12 && index === 3) || (draftRound >= 13 && index === 4)
-                const palette = ["#22c55e", "#3b82f6", "#facc15", "#fb923c", "#94a3b8"]
-                return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
-              })}
-            </div>
-          </div>
+          )}
           {suggestedPicks.length === 0 ? (
             <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
               Connect a draft or load players to see pick suggestions.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" aria-label="Top suggested picks">
+            <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-3" aria-label="Top suggested picks">
               {suggestedPicks.map((player, idx) => {
                 const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
                 const valueDiffColor = getValueDiffColor(player.valueDiff)
+                const valueEmoji = player.valueDiff >= 20 ? "💎" : player.valueDiff <= -20 ? "🫏" : null
                 return (
-                  <div
+                  <button
                     key={playerKey}
-                    className="min-w-0 rounded-xl border p-2 shadow-sm"
+                    type="button"
+                    className="group relative flex min-w-0 flex-col rounded-xl border p-2 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:-translate-y-0.5 focus:outline-none focus:ring-2"
                     style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
+                    aria-label={`Recommendation summary for ${player.name}; hover or focus to show a compact draft-day summary`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className={`pointer-events-none absolute top-full z-50 mt-2 hidden w-full min-w-[18rem] group-hover:block group-focus:block group-focus-within:block md:w-[26rem] ${idx === 0 ? "left-0 right-auto" : idx === suggestedPicks.length - 1 ? "left-auto right-0" : "left-0 right-0 md:left-1/2 md:right-auto md:-translate-x-1/2"}`}>
+                      <div className="pointer-events-auto rounded-2xl border p-3 shadow-2xl backdrop-blur" style={{ borderColor: player.confidenceColor, background: colors.card }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: player.confidenceColor }}>{getActionLabel(player)} · {player.confidence} confidence</div>
+                            <div className="mt-1 text-base font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
+                            <div className="mt-0.5 text-[11px]" style={{ color: colors.textSecondary }}>{player.position} · Rank {player.adp} · {player.valueLabel} · Composite {player.compositeRank}</div>
+                          </div>
+                          <div className="rounded-full border px-3 py-2 text-center" style={{ borderColor: player.confidenceColor, background: `${player.confidenceColor}22` }}>
+                            <div className="text-lg font-black leading-none" style={{ color: player.confidenceColor }}>{player.confidenceScore}</div>
+                            <div className="mt-0.5 text-[9px] font-bold uppercase leading-none" style={{ color: colors.textSecondary }}>{player.confidenceStars.stars}</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-1 rounded-xl border px-2 py-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                          {player.alertLines?.slice(0, 2).map((line: any) => <div key={line} className="rounded-md px-2 py-1 font-black" style={{ background: `${player.confidenceColor}18`, color: player.confidenceColor }}>{line}</div>)}
+                          <div><span className="font-black" style={{ color: colors.textPrimary }}>Pick case:</span> {player.playerNote}</div>
+                          <div><span className="font-black" style={{ color: colors.textPrimary }}>Roster fit:</span> {player.teamCompositionInsight}</div>
+                          <div><span className="font-black" style={{ color: colors.textPrimary }}>Value:</span> {player.valueLabel} · {player.tierProfile.tier}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex w-full items-center gap-2">
                       <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                       <BubbleSymbol pos={player.position} colors={colors} compact />
                       <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
+                      {valueEmoji && <span className="shrink-0 text-base leading-none" aria-label={player.valueDiff >= 20 ? "Elite 20+ value pick" : "-20 or worse value fade"}>{valueEmoji}</span>}
                       <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
@@ -1446,7 +1459,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                       <span>·</span>
                       <span>{player.confidence} confidence</span>
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>

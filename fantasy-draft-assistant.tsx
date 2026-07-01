@@ -251,7 +251,7 @@ export function FantasyDraftAssistant() {
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
               selectedStrategyOverride={selectedStrategyOverride}
               maximizedTopContent={(
-                <div className="grid max-h-[42vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
+                <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
                   <SuggestedPicksSection
                     colors={colors}
                     draftData={draftData}
@@ -276,7 +276,7 @@ export function FantasyDraftAssistant() {
                       <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
                     </button>
                     {isMaximizedRosterOpen && (
-                      <div className="h-[18rem] min-h-0">
+                      <div className="h-[32rem] min-h-0">
                         <TeamRosterSection
                           colors={colors}
                           draftData={draftData}
@@ -347,7 +347,7 @@ export function FantasyDraftAssistant() {
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
                   selectedStrategyOverride={selectedStrategyOverride}
                   maximizedTopContent={(
-                    <div className="grid max-h-[42vh] min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
+                    <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
                       <SuggestedPicksSection
                         colors={colors}
                         draftData={draftData}
@@ -372,7 +372,7 @@ export function FantasyDraftAssistant() {
                           <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
                         </button>
                         {isMaximizedRosterOpen && (
-                          <div className="h-[18rem] min-h-0">
+                          <div className="h-[32rem] min-h-0">
                             <TeamRosterSection
                               colors={colors}
                               draftData={draftData}
