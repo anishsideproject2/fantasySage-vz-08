@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { Header } from "./header"
 import { BestValueSection } from "./best-value-section"
-import { TeamRosterSection } from "./team-roster-section"
 import { SuggestedPicksSection } from "./suggested-picks-section"
 import { DraftBoardSection } from "./draft-board-section"
 import { useTheme } from "./use-theme"
@@ -230,14 +229,6 @@ export function FantasyDraftAssistant() {
               selectedStrategyOverride={selectedStrategyOverride}
               setSelectedStrategyOverride={setSelectedStrategyOverride}
             />
-            <TeamRosterSection
-              colors={colors}
-              draftData={draftData}
-              selectedTeamRosterId={selectedTeamRosterId}
-              setSelectedTeamRosterId={setSelectedTeamRosterId}
-              draftedPlayers={draftedPlayers}
-              platform={platform}
-            />
             <DraftBoardSection
               colors={colors}
               draftData={draftData}
@@ -266,7 +257,7 @@ export function FantasyDraftAssistant() {
             />
           </div>
 
-          <div className="hidden items-stretch gap-4 lg:grid lg:h-[52rem] lg:grid-cols-[minmax(320px,0.9fr)_minmax(380px,0.95fr)_minmax(520px,1.35fr)]">
+          <div className="hidden items-stretch gap-4 lg:grid lg:h-[52rem] lg:grid-cols-[minmax(340px,0.9fr)_minmax(620px,1.6fr)]">
             <div className="flex min-h-0 flex-col">
               <BestValueSection
                 colors={colors}
@@ -282,16 +273,6 @@ export function FantasyDraftAssistant() {
                 selectedTeamRosterId={selectedTeamRosterId}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-              />
-            </div>
-            <div className="flex min-h-0 flex-col">
-              <TeamRosterSection
-                colors={colors}
-                draftData={draftData}
-                selectedTeamRosterId={selectedTeamRosterId}
-                setSelectedTeamRosterId={setSelectedTeamRosterId}
-                draftedPlayers={draftedPlayers}
-                platform={platform}
               />
             </div>
             <div className="flex min-h-0 flex-col gap-4">
