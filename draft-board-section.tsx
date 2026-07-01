@@ -139,7 +139,6 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   const currentRound = numTeams ? Math.floor((Number(currentPick || 1) - 1) / numTeams) + 1 : 1
   const latestPlayer = latestPickNo ? picksByNumber.get(latestPickNo) : null
   const selectedSummary = selectedTeamRosterId ? rosterSummaries.get(String(selectedTeamRosterId)) : null
-  const selectedTeam = selectedTeamRosterId ? teams.find((team) => String(team.roster_id) === String(selectedTeamRosterId)) : null
   const selectedRosterPlayers = useMemo(
     () => (draftedPlayers || [])
       .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
@@ -242,97 +241,48 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
           )}
         </div>
         {selectedTeamRosterId && (
-          isMaximized ? (
-            <div className="mt-2 overflow-hidden rounded-2xl border" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
-              <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: colors.lightBorder, background: colors.darkBlue }}>
-                <div className="flex min-w-0 items-center gap-3">
-                  {getSleeperAvatarUrl(selectedTeam?.avatar || selectedTeam?.owner?.avatar) ? (
-                    <img src={getSleeperAvatarUrl(selectedTeam?.avatar || selectedTeam?.owner?.avatar)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black" style={{ backgroundColor: colors.purple, color: colors.white }}>
-                      {getTeamInitials(selectedTeam?.team_name)}
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <div className="truncate text-lg font-black" style={{ color: colors.textPrimary }}>{selectedTeam?.team_name || "Selected roster"}</div>
-                    <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                      Roster • {selectedRosterPlayers.length} drafted • {POSITION_ORDER.map((pos) => `${pos} ${selectedSummary?.[pos] || 0}`).join(" · ")}
-                    </div>
-                  </div>
-                </div>
-                <ChevronDown className="h-5 w-5 shrink-0" style={{ color: colors.textSecondary }} />
-              </div>
-              <div className="max-h-72 overflow-auto px-4 py-2">
-                {selectedRosterPlayers.length ? selectedRosterPlayers.map((player) => {
-                  const positionColors = getPositionBoardColors(player.position, colors)
-                  return (
-                    <div key={`${player.pick_no}-${player.name}`} className="grid grid-cols-[5rem_minmax(0,1fr)_4.5rem] items-center gap-4 border-b py-3 last:border-b-0" style={{ borderColor: `${colors.lightBorder}88` }}>
-                      <div className="flex h-12 items-center justify-center rounded-xl text-sm font-black" style={{ background: positionColors.border, color: colors.darkBlue }}>
-                        {player.position}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-base font-black leading-tight" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
-                        <div className="truncate text-sm font-semibold" style={{ color: colors.textSecondary }}>
-                          {player.position} - {player.team || "FA"}{player.adp ? ` (${Math.round(Number(player.adp))})` : ""}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-base font-black" style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, numTeams)}</div>
-                        <div className="text-xs font-semibold" style={{ color: colors.textSecondary }}>pick</div>
-                      </div>
-                    </div>
-                  )
-                }) : (
-                  <div className="rounded-xl border border-dashed px-4 py-6 text-center text-sm font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                    No players drafted for this roster yet.
-                  </div>
-                )}
-              </div>
+          <div className={`mt-2 rounded-xl border p-2 ${isMaximized ? "space-y-1" : ""}`} style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+              <span>Compact selected roster</span>
+              <span>{selectedRosterPlayers.length} drafted</span>
             </div>
-          ) : (
-            <div className="mt-2 rounded-xl border p-2" style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
-              <div className="mb-1 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                <span>Compact selected roster</span>
-                <span>{selectedRosterPlayers.length} drafted</span>
-              </div>
-              <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-4">
-                {POSITION_ORDER.map((pos) => {
-                  const positionColors = getPositionBoardColors(pos, colors)
-                  const players = selectedRosterByPosition[pos] || []
-                  const isOpen = !!openRosterPositions[pos]
-                  return (
-                    <section key={pos} className="overflow-hidden rounded-lg border" style={{ borderColor: `${positionColors.border}66`, background: colors.card }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRosterPosition(pos)}
-                        className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[10px] font-black uppercase tracking-wide"
-                        style={{ background: positionColors.background, color: positionColors.border }}
-                        aria-expanded={isOpen}
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                          {pos}
-                        </span>
-                        <span>{players.length}</span>
-                      </button>
-                      {isOpen && (
-                        <div className="space-y-1 p-1.5">
-                          {players.length ? players.map((player) => (
-                            <div key={`${player.pick_no}-${player.name}`} className="flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1 text-[10px]" style={{ background: colors.tableRow, color: colors.textSecondary }}>
-                              <span className="min-w-0 truncate font-black" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</span>
-                              <span className="shrink-0 font-bold">#{player.pick_no}</span>
-                            </div>
-                          )) : (
-                            <div className="rounded-md border border-dashed px-2 py-1 text-[10px] font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>No {pos} drafted</div>
-                          )}
-                        </div>
-                      )}
-                    </section>
-                  )
-                })}
-              </div>
+            <div className={isMaximized ? "space-y-1" : "grid gap-1 sm:grid-cols-2 xl:grid-cols-4"}>
+              {POSITION_ORDER.map((pos) => {
+                const positionColors = getPositionBoardColors(pos, colors)
+                const players = selectedRosterByPosition[pos] || []
+                const isOpen = !!openRosterPositions[pos]
+                return (
+                  <section key={pos} className="overflow-hidden rounded-lg border" style={{ borderColor: `${positionColors.border}66`, background: colors.card }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleRosterPosition(pos)}
+                      className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[10px] font-black uppercase tracking-wide"
+                      style={{ background: positionColors.background, color: positionColors.border }}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        {pos}
+                      </span>
+                      <span>{players.length}</span>
+                    </button>
+                    {isOpen && (
+                      <div className={isMaximized ? "grid gap-1 p-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "space-y-1 p-1.5"}>
+                        {players.length ? players.map((player) => (
+                          <div key={`${player.pick_no}-${player.name}`} className="flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1 text-[10px]" style={{ background: colors.tableRow, color: colors.textSecondary }}>
+                            <span className="min-w-0 truncate font-black" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</span>
+                            <span className="shrink-0 font-bold">#{player.pick_no}</span>
+                          </div>
+                        )) : (
+                          <div className="rounded-md border border-dashed px-2 py-1 text-[10px] font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>No {pos} drafted</div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                )
+              })}
             </div>
-          )
+          </div>
         )}
 
       </CardHeader>
