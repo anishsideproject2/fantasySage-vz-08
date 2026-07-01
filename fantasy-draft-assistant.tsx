@@ -50,7 +50,12 @@ export function FantasyDraftAssistant() {
     platform,
     setPlatform,
     sleeperUrl,
+    sleeperUrls,
     setSleeperUrl,
+    activeSleeperUrlIndex,
+    setActiveSleeperUrlIndex,
+    autoSwitchSleeperDrafts,
+    setAutoSwitchSleeperDrafts,
     isManualSyncing,
     error,
     currentPick,
@@ -176,7 +181,12 @@ export function FantasyDraftAssistant() {
           platform={platform}
           setPlatform={setPlatform}
           sleeperUrl={sleeperUrl}
+          sleeperUrls={sleeperUrls}
           setSleeperUrl={setSleeperUrl}
+          activeSleeperUrlIndex={activeSleeperUrlIndex}
+          setActiveSleeperUrlIndex={setActiveSleeperUrlIndex}
+          autoSwitchSleeperDrafts={autoSwitchSleeperDrafts}
+          setAutoSwitchSleeperDrafts={setAutoSwitchSleeperDrafts}
           handleSync={handleSync}
           isManualSyncing={isManualSyncing}
           isSyncDisabled={isSyncDisabled}

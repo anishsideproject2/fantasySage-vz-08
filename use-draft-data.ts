@@ -6,7 +6,10 @@ export function useDraftData(csvData) {
   const [draftData, setDraftData] = useState(null)
   const [draftedPlayers, setDraftedPlayers] = useState([])
   const [platform, setPlatform] = useState("sleeper")
-  const [sleeperUrl, setSleeperUrl] = useState("")
+  const [sleeperUrls, setSleeperUrls] = useState([])
+  const [activeSleeperUrlIndex, setActiveSleeperUrlIndex] = useState(0)
+  const [autoSwitchSleeperDrafts, setAutoSwitchSleeperDrafts] = useState(true)
+  const sleeperUrl = sleeperUrls[activeSleeperUrlIndex] || ""
   const [espnLeagueId, setEspnLeagueId] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isManualSyncing, setIsManualSyncing] = useState(false)
@@ -18,7 +21,7 @@ export function useDraftData(csvData) {
 
   const intervalRef = useRef(null)
   const syncInFlightRef = useRef(false)
-  const sleeperDraftCacheRef = useRef({ draftId: null, draft: null, users: [], rosters: [] })
+  const sleeperDraftCacheRef = useRef({})
 
   const normalizeName = (name) => {
     if (!name) return ""
@@ -36,8 +39,24 @@ export function useDraftData(csvData) {
   }
 
   const extractSleeperDraftId = (url) => {
-    const match = url.match(/\/draft\/nfl\/(\d+)/)
+    const value = String(url || "").trim()
+    const match = value.match(/\/draft\/nfl\/(\d+)/) || value.match(/sleeper\.com\/draft\/(\d+)/) || value.match(/^(\d+)$/)
     return match ? match[1] : null
+  }
+
+  const setSleeperUrl = useCallback((value) => {
+    const urls = String(value || "")
+      .split(/[\n,]+/)
+      .map((url) => url.trim())
+      .filter(Boolean)
+    setSleeperUrls(urls)
+    setActiveSleeperUrlIndex((index) => Math.min(index, Math.max(urls.length - 1, 0)))
+  }, [])
+
+  const getDraftSlotForPick = (pickNo, numTeams) => {
+    const round = Math.floor((pickNo - 1) / numTeams) + 1
+    const pickInRound = ((pickNo - 1) % numTeams) + 1
+    return round % 2 === 0 ? numTeams - pickInRound + 1 : pickInRound
   }
 
   const fetchSleeperData = useCallback(
@@ -52,10 +71,11 @@ export function useDraftData(csvData) {
         const draftId = extractSleeperDraftId(sleeperUrl)
         if (!draftId) throw new Error("Invalid Sleeper URL format.")
 
-        const shouldRefreshDraftMeta = isManual || sleeperDraftCacheRef.current.draftId !== draftId || !sleeperDraftCacheRef.current.draft
-        let draft = sleeperDraftCacheRef.current.draft
-        let users = sleeperDraftCacheRef.current.users
-        let rosters = sleeperDraftCacheRef.current.rosters
+        const cachedDraft = sleeperDraftCacheRef.current[draftId] || { draft: null, users: [], rosters: [] }
+        const shouldRefreshDraftMeta = isManual || !cachedDraft.draft
+        let draft = cachedDraft.draft
+        let users = cachedDraft.users
+        let rosters = cachedDraft.rosters
 
         const picksPromise = fetch(`https://api.sleeper.com/v1/draft/${draftId}/picks`)
 
@@ -77,7 +97,7 @@ export function useDraftData(csvData) {
             }
           }
 
-          sleeperDraftCacheRef.current = { draftId, draft, users, rosters }
+          sleeperDraftCacheRef.current[draftId] = { draft, users, rosters }
         }
 
         const picksRes = await picksPromise
@@ -123,8 +143,15 @@ export function useDraftData(csvData) {
 
         setDraftedPlayers(updatedDrafted)
         setCurrentPick(picks.length + 1)
+        const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings.teams)
+        const currentTeamRosterId = draft.slot_to_roster_id[currentSlot]
+
         setDraftData({
           teams: teams,
+          draftId,
+          draftUrl: sleeperUrl,
+          activeSleeperUrlIndex,
+          currentTeamRosterId,
           numTeams: draft.settings.teams,
           rounds: draft.settings.rounds,
           draftType: draft.type,
@@ -146,7 +173,7 @@ export function useDraftData(csvData) {
         else setIsLoading(false)
       }
     },
-    [sleeperUrl, csvData],
+    [sleeperUrl, csvData, activeSleeperUrlIndex],
   )
 
   const fetchEspnData = useCallback(
@@ -237,9 +264,9 @@ export function useDraftData(csvData) {
     setSelectedTeamRosterId(null)
     setLastUpdate(null)
     setTimeSinceUpdate(0)
-    sleeperDraftCacheRef.current = { draftId: null, draft: null, users: [], rosters: [] }
+    sleeperDraftCacheRef.current = {}
     setError("")
-  }, [platform, sleeperUrl, espnLeagueId])
+  }, [platform, sleeperUrls.join("|"), espnLeagueId])
 
   const handleSync = useCallback(
     async (isManual = false) => {
@@ -259,14 +286,66 @@ export function useDraftData(csvData) {
   )
 
   useEffect(() => {
-    const isReady = (platform === "sleeper" && sleeperUrl) || (platform === "espn" && espnLeagueId)
+    const isReady = (platform === "sleeper" && sleeperUrls.length > 0) || (platform === "espn" && espnLeagueId)
     if (isReady && csvData.length > 0) {
       handleSync()
       if (intervalRef.current) clearInterval(intervalRef.current)
       intervalRef.current = setInterval(() => handleSync(), 600)
       return () => clearInterval(intervalRef.current)
     }
-  }, [platform, sleeperUrl, espnLeagueId, csvData.length, handleSync])
+  }, [platform, sleeperUrls.join("|"), activeSleeperUrlIndex, espnLeagueId, csvData.length, handleSync])
+
+  useEffect(() => {
+    if (platform !== "sleeper" || !autoSwitchSleeperDrafts || sleeperUrls.length < 2 || !selectedTeamRosterId || !draftData) return
+    if (String(draftData.currentTeamRosterId) === String(selectedTeamRosterId)) return
+
+    let cancelled = false
+
+    const findDraftOnClock = async () => {
+      for (let index = 0; index < sleeperUrls.length; index += 1) {
+        if (index === activeSleeperUrlIndex) continue
+        const draftId = extractSleeperDraftId(sleeperUrls[index])
+        if (!draftId) continue
+
+        try {
+          let draft = sleeperDraftCacheRef.current[draftId]?.draft
+          if (!draft) {
+            const draftRes = await fetch(`https://api.sleeper.com/v1/draft/${draftId}`)
+            if (!draftRes.ok) continue
+            draft = await draftRes.json()
+            sleeperDraftCacheRef.current[draftId] = { ...(sleeperDraftCacheRef.current[draftId] || {}), draft }
+          }
+
+          const picksRes = await fetch(`https://api.sleeper.com/v1/draft/${draftId}/picks`)
+          if (!picksRes.ok) continue
+          const picks = await picksRes.json()
+          const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings.teams)
+          const currentTeamRosterId = draft.slot_to_roster_id[currentSlot]
+
+          if (!cancelled && String(currentTeamRosterId) === String(selectedTeamRosterId)) {
+            setActiveSleeperUrlIndex(index)
+            return
+          }
+        } catch (err) {
+          // Ignore background auto-switch checks so the active draft can keep syncing.
+        }
+      }
+    }
+
+    findDraftOnClock()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    activeSleeperUrlIndex,
+    autoSwitchSleeperDrafts,
+    draftData,
+    platform,
+    selectedTeamRosterId,
+    sleeperUrls.join("|"),
+    lastUpdate,
+  ])
 
   useEffect(() => {
     if (!lastUpdate) return
@@ -279,7 +358,7 @@ export function useDraftData(csvData) {
   const isSyncDisabled =
     isManualSyncing ||
     !csvData.length ||
-    (platform === "sleeper" && !sleeperUrl) ||
+    (platform === "sleeper" && !sleeperUrls.length) ||
     (platform === "espn" && !espnLeagueId)
 
   return {
@@ -288,7 +367,13 @@ export function useDraftData(csvData) {
     platform,
     setPlatform,
     sleeperUrl,
+    sleeperUrls,
     setSleeperUrl,
+    setSleeperUrls,
+    activeSleeperUrlIndex,
+    setActiveSleeperUrlIndex,
+    autoSwitchSleeperDrafts,
+    setAutoSwitchSleeperDrafts,
     espnLeagueId,
     setEspnLeagueId,
     isLoading,
