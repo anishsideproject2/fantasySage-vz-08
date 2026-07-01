@@ -353,7 +353,7 @@ export function TeamRosterSection({
           </CardContent>
         ) : (
           <CardContent className="min-h-0 flex-1 overflow-y-auto p-2">
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            <div className="space-y-1">
               {fullRosterSlots.map((player, index) => {
                 const slotType = rosterTemplate[index] || "BN"
                 const slotColors = getBubbleColorsForSlot(slotType, colors)
@@ -361,22 +361,26 @@ export function TeamRosterSection({
                 const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
 
                 return (
-                  <div key={index + "-compact-" + (player?.id || "empty")} className="min-w-0 rounded-lg border px-1.5 py-1.5" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${slotColors.bg}14, ${colors.card})`, borderColor: isRecentPick ? colors.headingGreen : `${slotColors.bg}66`, boxShadow: `inset 3px 0 0 ${slotColors.bg}`, opacity: player ? 1 : 0.72 }}>
-                    <div className="mb-1 flex items-center justify-between gap-1">
-                      <span className="rounded px-1.5 py-0.5 text-[8px] font-black" style={{ background: `${slotColors.bg}24`, color: slotColors.bg }}>{POSITION_LABELS[slotType] || slotType}</span>
-                      {player?.pick_no && <span className="text-[8px] font-bold" style={{ color: colors.textSecondary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</span>}
-                    </div>
+                  <div key={index + "-compact-" + (player?.id || "empty")} className="min-w-0 rounded-lg border px-2 py-1.5" style={{ background: isRecentPick ? `${colors.headingGreen}18` : `linear-gradient(180deg, ${slotColors.bg}14, ${colors.card})`, borderColor: isRecentPick ? colors.headingGreen : `${slotColors.bg}66`, boxShadow: `inset 3px 0 0 ${slotColors.bg}`, opacity: player ? 1 : 0.72 }}>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black" style={{ background: `${slotColors.bg}24`, borderColor: `${slotColors.bg}66`, color: slotColors.bg }}>{POSITION_LABELS[slotType] || slotType}</span>
                     {player ? (
                       <>
-                        <div className="truncate text-[11px] font-black leading-tight" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
-                        <div className="mt-0.5 flex items-center justify-between gap-1 text-[9px]" style={{ color: colors.textSecondary }}>
-                          <span className="truncate">{player.position} · {getTeamAbbr(player.team)}</span>
-                          {value !== null && <span className="font-black" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</span>}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[12px] font-black leading-tight" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
+                          <div className="mt-0.5 truncate text-[10px]" style={{ color: colors.textSecondary }}>
+                            {player.position} · {getTeamAbbr(player.team)}{isRecentPick ? " · Latest" : ""}
+                          </div>
+                        </div>
+                        <div className="shrink-0 whitespace-nowrap text-right text-[10px] font-black">
+                          <div style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</div>
+                          {value !== null && <div style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</div>}
                         </div>
                       </>
                     ) : (
-                      <div className="truncate text-[11px] font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
+                      <div className="min-w-0 flex-1 truncate text-[12px] font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
                     )}
+                    </div>
                   </div>
                 )
               })}

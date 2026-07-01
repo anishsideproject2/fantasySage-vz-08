@@ -947,6 +947,66 @@ const getThematicStrategySignal = ({ player, round, rosterNeed, rosterCounts, st
   return { bonus: 0, label: "BPA", detail: "Let value, roster fit, and positional leverage drive the pick." }
 }
 const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
+const POSITION_LABELS = { FLEX: "WRT", QB: "QB", RB: "RB", WR: "WR", TE: "TE", BN: "BN" }
+
+const getRosterSlotColor = (slotType, colors) => {
+  const isDarkTheme = colors.card !== "#FFFFFF"
+  switch (slotType) {
+    case "QB":
+      return colors.pillQB || "#f43f5e"
+    case "RB":
+      return colors.pillRB || "#10b981"
+    case "WR":
+      return isDarkTheme ? colors.pillWR || "#60a5fa" : colors.fantasyProsBlue || "#2563eb"
+    case "TE":
+      return colors.pillTE || "#f59e0b"
+    case "FLEX":
+      return isDarkTheme ? colors.pillWR || "#60a5fa" : colors.fantasyProsBlue || "#2563eb"
+    case "BN":
+      return colors.pillBN || colors.textSecondary || "#64748b"
+    default:
+      return colors.textSecondary || "#64748b"
+  }
+}
+
+const getPickLabel = (pickNo, numTeams = 1) => `${Math.floor((pickNo - 1) / numTeams) + 1}.${String(((pickNo - 1) % numTeams) + 1).padStart(2, "0")}`
+
+const generateRosterSlots = (settings = DEFAULT_SLOT_SETTINGS) => {
+  const slotOrder = []
+  for (let i = 0; i < Number(settings.slots_qb ?? 1); i++) slotOrder.push("QB")
+  for (let i = 0; i < Number(settings.slots_rb ?? 2); i++) slotOrder.push("RB")
+  for (let i = 0; i < Number(settings.slots_wr ?? 2); i++) slotOrder.push("WR")
+  for (let i = 0; i < Number(settings.slots_te ?? 1); i++) slotOrder.push("TE")
+  for (let i = 0; i < Number(settings.slots_flex ?? settings.slots_wrt ?? 1); i++) slotOrder.push("FLEX")
+  for (let i = 0; i < Number(settings.slots_super_flex ?? 0); i++) slotOrder.push("FLEX")
+  for (let i = 0; i < Number(settings.slots_bn ?? 5); i++) slotOrder.push("BN")
+  return slotOrder
+}
+
+const mapPlayersToRosterSlots = (players, settings) => {
+  const rosterTemplate = generateRosterSlots(settings)
+  const filledRoster = Array(rosterTemplate.length).fill(null)
+  const playersToSlot = [...players].sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0))
+
+  const findAndSlotPlayer = (isMatch) => {
+    const playerIndex = playersToSlot.findIndex(isMatch)
+    if (playerIndex < 0) return null
+    const [player] = playersToSlot.splice(playerIndex, 1)
+    return player
+  }
+
+  rosterTemplate.forEach((slotType, index) => {
+    if (!["FLEX", "BN"].includes(slotType)) filledRoster[index] = findAndSlotPlayer((player) => player.position === slotType)
+  })
+  rosterTemplate.forEach((slotType, index) => {
+    if (filledRoster[index] === null && slotType === "FLEX") filledRoster[index] = findAndSlotPlayer((player) => FLEX_POSITIONS.includes(player.position))
+  })
+  rosterTemplate.forEach((slotType, index) => {
+    if (filledRoster[index] === null && slotType === "BN" && playersToSlot.length) filledRoster[index] = playersToSlot.shift()
+  })
+
+  return { rosterTemplate, filledRoster }
+}
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
@@ -1068,6 +1128,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const selectedRosterPlayers = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0))
+  const { rosterTemplate: selectedRosterTemplate, filledRoster: selectedRosterSlots } = mapPlayersToRosterSlots(selectedRosterPlayers, settings)
 
   const pickWindowBack = draftRound <= 2 ? 2 : draftRound <= 5 ? 4 : 6
   const pickWindowForward = draftRound <= 2 ? 10 : draftRound <= 5 ? 16 : 24
@@ -1460,16 +1521,42 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 </div>
               </div>
               {selectedRosterPlayers.length ? (
-                <div className="grid max-h-48 gap-1 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-                  {selectedRosterPlayers.map((player) => (
-                    <div key={`${player.pick_no}-${player.name}`} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5" style={{ background: colors.tableRow }}>
-                      <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-black" style={{ background: player.position === "RB" ? "#10b981" : player.position === "WR" ? "#60a5fa" : player.position === "TE" ? "#f59e0b" : "#f43f5e", color: "#06111f" }}>{player.position}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
-                        <div className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{player.team || "FA"} · pick {player.pick_no}</div>
+                <div className="max-h-[22rem] space-y-1 overflow-y-auto pr-1" aria-label={`${selectedTeamName} ordered roster preview`}>
+                  {selectedRosterSlots.map((player, index) => {
+                    const slotType = selectedRosterTemplate[index] || "BN"
+                    const slotColor = getRosterSlotColor(slotType, colors)
+                    const playerColor = getRosterSlotColor(player?.position || slotType, colors)
+                    const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
+
+                    return (
+                      <div key={`${slotType}-${index}-${player?.pick_no || "open"}`} className="rounded-lg border px-2 py-1.5 shadow-sm" style={{ background: `linear-gradient(180deg, ${slotColor}14, ${colors.card})`, borderColor: `${slotColor}66`, boxShadow: `inset 4px 0 0 ${slotColor}`, opacity: player ? 1 : 0.72 }}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black" style={{ background: `${slotColor}22`, borderColor: `${slotColor}66`, color: slotColor }}>
+                            {POSITION_LABELS[slotType] || slotType}
+                          </span>
+                          {player ? (
+                            <>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-black leading-snug" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
+                                <div className="flex min-w-0 items-center gap-1.5 text-[10px]" style={{ color: colors.textSecondary }}>
+                                  <span className="rounded px-1.5 py-0.5 text-[9px] font-black" style={{ background: `${playerColor}22`, color: playerColor }}>{player.position}</span>
+                                  <span className="truncate">{player.team || "FA"}</span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 whitespace-nowrap text-right text-[10px] font-black">
+                                <span style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</span>
+                                {value !== null && <span className="ml-1" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</span>}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
