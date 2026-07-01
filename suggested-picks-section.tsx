@@ -1323,9 +1323,9 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     return (
       <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
         <CardHeader className="px-3 pb-2 pt-3">
-          <CardTitle className="flex items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
-            <span>TOP SUGGESTED PICKS</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+          <CardTitle className="flex flex-col gap-1 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
+            <span className="leading-tight">TOP SUGGESTED PICKS</span>
+            <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide" style={{ color: colors.textSecondary }}>
               Pick {currentPick} • {scoringFormat} • {qbMode}
             </span>
           </CardTitle>
@@ -1376,19 +1376,26 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                       </div>
                     </div>
 
-                    <div className="flex w-full items-center gap-2">
-                      <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
-                      <BubbleSymbol pos={player.position} colors={colors} compact />
-                      <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
-                      {valueEmoji && <span className="shrink-0 text-base leading-none" aria-label={player.valueDiff >= 20 ? "Elite 20+ value pick" : "-20 or worse value fade"}>{valueEmoji}</span>}
-                      <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                    <div className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
+                        <BubbleSymbol pos={player.position} colors={colors} compact />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="break-words text-sm font-black leading-tight" title={player.name}>{player.name}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                          <span>{player.position}</span>
+                          <span>·</span>
+                          <span className="rounded-full px-2 py-0.5 font-black" style={{ background: `${valueDiffColor}18`, color: valueDiffColor }}>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {valueEmoji && <span className="text-base leading-none" aria-label={player.valueDiff >= 20 ? "Elite 20+ value pick" : "-20 or worse value fade"}>{valueEmoji}</span>}
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                      </div>
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
-                      <span>{player.position}</span>
-                      <span>·</span>
-                      <span className="rounded-full px-2 py-0.5 font-black" style={{ background: `${valueDiffColor}18`, color: valueDiffColor }}>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
-                      <span>·</span>
-                      <span>{player.confidence} confidence</span>
+                    <div className="mt-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                      {player.confidence} confidence
                     </div>
                   </button>
                 )
