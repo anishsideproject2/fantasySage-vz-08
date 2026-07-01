@@ -1341,7 +1341,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               Connect a draft or load players to see pick suggestions.
             </div>
           ) : (
-            <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-3" aria-label="Top suggested picks">
+            <div className="grid grid-cols-1 items-stretch gap-2" aria-label="Top suggested picks">
               {suggestedPicks.map((player, idx) => {
                 const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
                 const valueDiffColor = getValueDiffColor(player.valueDiff)
