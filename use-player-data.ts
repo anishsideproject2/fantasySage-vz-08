@@ -128,12 +128,17 @@ export function usePlayerData() {
     }
   }, [])
 
-  const addCustomRankingSet = useCallback(async (customSet) => {
+  const addCustomRankingSet = useCallback(async (customSet, options = {}) => {
+    const { persistToRepo = true } = options
     const optimisticSets = [customSet, ...customRankingSets.filter((set) => set.id !== customSet.id)].slice(
       0,
       CUSTOM_RANKING_LIBRARY_LIMIT,
     )
     saveCustomRankingSets(optimisticSets)
+
+    if (!persistToRepo) {
+      return { ok: true, message: "Rankings saved to the quick switch board in this browser." }
+    }
 
     try {
       const response = await fetch(CUSTOM_RANKING_LIBRARY_API, {
@@ -179,8 +184,25 @@ export function usePlayerData() {
     return {
       analyst,
       analysts,
-      format: shareOptions.format?.trim() || defaults.format || "",
+      format: shareOptions.format?.trim() || shareOptions.detectedFormat?.trim() || defaults.format || "PPR",
       updated: normalizeRankingUpdateDate(shareOptions.updated || defaults.updated),
+    }
+  }
+
+  const buildUploadedCustomSet = (name, players, metadata) => {
+    const analyst = metadata.analyst || name || "Custom Rankings"
+    const analysts = metadata.analysts.length ? metadata.analysts : [analyst]
+    const updated = metadata.updated || new Date().toISOString().slice(0, 10)
+
+    return {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      analyst,
+      analysts,
+      format: metadata.format || "PPR",
+      updated,
+      playerCount: players.length,
+      data: players.map((player) => ({ ...player, drafted: false })),
     }
   }
 
@@ -361,16 +383,7 @@ export function usePlayerData() {
               })
 
               // Set as active if it's the first ranking or if current active is empty
-              if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
-                const customSet = {
-                  id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                  name,
-                  ...metadata,
-                  playerCount: players.length,
-                  data: players.map((player) => ({ ...player, drafted: false })),
-                }
-                addCustomRankingSet(customSet)
-              }
+              addCustomRankingSet(buildUploadedCustomSet(name, players, metadata), { persistToRepo: Boolean(shareOptions.publish) })
 
               if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {
                 setActiveRankingIndex(rankingIndex)
@@ -438,16 +451,7 @@ export function usePlayerData() {
                 return newRankings
               })
 
-              if (shareOptions.publish && metadata.analyst && metadata.format && metadata.updated) {
-                const customSet = {
-                  id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                  name,
-                  ...metadata,
-                  playerCount: players.length,
-                  data: players.map((player) => ({ ...player, drafted: false })),
-                }
-                addCustomRankingSet(customSet)
-              }
+              addCustomRankingSet(buildUploadedCustomSet(name, players, metadata), { persistToRepo: Boolean(shareOptions.publish) })
 
               // Set as active if it's the first ranking or if current active is empty
               if (rankingIndex === 0 || rankings[activeRankingIndex].data.length === 0) {

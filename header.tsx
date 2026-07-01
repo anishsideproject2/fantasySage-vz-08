@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { FileManager } from "./file-manager"
 import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
@@ -81,6 +81,12 @@ export function Header({
   const [detectedScoringGroupId, setDetectedScoringGroupId] = useState<string | null>(null)
   const [detectedScoringLabel, setDetectedScoringLabel] = useState("Ready to load a board")
   const activePresetRef = useRef<HTMLButtonElement | null>(null)
+
+  const updateSleeperUrlAtIndex = (index: number, value: string) => {
+    const nextUrls = [sleeperUrls[0] || "", sleeperUrls[1] || ""]
+    nextUrls[index] = value
+    setSleeperUrl(nextUrls.join("\n"))
+  }
 
   const quickSwitchGroups = useMemo(() => {
     const groupsById = new Map(RANKING_PRESET_GROUPS.map((group) => [group.id, group]))
@@ -175,7 +181,7 @@ export function Header({
               <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.headingGreen }} aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.headingGreen }}>Start here</p>
-                <p className="text-sm font-extrabold leading-tight">Paste your Sleeper draft URL below, then sync.</p>
+                <p className="text-sm font-extrabold leading-tight">Paste each Sleeper draft URL into its own bar, then sync.</p>
               </div>
             </div>
             <div className="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
@@ -187,18 +193,25 @@ export function Header({
                   <SelectItem value="sleeper">Sleeper</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="relative">
-                <Textarea
-                  id="sleeper-draft-url"
-                  aria-label="Sleeper draft URLs"
-                  placeholder={"Paste one or more Sleeper draft URLs, one per line"}
-                  value={sleeperUrls.join("\n")}
-                  onChange={(e) => setSleeperUrl(e.target.value)}
-                  className="min-h-10 w-full pr-10 text-xs"
-                  style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}
-                />
-                {isConnected && <CheckCircle size={16} className="absolute right-3 top-3" style={{ color: colors.headingGreen }} />}
-                {error && <AlertCircle size={16} className="absolute right-3 top-3" style={{ color: colors.adpNegative }} />}
+              <div className="grid gap-2">
+                {[0, 1].map((index) => {
+                  const isActiveUrl = index === activeSleeperUrlIndex && Boolean(sleeperUrls[index]?.trim())
+                  return (
+                    <div key={index} className="relative">
+                      <Input
+                        id={`sleeper-draft-url-${index + 1}`}
+                        aria-label={`Sleeper draft ${index + 1} URL`}
+                        placeholder={`Sleeper draft ${index + 1} URL${index === 1 ? " (optional for switching)" : ""}`}
+                        value={sleeperUrls[index] || ""}
+                        onChange={(e) => updateSleeperUrlAtIndex(index, e.target.value)}
+                        className="h-10 w-full pr-10 text-xs"
+                        style={{ backgroundColor: colors.darkBlue, borderColor: isActiveUrl ? colors.headingGreen : colors.cardBorder, color: colors.textPrimary }}
+                      />
+                      {isConnected && isActiveUrl && <CheckCircle size={16} className="absolute right-3 top-3" style={{ color: colors.headingGreen }} />}
+                      {error && isActiveUrl && <AlertCircle size={16} className="absolute right-3 top-3" style={{ color: colors.adpNegative }} />}
+                    </div>
+                  )
+                })}
               </div>
               <Button
                 onClick={handleSync}
@@ -387,6 +400,7 @@ export function Header({
             loadCustomRankingSet={loadCustomRankingSet}
             removeCustomRankingSet={removeCustomRankingSet}
             isPapaParseLoaded={isPapaParseLoaded}
+            draftData={draftData}
           />
         </div>
       )}
