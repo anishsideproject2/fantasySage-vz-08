@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Moon, Sun, Copy, CheckCircle, AlertCircle, Check, ArrowDown, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { FileManager } from "./file-manager"
 import { RANKING_PRESET_GROUPS } from "./ranking-presets"
 
@@ -63,7 +63,12 @@ export function Header({
   platform,
   setPlatform,
   sleeperUrl,
+  sleeperUrls = [],
   setSleeperUrl,
+  activeSleeperUrlIndex = 0,
+  setActiveSleeperUrlIndex,
+  autoSwitchSleeperDrafts = true,
+  setAutoSwitchSleeperDrafts,
   handleSync,
   isManualSyncing,
   isSyncDisabled,
@@ -183,18 +188,17 @@ export function Header({
                 </SelectContent>
               </Select>
               <div className="relative">
-                <Input
-                  type="url"
+                <Textarea
                   id="sleeper-draft-url"
-                  aria-label="Sleeper draft URL"
-                  placeholder="https://sleeper.com/draft/nfl/1234567890"
-                  value={sleeperUrl}
+                  aria-label="Sleeper draft URLs"
+                  placeholder={"Paste one or more Sleeper draft URLs, one per line"}
+                  value={sleeperUrls.join("\n")}
                   onChange={(e) => setSleeperUrl(e.target.value)}
-                  className="h-10 w-full pr-10"
+                  className="min-h-10 w-full pr-10 text-xs"
                   style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}
                 />
-                {isConnected && <CheckCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.headingGreen }} />}
-                {error && <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: colors.adpNegative }} />}
+                {isConnected && <CheckCircle size={16} className="absolute right-3 top-3" style={{ color: colors.headingGreen }} />}
+                {error && <AlertCircle size={16} className="absolute right-3 top-3" style={{ color: colors.adpNegative }} />}
               </div>
               <Button
                 onClick={handleSync}
@@ -205,6 +209,35 @@ export function Header({
                 {isManualSyncing ? "Syncing…" : "Sync"}
               </Button>
             </div>
+            {sleeperUrls.length > 1 && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {sleeperUrls.map((url: string, index: number) => (
+                  <Button
+                    key={`${url}-${index}`}
+                    type="button"
+                    size="sm"
+                    onClick={() => setActiveSleeperUrlIndex?.(index)}
+                    className="h-8 px-3 text-xs font-black"
+                    style={{
+                      backgroundColor: index === activeSleeperUrlIndex ? colors.headingGreen : colors.card,
+                      color: index === activeSleeperUrlIndex ? "#000000" : colors.textPrimary,
+                      border: `1px solid ${index === activeSleeperUrlIndex ? colors.headingGreen : colors.cardBorder}`,
+                    }}
+                  >
+                    Draft {index + 1}{index === activeSleeperUrlIndex ? " (active)" : ""}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setAutoSwitchSleeperDrafts?.(!autoSwitchSleeperDrafts)}
+                  className="h-8 px-3 text-xs font-black"
+                  style={{ backgroundColor: autoSwitchSleeperDrafts ? `${colors.purple}30` : colors.card, color: autoSwitchSleeperDrafts ? colors.purple : colors.textSecondary, border: `1px solid ${colors.cardBorder}` }}
+                >
+                  Auto-switch {autoSwitchSleeperDrafts ? "on" : "off"}
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
