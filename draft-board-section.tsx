@@ -230,7 +230,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
                       )}
                       <div className="min-w-0">
                         <div className="truncate text-[11px] font-black" style={{ color: colors.textPrimary }}>{team.team_name}</div>
-                        <div className="truncate text-[9px]" style={{ color: colors.textSecondary }}>{team.owner?.display_name}</div>
+                        <div className="truncate text-[9px]" style={{ color: colors.textSecondary }}>@{team.owner?.username || team.owner?.display_name}</div>
                       </div>
                     </div>
                   </button>
