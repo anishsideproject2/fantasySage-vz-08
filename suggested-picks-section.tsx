@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -947,66 +946,6 @@ const getThematicStrategySignal = ({ player, round, rosterNeed, rosterCounts, st
   return { bonus: 0, label: "BPA", detail: "Let value, roster fit, and positional leverage drive the pick." }
 }
 const DEFAULT_SLOT_SETTINGS = { slots_qb: 1, slots_rb: 2, slots_wr: 2, slots_te: 1, slots_flex: 1, slots_bn: 5 }
-const POSITION_LABELS = { FLEX: "WRT", QB: "QB", RB: "RB", WR: "WR", TE: "TE", BN: "BN" }
-
-const getRosterSlotColor = (slotType, colors) => {
-  const isDarkTheme = colors.card !== "#FFFFFF"
-  switch (slotType) {
-    case "QB":
-      return colors.pillQB || "#f43f5e"
-    case "RB":
-      return colors.pillRB || "#10b981"
-    case "WR":
-      return isDarkTheme ? colors.pillWR || "#60a5fa" : colors.fantasyProsBlue || "#2563eb"
-    case "TE":
-      return colors.pillTE || "#f59e0b"
-    case "FLEX":
-      return isDarkTheme ? colors.pillWR || "#60a5fa" : colors.fantasyProsBlue || "#2563eb"
-    case "BN":
-      return colors.pillBN || colors.textSecondary || "#64748b"
-    default:
-      return colors.textSecondary || "#64748b"
-  }
-}
-
-const getPickLabel = (pickNo, numTeams = 1) => `${Math.floor((pickNo - 1) / numTeams) + 1}.${String(((pickNo - 1) % numTeams) + 1).padStart(2, "0")}`
-
-const generateRosterSlots = (settings = DEFAULT_SLOT_SETTINGS) => {
-  const slotOrder = []
-  for (let i = 0; i < Number(settings.slots_qb ?? 1); i++) slotOrder.push("QB")
-  for (let i = 0; i < Number(settings.slots_rb ?? 2); i++) slotOrder.push("RB")
-  for (let i = 0; i < Number(settings.slots_wr ?? 2); i++) slotOrder.push("WR")
-  for (let i = 0; i < Number(settings.slots_te ?? 1); i++) slotOrder.push("TE")
-  for (let i = 0; i < Number(settings.slots_flex ?? settings.slots_wrt ?? 1); i++) slotOrder.push("FLEX")
-  for (let i = 0; i < Number(settings.slots_super_flex ?? 0); i++) slotOrder.push("FLEX")
-  for (let i = 0; i < Number(settings.slots_bn ?? 5); i++) slotOrder.push("BN")
-  return slotOrder
-}
-
-const mapPlayersToRosterSlots = (players, settings) => {
-  const rosterTemplate = generateRosterSlots(settings)
-  const filledRoster = Array(rosterTemplate.length).fill(null)
-  const playersToSlot = [...players].sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0))
-
-  const findAndSlotPlayer = (isMatch) => {
-    const playerIndex = playersToSlot.findIndex(isMatch)
-    if (playerIndex < 0) return null
-    const [player] = playersToSlot.splice(playerIndex, 1)
-    return player
-  }
-
-  rosterTemplate.forEach((slotType, index) => {
-    if (!["FLEX", "BN"].includes(slotType)) filledRoster[index] = findAndSlotPlayer((player) => player.position === slotType)
-  })
-  rosterTemplate.forEach((slotType, index) => {
-    if (filledRoster[index] === null && slotType === "FLEX") filledRoster[index] = findAndSlotPlayer((player) => FLEX_POSITIONS.includes(player.position))
-  })
-  rosterTemplate.forEach((slotType, index) => {
-    if (filledRoster[index] === null && slotType === "BN" && playersToSlot.length) filledRoster[index] = playersToSlot.shift()
-  })
-
-  return { rosterTemplate, filledRoster }
-}
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
@@ -1055,7 +994,6 @@ const getActionLabel = (player) => {
 }
 
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride, compact = false }) {
-  const [isRosterPreviewOpen, setIsRosterPreviewOpen] = useState(false)
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -1123,13 +1061,6 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const rosterHealth = getRosterHealth({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, strategyKey: strategyLock.activeKey })
 
   const positionalRunAlert = getRunAlert(draftedPlayers)
-  const selectedTeam = draftData?.teams?.find((team) => String(team.roster_id) === String(selectedTeamRosterId))
-  const selectedTeamName = selectedTeam?.team_name || selectedTeam?.owner?.display_name || "Current team"
-  const selectedRosterPlayers = draftedPlayers
-    .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
-    .sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0))
-  const { rosterTemplate: selectedRosterTemplate, filledRoster: selectedRosterSlots } = mapPlayersToRosterSlots(selectedRosterPlayers, settings)
-
   const pickWindowBack = draftRound <= 2 ? 2 : draftRound <= 5 ? 4 : 6
   const pickWindowForward = draftRound <= 2 ? 10 : draftRound <= 5 ? 16 : 24
   const pickWindowFloor = Math.max(1, Number(currentPick || 1) - pickWindowBack)
@@ -1498,22 +1429,8 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                 {strategyLock.next} · Hover for full strategy controls
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsRosterPreviewOpen((value) => !value)}
-                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide transition hover:opacity-85 focus:outline-none focus:ring-2"
-                style={{ borderColor: colors.lightBorder, background: colors.card, color: colors.textPrimary }}
-                aria-expanded={isRosterPreviewOpen}
-              >
-                {isRosterPreviewOpen ? "Hide roster" : "Show roster"}
-                <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: `${colors.textSecondary}22`, color: colors.textPrimary }}>
-                  {isRosterPreviewOpen ? "↑" : "↓"}
-                </span>
-              </button>
-              <div className="rounded-lg border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.headingGreen, color: colors.headingGreen, background: `${colors.headingGreen}12` }}>
-                Health {rosterHealth.score}/100
-              </div>
+            <div className="shrink-0 rounded-lg border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.headingGreen, color: colors.headingGreen, background: `${colors.headingGreen}12` }}>
+              Health {rosterHealth.score}/100
             </div>
           </div>
 
@@ -1524,60 +1441,6 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
               return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
             })}
           </div>
-
-          {isRosterPreviewOpen && (
-            <div className="mt-2 rounded-xl border p-2" style={{ borderColor: colors.lightBorder, background: colors.card }}>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>{selectedTeamName} roster</div>
-                <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
-                  {selectedRosterCounts.total}/{rosterSize} drafted · QB {selectedRosterCounts.QB || 0} · RB {selectedRosterCounts.RB || 0} · WR {selectedRosterCounts.WR || 0} · TE {selectedRosterCounts.TE || 0}
-                </div>
-              </div>
-              {selectedRosterPlayers.length ? (
-                <div className="max-h-[22rem] space-y-1 overflow-y-auto pr-1" aria-label={`${selectedTeamName} ordered roster preview`}>
-                  {selectedRosterSlots.map((player, index) => {
-                    const slotType = selectedRosterTemplate[index] || "BN"
-                    const slotColor = getRosterSlotColor(slotType, colors)
-                    const playerColor = getRosterSlotColor(player?.position || slotType, colors)
-                    const value = player?.adp && player?.pick_no ? player.pick_no - Number.parseFloat(player.adp) : null
-
-                    return (
-                      <div key={`${slotType}-${index}-${player?.pick_no || "open"}`} className="rounded-lg border px-2 py-1.5 shadow-sm" style={{ background: `linear-gradient(180deg, ${slotColor}14, ${colors.card})`, borderColor: `${slotColor}66`, boxShadow: `inset 4px 0 0 ${slotColor}`, opacity: player ? 1 : 0.72 }}>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black" style={{ background: `${slotColor}22`, borderColor: `${slotColor}66`, color: slotColor }}>
-                            {POSITION_LABELS[slotType] || slotType}
-                          </span>
-                          {player ? (
-                            <>
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-black leading-snug" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</div>
-                                <div className="flex min-w-0 items-center gap-1.5 text-[10px]" style={{ color: colors.textSecondary }}>
-                                  <span className="rounded px-1.5 py-0.5 text-[9px] font-black" style={{ background: `${playerColor}22`, color: playerColor }}>{player.position}</span>
-                                  <span className="truncate">{player.team || "FA"}</span>
-                                </div>
-                              </div>
-                              <div className="shrink-0 whitespace-nowrap text-right text-[10px] font-black">
-                                <span style={{ color: colors.textPrimary }}>{getPickLabel(player.pick_no, draftData?.numTeams || 1)}</span>
-                                {value !== null && <span className="ml-1" style={{ color: value >= 0 ? colors.adpPositive : colors.adpNegative }}>{value > 0 ? "+" : ""}{value.toFixed(1)}</span>}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-bold italic" style={{ color: colors.textSecondary }}>Open {POSITION_LABELS[slotType] || slotType}</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
-                  Select a team or wait for the first pick to see this roster here.
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mt-2 group-hover:max-h-[34rem] group-hover:opacity-100 group-focus-within:mt-2 group-focus-within:max-h-[34rem] group-focus-within:opacity-100">
             <div className="grid gap-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
