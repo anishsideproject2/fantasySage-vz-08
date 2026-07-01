@@ -18,6 +18,7 @@ export function FileManager({
   loadCustomRankingSet,
   removeCustomRankingSet,
   isPapaParseLoaded,
+  draftData,
 }) {
   const [dragOver, setDragOver] = useState(false)
   const [publishBySlot, setPublishBySlot] = useState({})
@@ -45,13 +46,35 @@ export function FileManager({
     setDragOver(false)
   }
 
-  const getShareOptions = (index) => ({
-    publish: Boolean(publishBySlot[index]),
-    analyst: metadataBySlot[index]?.analyst || "",
-    analysts: metadataBySlot[index]?.analyst || "",
-    format: metadataBySlot[index]?.format || "",
-    updated: metadataBySlot[index]?.updated || "",
-  })
+  const getDetectedDraftFormat = () => {
+    const scoringText = [
+      draftData?.scoringFormat,
+      draftData?.slotSettings?.scoring_type,
+      draftData?.slotSettings?.type,
+      draftData?.slotSettings?.reception_type,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+    const receptionValue = Number(draftData?.slotSettings?.rec ?? draftData?.slotSettings?.receptions)
+
+    if (scoringText.includes("half") || scoringText.includes("0.5") || receptionValue === 0.5) return "Half PPR"
+    if (scoringText.includes("ppr") || receptionValue >= 1) return "PPR"
+    return "PPR"
+  }
+
+  const getShareOptions = (index) => {
+    const detectedFormat = getDetectedDraftFormat()
+
+    return {
+      publish: Boolean(publishBySlot[index]),
+      analyst: metadataBySlot[index]?.analyst || "",
+      analysts: metadataBySlot[index]?.analyst || "",
+      format: metadataBySlot[index]?.format || detectedFormat,
+      updated: metadataBySlot[index]?.updated || "",
+      detectedFormat,
+    }
+  }
 
   const updateMetadata = (index, field, value) => {
     setMetadataBySlot((prev) => ({
@@ -231,7 +254,7 @@ export function FileManager({
                     style={{ backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }}
                   />
                   <Input
-                    placeholder="Format, e.g. PPR"
+                    placeholder={`Format, defaults to ${getDetectedDraftFormat()}`}
                     value={metadataBySlot[index]?.format || ""}
                     onChange={(e) => updateMetadata(index, "format", e.target.value)}
                     className="h-9 text-xs"
