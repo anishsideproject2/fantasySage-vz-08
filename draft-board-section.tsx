@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
-import { Maximize2, Minimize2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { ChevronDown, ChevronRight, Maximize2, Minimize2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BubbleSymbol } from "./bubble-symbol"
 
@@ -74,6 +74,7 @@ const getValueLabel = (value) => {
 
 export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized, maximizedTopContent = null, selectedStrategyOverride = "auto" }) {
   const teams = draftData?.teams || []
+  const [openRosterPositions, setOpenRosterPositions] = useState({ QB: true, RB: true, WR: true, TE: true })
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
   const totalPicks = numTeams && rounds ? numTeams * rounds : 0
@@ -131,6 +132,20 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
   const currentRound = numTeams ? Math.floor((Number(currentPick || 1) - 1) / numTeams) + 1 : 1
   const latestPlayer = latestPickNo ? picksByNumber.get(latestPickNo) : null
   const selectedSummary = selectedTeamRosterId ? rosterSummaries.get(String(selectedTeamRosterId)) : null
+  const selectedRosterPlayers = useMemo(
+    () => (draftedPlayers || [])
+      .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
+      .sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0)),
+    [draftedPlayers, selectedTeamRosterId],
+  )
+  const selectedRosterByPosition = useMemo(() => {
+    const groups = POSITION_ORDER.reduce((acc, position) => ({ ...acc, [position]: [] }), {})
+    selectedRosterPlayers.forEach((player) => {
+      if (groups[player.position]) groups[player.position].push(player)
+    })
+    return groups
+  }, [selectedRosterPlayers])
+  const toggleRosterPosition = (position) => setOpenRosterPositions((current) => ({ ...current, [position]: !current[position] }))
   const shouldLimitRounds = Number.isFinite(Number(visibleRoundCount)) && Number(visibleRoundCount) > 0 && Number(visibleRoundCount) < rounds
   const firstVisibleRound = shouldLimitRounds ? Math.max(1, Math.min(currentRound - 2, Math.max(1, rounds - Number(visibleRoundCount) + 1))) : 1
   const visibleRounds = shouldLimitRounds
@@ -218,6 +233,51 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
             <span className="ml-auto">Selected roster: {POSITION_ORDER.map((pos) => `${pos} ${selectedSummary[pos] || 0}`).join(" · ")}</span>
           )}
         </div>
+        {selectedTeamRosterId && (
+          <div className={`mt-2 rounded-xl border p-2 ${isMaximized ? "space-y-1" : ""}`} style={{ borderColor: colors.lightBorder, background: colors.tableRow }}>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+              <span>Compact selected roster</span>
+              <span>{selectedRosterPlayers.length} drafted</span>
+            </div>
+            <div className={isMaximized ? "space-y-1" : "grid gap-1 sm:grid-cols-2 xl:grid-cols-4"}>
+              {POSITION_ORDER.map((pos) => {
+                const positionColors = getPositionBoardColors(pos, colors)
+                const players = selectedRosterByPosition[pos] || []
+                const isOpen = !!openRosterPositions[pos]
+                return (
+                  <section key={pos} className="overflow-hidden rounded-lg border" style={{ borderColor: `${positionColors.border}66`, background: colors.card }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleRosterPosition(pos)}
+                      className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[10px] font-black uppercase tracking-wide"
+                      style={{ background: positionColors.background, color: positionColors.border }}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        {pos}
+                      </span>
+                      <span>{players.length}</span>
+                    </button>
+                    {isOpen && (
+                      <div className={isMaximized ? "grid gap-1 p-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "space-y-1 p-1.5"}>
+                        {players.length ? players.map((player) => (
+                          <div key={`${player.pick_no}-${player.name}`} className="flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1 text-[10px]" style={{ background: colors.tableRow, color: colors.textSecondary }}>
+                            <span className="min-w-0 truncate font-black" style={{ color: colors.textPrimary }} title={player.name}>{player.name}</span>
+                            <span className="shrink-0 font-bold">#{player.pick_no}</span>
+                          </div>
+                        )) : (
+                          <div className="rounded-md border border-dashed px-2 py-1 text-[10px] font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>No {pos} drafted</div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
       </CardHeader>
       {isMaximized && maximizedTopContent && (
         <div className="px-2 pb-2">

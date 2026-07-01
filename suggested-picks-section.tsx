@@ -1339,6 +1339,24 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pt-0 pb-3">
+          <div className="mb-2 rounded-xl border p-2 text-[11px] leading-snug" style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
+                Strategy: <span style={{ color: colors.headingGreen }}>{strategyLock.label}</span>
+              </div>
+              <div className="rounded-lg border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.headingGreen, color: colors.headingGreen, background: `${colors.headingGreen}12` }}>Health {rosterHealth.score}/100</div>
+            </div>
+            <div className="mt-1 font-semibold" style={{ color: colors.textPrimary }}>{strategyLock.next}</div>
+            <div className="mt-1">{strategyLock.guidance}</div>
+            <div className="mt-1">{strategyLock.guardrail} {strategyLock.format}</div>
+            <div className="mt-2 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[9px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
+              {["R1-2 Anchor", "R3-5 Support", "R6-9 Value", "R10-12 Lottery", "R13+ Stream"].map((label, index) => {
+                const active = (draftRound <= 2 && index === 0) || (draftRound >= 3 && draftRound <= 5 && index === 1) || (draftRound >= 6 && draftRound <= 9 && index === 2) || (draftRound >= 10 && draftRound <= 12 && index === 3) || (draftRound >= 13 && index === 4)
+                const palette = ["#22c55e", "#3b82f6", "#facc15", "#fb923c", "#94a3b8"]
+                return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
+              })}
+            </div>
+          </div>
           {suggestedPicks.length === 0 ? (
             <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
               Connect a draft or load players to see pick suggestions.
