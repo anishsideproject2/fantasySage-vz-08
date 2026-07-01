@@ -177,13 +177,18 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
               <button
                 type="button"
                 onClick={onToggleMaximized}
-                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide transition hover:opacity-85 focus:outline-none focus:ring-2"
-                style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textPrimary }}
-                aria-label={isMaximized ? "Minimize draft board" : "Maximize draft board"}
-                title={isMaximized ? "Minimize draft board" : "Maximize draft board"}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-black uppercase tracking-wide shadow-lg transition hover:-translate-y-0.5 hover:scale-105 hover:opacity-95 focus:outline-none focus:ring-2 ${isMaximized ? "" : "animate-pulse ring-2 ring-offset-2"}`}
+                style={{
+                  borderColor: isMaximized ? colors.lightBorder : colors.gold,
+                  background: isMaximized ? colors.tableRow : `linear-gradient(135deg, ${colors.gold}, ${colors.headingGreen})`,
+                  color: isMaximized ? colors.textPrimary : colors.darkBlue,
+                  boxShadow: isMaximized ? undefined : `0 0 24px ${colors.gold}55`,
+                }}
+                aria-label={isMaximized ? "Minimize draft board" : "Try maximized live draft board"}
+                title={isMaximized ? "Minimize draft board" : "Try maximized live draft board"}
               >
-                {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                {isMaximized ? "Minimize" : "Maximize"}
+                {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-4 w-4" />}
+                {isMaximized ? "Minimize" : "Try maximized board"}
               </button>
             )}
           </div>
