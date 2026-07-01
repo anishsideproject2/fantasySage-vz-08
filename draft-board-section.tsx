@@ -59,7 +59,7 @@ const getValueLabel = (value) => {
   return "🫏 Reach"
 }
 
-export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized }) {
+export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized, maximizedTopContent = null }) {
   const teams = draftData?.teams || []
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
@@ -199,6 +199,11 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
           )}
         </div>
       </CardHeader>
+      {isMaximized && maximizedTopContent && (
+        <div className="px-2 pb-2">
+          {maximizedTopContent}
+        </div>
+      )}
       <CardContent className="min-h-0 flex-1 px-2 pt-0 pb-2">
         <div className="h-full min-h-0 overflow-auto rounded-xl border" style={{ borderColor: colors.lightBorder }}>
           <div className="min-w-[920px]">

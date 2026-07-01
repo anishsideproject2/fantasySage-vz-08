@@ -244,6 +244,20 @@ export function FantasyDraftAssistant() {
               visibleRoundCount={null}
               isMaximized={isDraftBoardMaximized}
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
+              maximizedTopContent={(
+                <SuggestedPicksSection
+                  colors={colors}
+                  draftData={draftData}
+                  currentPick={currentPick}
+                  getAvailablePlayers={getAvailablePlayers}
+                  draftedPlayers={draftedPlayers}
+                  selectedTeamRosterId={selectedTeamRosterId}
+                  layout="horizontal"
+                  selectedStrategyOverride={selectedStrategyOverride}
+                  setSelectedStrategyOverride={setSelectedStrategyOverride}
+                  compact
+                />
+              )}
             />
           </div>
 
@@ -298,6 +312,20 @@ export function FantasyDraftAssistant() {
                   visibleRoundCount={null}
                   isMaximized={isDraftBoardMaximized}
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
+                  maximizedTopContent={(
+                    <SuggestedPicksSection
+                      colors={colors}
+                      draftData={draftData}
+                      currentPick={currentPick}
+                      getAvailablePlayers={getAvailablePlayers}
+                      draftedPlayers={draftedPlayers}
+                      selectedTeamRosterId={selectedTeamRosterId}
+                      layout="horizontal"
+                      selectedStrategyOverride={selectedStrategyOverride}
+                      setSelectedStrategyOverride={setSelectedStrategyOverride}
+                      compact
+                    />
+                  )}
                 />
               </div>
             </div>
