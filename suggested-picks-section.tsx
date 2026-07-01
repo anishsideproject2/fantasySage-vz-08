@@ -993,7 +993,7 @@ const getActionLabel = (player) => {
   return "Track"
 }
 
-export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride }) {
+export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride, compact = false }) {
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -1319,6 +1319,56 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
     })
 
   const isHorizontal = layout === "horizontal"
+
+  if (compact) {
+    return (
+      <Card className="flex flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+        <CardHeader className="px-3 pb-2 pt-3">
+          <CardTitle className="flex items-center justify-between gap-2 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
+            <span>TOP SUGGESTED PICKS</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+              {scoringFormat} • {draftTypeLabel} • {qbMode}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 pt-0 pb-3">
+          {suggestedPicks.length === 0 ? (
+            <div className="rounded border px-3 py-2 text-xs" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+              Connect a draft or load players to see pick suggestions.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" aria-label="Top suggested picks">
+              {suggestedPicks.map((player, idx) => {
+                const playerKey = String(player.id || `${player.name}-${player.team}-${player.position}`)
+                const valueDiffColor = getValueDiffColor(player.valueDiff)
+                return (
+                  <div
+                    key={playerKey}
+                    className="min-w-0 rounded-xl border p-2 shadow-sm"
+                    style={{ borderColor: idx === 0 ? player.confidenceColor : colors.lightBorder, background: idx === 0 ? `${player.confidenceColor}18` : colors.tableRow, color: colors.textPrimary }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
+                      <BubbleSymbol pos={player.position} colors={colors} compact />
+                      <span className="min-w-0 flex-1 truncate text-sm font-black" title={player.name}>{player.name}</span>
+                      <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black" style={{ background: `${player.confidenceColor}22`, color: player.confidenceColor }}>{player.confidenceScore}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1 px-0.5 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                      <span>{player.position}</span>
+                      <span>·</span>
+                      <span className="rounded-full px-2 py-0.5 font-black" style={{ background: `${valueDiffColor}18`, color: valueDiffColor }}>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
+                      <span>·</span>
+                      <span>{player.confidence} confidence</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className={isHorizontal ? "flex flex-col" : "flex h-full min-h-0 flex-col"} style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
