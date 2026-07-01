@@ -1321,7 +1321,7 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
 
   if (compact) {
     return (
-      <Card className="flex h-full min-h-0 flex-col" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
+      <Card className="flex h-full min-h-0 flex-col backdrop-blur-md" style={{ background: `${colors.card}cc`, border: `1px solid ${colors.lightBorder}`, boxShadow: colors.shadow }}>
         <CardHeader className="px-3 pb-2 pt-3">
           <CardTitle className="flex flex-col gap-1 text-sm font-bold tracking-wide" style={{ color: colors.gold }}>
             <span className="leading-tight">TOP SUGGESTED PICKS</span>
@@ -1376,14 +1376,14 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
                       </div>
                     </div>
 
-                    <div className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-2">
+                    <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
                       <div className="flex items-center gap-2">
                         <span className="w-5 text-center text-xs font-black" style={{ color: player.confidenceColor }}>{idx + 1}</span>
                         <BubbleSymbol pos={player.position} colors={colors} compact />
                       </div>
                       <div className="min-w-0">
-                        <div className="break-words text-sm font-black leading-tight" title={player.name}>{player.name}</div>
-                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                        <div className="truncate whitespace-nowrap text-base font-black leading-tight" title={player.name}>{player.name}</div>
+                        <div className="mt-1 flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[10px] font-bold" style={{ color: colors.textSecondary }}>
                           <span>{player.position}</span>
                           <span>·</span>
                           <span className="rounded-full px-2 py-0.5 font-black" style={{ background: `${valueDiffColor}18`, color: valueDiffColor }}>{player.valueDiff >= 0 ? "+" : ""}{player.valueDiff.toFixed(1)} value</span>
