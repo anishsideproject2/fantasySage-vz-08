@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -994,6 +995,7 @@ const getActionLabel = (player) => {
 }
 
 export function SuggestedPicksSection({ colors, draftData, currentPick, getAvailablePlayers, draftedPlayers = [], selectedTeamRosterId, layout = "stacked", selectedStrategyOverride = "auto", setSelectedStrategyOverride, compact = false }) {
+  const [isRosterPreviewOpen, setIsRosterPreviewOpen] = useState(false)
   const selectedRosterCounts = draftedPlayers
     .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
     .reduce((counts, player) => {
@@ -1061,6 +1063,11 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
   const rosterHealth = getRosterHealth({ rosterCounts: selectedRosterCounts, starterTargets, flexSlots, scoringFormat, strategyKey: strategyLock.activeKey })
 
   const positionalRunAlert = getRunAlert(draftedPlayers)
+  const selectedTeam = draftData?.teams?.find((team) => String(team.roster_id) === String(selectedTeamRosterId))
+  const selectedTeamName = selectedTeam?.team_name || selectedTeam?.owner?.display_name || "Current team"
+  const selectedRosterPlayers = draftedPlayers
+    .filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
+    .sort((a, b) => Number(a.pick_no || 0) - Number(b.pick_no || 0))
 
   const pickWindowBack = draftRound <= 2 ? 2 : draftRound <= 5 ? 4 : 6
   const pickWindowForward = draftRound <= 2 ? 10 : draftRound <= 5 ? 16 : 24
@@ -1387,30 +1394,72 @@ export function SuggestedPicksSection({ colors, draftData, currentPick, getAvail
           </div>
         )}
         <div
-          className="group rounded-xl border p-1.5 text-[11px] leading-snug transition-all duration-200 hover:p-2 focus-within:p-2"
-          style={{ borderColor: colors.lightBorder, background: colors.tableRow, color: colors.textSecondary }}
+          className="group rounded-2xl border p-2 text-[11px] leading-snug transition-all duration-200 hover:p-2.5 focus-within:p-2.5"
+          style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})`, color: colors.textSecondary }}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 px-1">
             <div className="min-w-0">
               <div className="truncate font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>
-                Current strategy: {strategyLock.label}
+                Current strategy: <span style={{ color: colors.headingGreen }}>{strategyLock.label}</span>
               </div>
               <div className="truncate text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
                 {strategyLock.next} · Hover for full strategy controls
               </div>
             </div>
-            <div className="shrink-0 rounded border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.gold, color: colors.gold, background: `${colors.gold}12` }}>
-              Health {rosterHealth.score}/100
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsRosterPreviewOpen((value) => !value)}
+                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide transition hover:opacity-85 focus:outline-none focus:ring-2"
+                style={{ borderColor: colors.lightBorder, background: colors.card, color: colors.textPrimary }}
+                aria-expanded={isRosterPreviewOpen}
+              >
+                {isRosterPreviewOpen ? "Hide roster" : "Show roster"}
+                <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: `${colors.textSecondary}22`, color: colors.textPrimary }}>
+                  {isRosterPreviewOpen ? "↑" : "↓"}
+                </span>
+              </button>
+              <div className="rounded-lg border px-2 py-1 text-[10px] font-black" style={{ borderColor: colors.headingGreen, color: colors.headingGreen, background: `${colors.headingGreen}12` }}>
+                Health {rosterHealth.score}/100
+              </div>
             </div>
           </div>
 
-          <div className="mt-1 grid grid-cols-5 overflow-hidden rounded-lg border text-center text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
+          <div className="mt-2 grid grid-cols-5 overflow-hidden rounded-xl border text-center text-[10px] font-black uppercase" style={{ borderColor: colors.lightBorder }}>
             {["R1-2 Anchor", "R3-5 Support", "R6-9 Value", "R10-12 Lottery", "R13+ Stream"].map((label, index) => {
               const active = (draftRound <= 2 && index === 0) || (draftRound >= 3 && draftRound <= 5 && index === 1) || (draftRound >= 6 && draftRound <= 9 && index === 2) || (draftRound >= 10 && draftRound <= 12 && index === 3) || (draftRound >= 13 && index === 4)
               const palette = ["#22c55e", "#3b82f6", "#facc15", "#fb923c", "#94a3b8"]
               return <span key={label} className="px-1 py-1" style={{ background: active ? `${palette[index]}44` : "transparent", color: active ? palette[index] : colors.textSecondary }}>{label}</span>
             })}
           </div>
+
+          {isRosterPreviewOpen && (
+            <div className="mt-2 rounded-xl border p-2" style={{ borderColor: colors.lightBorder, background: colors.card }}>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="font-black uppercase tracking-wide" style={{ color: colors.textPrimary }}>{selectedTeamName} roster</div>
+                <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+                  {selectedRosterCounts.total}/{rosterSize} drafted · QB {selectedRosterCounts.QB || 0} · RB {selectedRosterCounts.RB || 0} · WR {selectedRosterCounts.WR || 0} · TE {selectedRosterCounts.TE || 0}
+                </div>
+              </div>
+              {selectedRosterPlayers.length ? (
+                <div className="grid max-h-48 gap-1 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+                  {selectedRosterPlayers.map((player) => (
+                    <div key={`${player.pick_no}-${player.name}`} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5" style={{ background: colors.tableRow }}>
+                      <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-black" style={{ background: player.position === "RB" ? "#10b981" : player.position === "WR" ? "#60a5fa" : player.position === "TE" ? "#f59e0b" : "#f43f5e", color: "#06111f" }}>{player.position}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-black" style={{ color: colors.textPrimary }}>{player.name}</div>
+                        <div className="truncate text-[10px]" style={{ color: colors.textSecondary }}>{player.team || "FA"} · pick {player.pick_no}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
+                  Select a team or wait for the first pick to see this roster here.
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:mt-2 group-hover:max-h-[34rem] group-hover:opacity-100 group-focus-within:mt-2 group-focus-within:max-h-[34rem] group-focus-within:opacity-100">
             <div className="grid gap-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">

@@ -8,7 +8,7 @@ export function useDraftData(csvData) {
   const [platform, setPlatform] = useState("sleeper")
   const [sleeperUrls, setSleeperUrls] = useState([])
   const [activeSleeperUrlIndex, setActiveSleeperUrlIndex] = useState(0)
-  const [autoSwitchSleeperDrafts, setAutoSwitchSleeperDrafts] = useState(true)
+  const [autoSwitchSleeperDrafts, setAutoSwitchSleeperDrafts] = useState(false)
   const sleeperUrl = sleeperUrls[activeSleeperUrlIndex] || ""
   const [espnLeagueId, setEspnLeagueId] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -69,8 +69,10 @@ export function useDraftData(csvData) {
       .split(/[\n,]+/)
       .map((url) => url.trim())
       .filter(Boolean)
+      .slice(0, 1)
     setSleeperUrls(urls)
-    setActiveSleeperUrlIndex((index) => Math.min(index, Math.max(urls.length - 1, 0)))
+    setActiveSleeperUrlIndex(0)
+    setAutoSwitchSleeperDrafts(false)
   }, [])
 
   const asArray = (value) => (Array.isArray(value) ? value : [])

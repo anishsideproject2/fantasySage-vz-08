@@ -248,6 +248,7 @@ export function FantasyDraftAssistant() {
               visibleRoundCount={null}
               isMaximized={isDraftBoardMaximized}
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
+              selectedStrategyOverride={selectedStrategyOverride}
               maximizedTopContent={(
                 <SuggestedPicksSection
                   colors={colors}
@@ -316,6 +317,7 @@ export function FantasyDraftAssistant() {
                   visibleRoundCount={null}
                   isMaximized={isDraftBoardMaximized}
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
+                  selectedStrategyOverride={selectedStrategyOverride}
                   maximizedTopContent={(
                     <SuggestedPicksSection
                       colors={colors}

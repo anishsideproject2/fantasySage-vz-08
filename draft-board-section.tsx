@@ -29,6 +29,19 @@ const getDraftSlotForPick = (pickNo, numTeams) => {
 
 const POSITION_ORDER = ["QB", "RB", "WR", "TE"]
 
+const STRATEGY_TYPE_LABELS = {
+  auto: "Auto strategy",
+  balanced: "Balanced BPA",
+  "hero-rb": "Hero RB",
+  "double-hero-rb": "Double Hero RB",
+  "zero-rb": "Zero RB",
+  "wr-heavy": "WR-Heavy",
+  "robust-rb": "Robust RB",
+  "elite-te": "Elite TE",
+  "early-qb": "Elite/Early QB",
+  "late-qb-te": "Late QB/TE",
+}
+
 const getPositionBoardColors = (pos, colors) => {
   switch (pos) {
     case "QB":
@@ -59,7 +72,7 @@ const getValueLabel = (value) => {
   return "🫏 Reach"
 }
 
-export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized, maximizedTopContent = null }) {
+export function DraftBoardSection({ colors, draftData, draftedPlayers = [], currentPick = 1, selectedTeamRosterId, setSelectedTeamRosterId, visibleRoundCount = null, isMaximized = false, onToggleMaximized, maximizedTopContent = null, selectedStrategyOverride = "auto" }) {
   const teams = draftData?.teams || []
   const numTeams = draftData?.numTeams || teams.length || 0
   const rounds = draftData?.rounds || 0
@@ -98,6 +111,8 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
     })
     return summaries
   }, [draftedPlayers, teams])
+
+  const strategyTypeLabel = STRATEGY_TYPE_LABELS[selectedStrategyOverride] || STRATEGY_TYPE_LABELS.auto
 
   const selectedDraftValue = useMemo(() => {
     const selectedPlayers = (draftedPlayers || []).filter((player) => String(player.roster_id) === String(selectedTeamRosterId))
@@ -146,6 +161,11 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
             <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
               Showing {shouldLimitRounds ? `rounds ${firstVisibleRound}-${lastVisibleRound}` : `all ${rounds} rounds`} • Pick {Math.min(currentPick, totalPicks || currentPick)} of {totalPicks} • Selected value {selectedDraftValue > 0 ? "+" : ""}{selectedDraftValue}
             </span>
+            {isMaximized && (
+              <span className="rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: colors.gold, background: `${colors.gold}18`, color: colors.gold }}>
+                Strategy: {strategyTypeLabel}
+              </span>
+            )}
             {onToggleMaximized && (
               <button
                 type="button"

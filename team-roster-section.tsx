@@ -269,6 +269,7 @@ export function TeamRosterSection({
   const selectedTeamName = selectedTeam ? selectedTeam.team_name : "Select a Team"
   const selectedTeamOwnerDisplayName = selectedTeam ? selectedTeam.owner.display_name : ""
   const selectedTeamOwnerAvatar = selectedTeam ? selectedTeam.avatar || selectedTeam.owner.avatar : null
+  const selectedTeamOwnerAvatarUrl = getSleeperAvatarUrl(selectedTeamOwnerAvatar)
 
   const teamRosterPlayers = useMemo(() => getSelectedTeamRosterPlayers(), [getSelectedTeamRosterPlayers])
 
@@ -326,11 +327,11 @@ export function TeamRosterSection({
       <CardHeader className="border-b px-3 py-2" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            {selectedTeamOwnerAvatar ? (
-              <img src={getSleeperAvatarUrl(selectedTeamOwnerAvatar) || "/placeholder.svg"} alt={selectedTeamOwnerDisplayName} className="h-9 w-9 rounded-xl border-2 object-cover" style={{ borderColor: colors.headingGreen }} />
+            {selectedTeamOwnerAvatarUrl ? (
+              <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName} className="h-14 w-14 rounded-2xl border-2 object-cover shadow-lg" style={{ borderColor: colors.headingGreen }} />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border-2" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
-                <User size={16} style={{ color: colors.headingGreen }} />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 shadow-lg" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
+                <User size={24} style={{ color: colors.headingGreen }} />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -345,15 +346,44 @@ export function TeamRosterSection({
             </div>
           </div>
           <Select value={selectedTeamRosterId || ""} onValueChange={(value) => setSelectedTeamRosterId(value ? value : null)} disabled={!draftData || !draftData.teams || draftData.teams.length === 0}>
-            <SelectTrigger className="h-10 w-full rounded-xl text-left font-bold xl:w-[16rem]" style={{ background: colors.darkBlue, color: colors.textPrimary, borderColor: colors.cardBorder }}>
-              <SelectValue placeholder="-- Select a Team --" />
+            <SelectTrigger className="h-14 w-full rounded-2xl text-left font-bold xl:w-[24rem]" style={{ background: colors.darkBlue, color: colors.textPrimary, borderColor: colors.cardBorder }}>
+              {selectedTeam ? (
+                <div className="flex min-w-0 items-center gap-3">
+                  {selectedTeamOwnerAvatarUrl ? (
+                    <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName || selectedTeamName} className="h-10 w-10 shrink-0 rounded-xl border object-cover" style={{ borderColor: colors.headingGreen }} />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{ background: colors.card, borderColor: colors.cardBorder }}>
+                      <User size={18} style={{ color: colors.headingGreen }} />
+                    </div>
+                  )}
+                  <span className="min-w-0 truncate">{selectedTeamName}</span>
+                </div>
+              ) : (
+                <SelectValue placeholder="-- Select a Team --" />
+              )}
             </SelectTrigger>
             <SelectContent style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
-              {draftData?.teams.map((team) => (
-                <SelectItem key={team.roster_id} value={team.roster_id} className="text-sm" style={{ color: colors.textPrimary }}>
-                  {team.team_name} {platform === "sleeper" ? `(@${team.owner.display_name})` : ""}
-                </SelectItem>
-              ))}
+              {draftData?.teams.map((team) => {
+                const avatar = team.avatar || team.owner?.avatar
+                const ownerName = team.owner?.display_name || team.owner?.username
+                return (
+                  <SelectItem key={team.roster_id} value={team.roster_id} className="py-2 pl-8 pr-3 text-sm" style={{ color: colors.textPrimary }}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      {platform === "sleeper" && avatar ? (
+                        <img src={getSleeperAvatarUrl(avatar) || "/placeholder.svg"} alt={ownerName || team.team_name} className="h-9 w-9 shrink-0 rounded-xl border object-cover" style={{ borderColor: colors.headingGreen }} />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border" style={{ background: colors.darkBlue, borderColor: colors.cardBorder }}>
+                          <User size={16} style={{ color: colors.headingGreen }} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="truncate font-black">{team.team_name}</div>
+                        {platform === "sleeper" && ownerName && <div className="truncate text-xs" style={{ color: colors.textSecondary }}>@{ownerName}</div>}
+                      </div>
+                    </div>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>
