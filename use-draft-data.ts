@@ -66,6 +66,8 @@ export function useDraftData(csvData) {
     setActiveSleeperUrlIndex((index) => Math.min(index, Math.max(urls.length - 1, 0)))
   }, [])
 
+  const asArray = (value) => (Array.isArray(value) ? value : [])
+
   const getDraftSlotForPick = (pickNo, numTeams) => {
     const round = Math.floor((pickNo - 1) / numTeams) + 1
     const pickInRound = ((pickNo - 1) % numTeams) + 1
@@ -105,22 +107,29 @@ export function useDraftData(csvData) {
               fetch(`https://api.sleeper.com/v1/league/${draft.league_id}/rosters`),
             ])
             if (usersRes.ok && rostersRes.ok) {
-              users = await usersRes.json()
-              rosters = await rostersRes.json()
+              users = asArray(await usersRes.json())
+              rosters = asArray(await rostersRes.json())
             }
           }
 
+          users = asArray(users)
+          rosters = asArray(rosters)
           sleeperDraftCacheRef.current[draftId] = { draft, users, rosters }
         }
 
+        users = asArray(users)
+        rosters = asArray(rosters)
+
         const picksRes = await picksPromise
         if (!picksRes.ok || !draft) throw new Error("Could not fetch Sleeper draft picks.")
-        const picks = await picksRes.json()
+        const picks = asArray(await picksRes.json())
+        const slotToRosterId = draft.slot_to_roster_id || {}
+        if (!Object.keys(slotToRosterId).length) throw new Error("Sleeper draft has no team slot data yet.")
 
-        const teams = Object.keys(draft.slot_to_roster_id)
+        const teams = Object.keys(slotToRosterId)
           .sort((a, b) => Number.parseInt(a) - Number.parseInt(b))
           .map((slot) => {
-            const rosterId = draft.slot_to_roster_id[slot]
+            const rosterId = slotToRosterId[slot]
             const roster = rosters.find((r) => String(r.roster_id) === String(rosterId))
             const user = roster ? users.find((u) => u.user_id === roster.owner_id) : null
             const draftOrderUserId = Object.entries(draft.draft_order || {}).find(([, draftSlot]) => String(draftSlot) === String(slot))?.[0]
@@ -138,18 +147,19 @@ export function useDraftData(csvData) {
 
         const updatedDrafted = picks
           .map((pick) => {
-            const rosterIdFromSlot = draft.slot_to_roster_id[pick.draft_slot]
-            const pickNormName = normalizeName(`${pick.metadata.first_name} ${pick.metadata.last_name}`)
+            const rosterIdFromSlot = slotToRosterId[pick.draft_slot]
+            const pickMetadata = pick.metadata || {}
+            const pickNormName = normalizeName(`${pickMetadata.first_name || ""} ${pickMetadata.last_name || ""}`)
             const player = csvData.find((p) => normalizeName(`${p.firstName} ${p.lastName}`) === pickNormName)
 
             return {
               ...(player || {
                 id: pick.player_id,
-                name: `${pick.metadata.first_name} ${pick.metadata.last_name}`,
-                firstName: pick.metadata.first_name,
-                lastName: pick.metadata.last_name,
-                position: pick.metadata.position,
-                team: pick.metadata.team,
+                name: `${pickMetadata.first_name || ""} ${pickMetadata.last_name || ""}`.trim() || pick.player_id,
+                firstName: pickMetadata.first_name || "",
+                lastName: pickMetadata.last_name || "",
+                position: pickMetadata.position,
+                team: pickMetadata.team,
                 adp: 999,
               }),
               pick_no: pick.pick_no,
@@ -161,8 +171,8 @@ export function useDraftData(csvData) {
 
         setDraftedPlayers(updatedDrafted)
         setCurrentPick(picks.length + 1)
-        const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings.teams)
-        const currentTeamRosterId = draft.slot_to_roster_id[currentSlot]
+        const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings?.teams || teams.length || 0)
+        const currentTeamRosterId = slotToRosterId[currentSlot]
 
         setDraftData({
           teams: teams,
@@ -171,8 +181,8 @@ export function useDraftData(csvData) {
           activeSleeperUrlIndex,
           currentTeamRosterId,
           currentTeamUserId: teams.find((team) => String(team.roster_id) === String(currentTeamRosterId))?.user_id || null,
-          numTeams: draft.settings.teams,
-          rounds: draft.settings.rounds,
+          numTeams: draft.settings?.teams || teams.length,
+          rounds: draft.settings?.rounds,
           draftType: draft.type,
           slotSettings: draft.settings,
           scoringFormat: draft.metadata?.scoring_type || draft.settings?.scoring_type || null,
@@ -352,18 +362,19 @@ export function useDraftData(csvData) {
             sleeperDraftCacheRef.current[draftId] = {
               ...cachedForDraft,
               draft,
-              users: usersRes.ok ? await usersRes.json() : cachedForDraft.users || [],
-              rosters: rostersRes.ok ? await rostersRes.json() : cachedForDraft.rosters || [],
+              users: usersRes.ok ? asArray(await usersRes.json()) : asArray(cachedForDraft.users),
+              rosters: rostersRes.ok ? asArray(await rostersRes.json()) : asArray(cachedForDraft.rosters),
             }
           }
 
           const picksRes = await fetch(`https://api.sleeper.com/v1/draft/${draftId}/picks`)
           if (!picksRes.ok) continue
-          const picks = await picksRes.json()
-          const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings.teams)
-          const currentTeamRosterId = draft.slot_to_roster_id[currentSlot]
+          const picks = asArray(await picksRes.json())
+          const slotToRosterId = draft.slot_to_roster_id || {}
+          const currentSlot = getDraftSlotForPick(picks.length + 1, draft.settings?.teams || Object.keys(slotToRosterId).length || 0)
+          const currentTeamRosterId = slotToRosterId[currentSlot]
           const cached = sleeperDraftCacheRef.current[draftId] || {}
-          const rostersForDraft = cached.rosters || []
+          const rostersForDraft = asArray(cached.rosters)
           const roster = rostersForDraft.find((candidate) => String(candidate.roster_id) === String(currentTeamRosterId))
           const currentTeamUserId = roster?.owner_id || Object.entries(draft.draft_order || {}).find(([, draftSlot]) => String(draftSlot) === String(currentSlot))?.[0]
 
