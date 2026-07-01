@@ -394,12 +394,12 @@ export function TeamRosterSection({
   return (
     <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: colors.card, border: `1px solid ${colors.lightBorder}` }}>
       <CardHeader className="border-b px-3 py-2" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
             {selectedTeamOwnerAvatarUrl ? (
-              <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName} className="h-14 w-14 rounded-2xl border-2 object-cover shadow-lg" style={{ borderColor: colors.headingGreen }} />
+              <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName} className="h-12 w-12 shrink-0 rounded-2xl border-2 object-cover shadow-lg" style={{ borderColor: colors.headingGreen }} />
             ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 shadow-lg" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 shadow-lg" style={{ background: colors.darkBlue, borderColor: colors.headingGreen }}>
                 <User size={24} style={{ color: colors.headingGreen }} />
               </div>
             )}
@@ -410,18 +410,18 @@ export function TeamRosterSection({
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.textSecondary }}>{rosterCounts.total} drafted</span>
               </div>
-              <h3 className="truncate text-lg font-black" style={{ color: colors.textPrimary }}>{selectedTeamName}</h3>
+              <h3 className="truncate text-base font-black leading-tight" style={{ color: colors.textPrimary }}>{selectedTeamName}</h3>
               {platform === "sleeper" && selectedTeamOwnerDisplayName && <span className="text-xs" style={{ color: colors.textSecondary }}>@{selectedTeamOwnerDisplayName}</span>}
             </div>
           </div>
           <Select value={selectedTeamRosterId || ""} onValueChange={(value) => setSelectedTeamRosterId(value ? value : null)} disabled={!draftData || !draftData.teams || draftData.teams.length === 0}>
-            <SelectTrigger className="h-14 w-full rounded-2xl text-left font-bold xl:w-[24rem]" style={{ background: colors.darkBlue, color: colors.textPrimary, borderColor: colors.cardBorder }}>
+            <SelectTrigger className="h-12 w-full min-w-0 rounded-2xl text-left font-bold" style={{ background: colors.darkBlue, color: colors.textPrimary, borderColor: colors.cardBorder }}>
               {selectedTeam ? (
                 <div className="flex min-w-0 items-center gap-3">
                   {selectedTeamOwnerAvatarUrl ? (
-                    <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName || selectedTeamName} className="h-10 w-10 shrink-0 rounded-xl border object-cover" style={{ borderColor: colors.headingGreen }} />
+                    <img src={selectedTeamOwnerAvatarUrl} alt={selectedTeamOwnerDisplayName || selectedTeamName} className="h-8 w-8 shrink-0 rounded-xl border object-cover" style={{ borderColor: colors.headingGreen }} />
                   ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{ background: colors.card, borderColor: colors.cardBorder }}>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border" style={{ background: colors.card, borderColor: colors.cardBorder }}>
                       <User size={18} style={{ color: colors.headingGreen }} />
                     </div>
                   )}
