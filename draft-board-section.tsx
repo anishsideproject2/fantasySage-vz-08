@@ -27,6 +27,13 @@ const getDraftSlotForPick = (pickNo, numTeams) => {
   return isSnakeBackHalf ? numTeams - pickInRound + 1 : pickInRound
 }
 
+const getPickLabel = (pickNo, numTeams) => {
+  if (!pickNo || !numTeams) return "--"
+  const round = Math.floor((Number(pickNo) - 1) / numTeams) + 1
+  const pickInRound = ((Number(pickNo) - 1) % numTeams) + 1
+  return `${round}.${pickInRound}`
+}
+
 const POSITION_ORDER = ["QB", "RB", "WR", "TE"]
 
 const STRATEGY_TYPE_LABELS = {
