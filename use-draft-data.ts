@@ -68,6 +68,54 @@ export function useDraftData(csvData) {
 
   const asArray = (value) => (Array.isArray(value) ? value : [])
 
+  const mergeSleeperUsersById = (primaryUsers, fallbackUsers) => {
+    const usersById = new Map()
+    asArray(primaryUsers).forEach((user) => {
+      if (user?.user_id) usersById.set(String(user.user_id), user)
+    })
+    asArray(fallbackUsers).forEach((user) => {
+      if (user?.user_id && !usersById.has(String(user.user_id))) usersById.set(String(user.user_id), user)
+    })
+    return Array.from(usersById.values())
+  }
+
+  const fetchSleeperUsersByIds = async (userIds, existingUsers = []) => {
+    const knownUserIds = new Set(asArray(existingUsers).map((user) => String(user?.user_id)).filter(Boolean))
+    const missingUserIds = Array.from(new Set(asArray(userIds).map((userId) => String(userId || "")).filter(Boolean)))
+      .filter((userId) => !knownUserIds.has(userId))
+
+    if (!missingUserIds.length) return []
+
+    const userResponses = await Promise.allSettled(
+      missingUserIds.map(async (userId) => {
+        const userRes = await fetch(`https://api.sleeper.com/v1/user/${userId}`)
+        return userRes.ok ? userRes.json() : null
+      }),
+    )
+
+    return userResponses
+      .filter((response) => response.status === "fulfilled" && response.value?.user_id)
+      .map((response) => response.value)
+  }
+
+  const getSleeperDisplayName = (user, fallback) =>
+    user?.display_name || user?.username || user?.metadata?.team_name || fallback
+
+  const getSleeperTeamName = (roster, user, fallback) =>
+    roster?.metadata?.team_name ||
+    user?.metadata?.team_name ||
+    user?.display_name ||
+    user?.username ||
+    fallback
+
+  const getSleeperAvatar = (roster, user) =>
+    roster?.metadata?.avatar ||
+    roster?.metadata?.avatar_id ||
+    user?.avatar ||
+    user?.metadata?.avatar ||
+    user?.metadata?.avatar_id ||
+    null
+
   const getDraftSlotForPick = (pickNo, numTeams) => {
     const round = Math.floor((pickNo - 1) / numTeams) + 1
     const pickInRound = ((pickNo - 1) % numTeams) + 1
@@ -114,11 +162,16 @@ export function useDraftData(csvData) {
 
           users = asArray(users)
           rosters = asArray(rosters)
-          sleeperDraftCacheRef.current[draftId] = { draft, users, rosters }
         }
 
         users = asArray(users)
         rosters = asArray(rosters)
+
+        const draftOrderUserIds = Object.keys(draft.draft_order || {})
+        const rosterOwnerIds = rosters.map((roster) => roster?.owner_id).filter(Boolean)
+        const fetchedUsers = await fetchSleeperUsersByIds([...draftOrderUserIds, ...rosterOwnerIds], users)
+        users = mergeSleeperUsersById(users, fetchedUsers)
+        sleeperDraftCacheRef.current[draftId] = { draft, users, rosters }
 
         const picksRes = await picksPromise
         if (!picksRes.ok || !draft) throw new Error("Could not fetch Sleeper draft picks.")
@@ -131,17 +184,20 @@ export function useDraftData(csvData) {
           .map((slot) => {
             const rosterId = slotToRosterId[slot]
             const roster = rosters.find((r) => String(r.roster_id) === String(rosterId))
-            const user = roster ? users.find((u) => u.user_id === roster.owner_id) : null
             const draftOrderUserId = Object.entries(draft.draft_order || {}).find(([, draftSlot]) => String(draftSlot) === String(slot))?.[0]
-            const userId = roster?.owner_id || user?.user_id || draftOrderUserId || null
-            const username = user?.username || user?.display_name || (userId ? `Sleeper ${String(userId).slice(0, 6)}` : `Owner ${slot}`)
+            const userId = roster?.owner_id || draftOrderUserId || null
+            const user = users.find((u) => String(u.user_id) === String(userId))
+            const fallbackName = userId ? `Sleeper ${String(userId).slice(0, 6)}` : `Owner ${slot}`
+            const username = user?.username || getSleeperDisplayName(user, fallbackName)
+            const displayName = getSleeperDisplayName(user, username)
+            const avatar = getSleeperAvatar(roster, user)
             return {
               roster_id: rosterId,
               user_id: userId,
               draft_slot: Number(slot),
-              team_name: roster?.metadata?.team_name || user?.metadata?.team_name || user?.display_name || username || `Team ${slot}`,
-              avatar: roster?.metadata?.avatar || user?.metadata?.avatar || user?.avatar || null,
-              owner: { user_id: userId, username, display_name: user?.display_name || username, avatar: user?.avatar || user?.metadata?.avatar || null },
+              team_name: getSleeperTeamName(roster, user, fallbackName),
+              avatar,
+              owner: { user_id: userId, username, display_name: displayName, avatar },
             }
           })
 
