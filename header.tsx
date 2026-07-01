@@ -183,10 +183,10 @@ export function Header({
               <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.headingGreen }} aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.headingGreen }}>Start here</p>
-                <p className="text-sm font-extrabold leading-tight">Paste each Sleeper draft URL, add your Sleeper username once, then sync.</p>
+                <p className="text-sm font-extrabold leading-tight">Paste your Sleeper draft URL, sync, then pick your team from the roster selector.</p>
               </div>
             </div>
-            <div className="grid flex-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_minmax(9rem,0.45fr)_7rem]">
+            <div className="grid flex-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="h-10" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
                   <SelectValue />
@@ -195,35 +195,19 @@ export function Header({
                   <SelectItem value="sleeper">Sleeper</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="grid gap-2">
-                {[0, 1].map((index) => {
-                  const isActiveUrl = index === activeSleeperUrlIndex && Boolean(sleeperUrls[index]?.trim())
-                  return (
-                    <div key={index} className="relative">
-                      <Input
-                        id={`sleeper-draft-url-${index + 1}`}
-                        aria-label={`Sleeper draft ${index + 1} URL`}
-                        placeholder={`Sleeper draft ${index + 1} URL${index === 1 ? " (optional for switching)" : ""}`}
-                        value={sleeperUrls[index] || ""}
-                        onChange={(e) => updateSleeperUrlAtIndex(index, e.target.value)}
-                        className="h-10 w-full pr-10 text-xs"
-                        style={{ backgroundColor: colors.darkBlue, borderColor: isActiveUrl ? colors.headingGreen : colors.cardBorder, color: colors.textPrimary }}
-                      />
-                      {isConnected && isActiveUrl && <CheckCircle size={16} className="absolute right-3 top-3" style={{ color: colors.headingGreen }} />}
-                      {error && isActiveUrl && <AlertCircle size={16} className="absolute right-3 top-3" style={{ color: colors.adpNegative }} />}
-                    </div>
-                  )
-                })}
+              <div className="relative">
+                <Input
+                  id="sleeper-draft-url"
+                  aria-label="Sleeper draft URL"
+                  placeholder="Sleeper draft URL"
+                  value={sleeperUrls[0] || ""}
+                  onChange={(e) => updateSleeperUrlAtIndex(0, e.target.value)}
+                  className="h-10 w-full pr-10 text-xs"
+                  style={{ backgroundColor: colors.darkBlue, borderColor: isConnected ? colors.headingGreen : colors.cardBorder, color: colors.textPrimary }}
+                />
+                {isConnected && <CheckCircle size={16} className="absolute right-3 top-3" style={{ color: colors.headingGreen }} />}
+                {error && <AlertCircle size={16} className="absolute right-3 top-3" style={{ color: colors.adpNegative }} />}
               </div>
-              <Input
-                id="sleeper-username"
-                aria-label="Sleeper username"
-                placeholder="Your Sleeper username"
-                value={sleeperUsername}
-                onChange={(e) => setSleeperUsername?.(e.target.value)}
-                className="h-10 w-full text-xs"
-                style={{ backgroundColor: colors.darkBlue, borderColor: sleeperUsername ? colors.purple : colors.cardBorder, color: colors.textPrimary }}
-              />
               <Button
                 onClick={handleSync}
                 disabled={isSyncDisabled || isManualSyncing || !sleeperUrl.trim()}
@@ -233,35 +217,6 @@ export function Header({
                 {isManualSyncing ? "Syncing…" : "Sync"}
               </Button>
             </div>
-            {sleeperUrls.length > 1 && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {sleeperUrls.map((url: string, index: number) => (
-                  <Button
-                    key={`${url}-${index}`}
-                    type="button"
-                    size="sm"
-                    onClick={() => setActiveSleeperUrlIndex?.(index)}
-                    className="h-8 px-3 text-xs font-black"
-                    style={{
-                      backgroundColor: index === activeSleeperUrlIndex ? colors.headingGreen : colors.card,
-                      color: index === activeSleeperUrlIndex ? "#000000" : colors.textPrimary,
-                      border: `1px solid ${index === activeSleeperUrlIndex ? colors.headingGreen : colors.cardBorder}`,
-                    }}
-                  >
-                    Draft {index + 1}{index === activeSleeperUrlIndex ? " (active)" : ""}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setAutoSwitchSleeperDrafts?.(!autoSwitchSleeperDrafts)}
-                  className="h-8 px-3 text-xs font-black"
-                  style={{ backgroundColor: autoSwitchSleeperDrafts ? `${colors.purple}30` : colors.card, color: autoSwitchSleeperDrafts ? colors.purple : colors.textSecondary, border: `1px solid ${colors.cardBorder}` }}
-                >
-                  Auto-switch {autoSwitchSleeperDrafts ? "on" : "off"}
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="flex h-full min-w-0 flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
