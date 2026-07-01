@@ -163,20 +163,20 @@ export function Header({
         className="rounded-2xl border p-3 shadow-sm"
         style={{ backgroundColor: colors.card, borderColor: colors.lightBorder, boxShadow: colors.shadow }}
       >
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.4fr)_minmax(320px,1fr)] xl:items-center">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,0.75fr)_minmax(460px,1.35fr)_minmax(380px,1fr)] xl:items-stretch">
+          <div className="flex min-w-0 items-center gap-3">
             <img src="https://imgur.com/TKUdYzv.png" alt="FantasySage Logo" className="h-16 w-14 shrink-0 sm:h-20 sm:w-16" />
             <div className="min-w-0">
               <h1 className="text-xl font-black uppercase leading-none tracking-wide sm:text-2xl" style={{ color: colors.headingGreen }}>
                 FantasySage Draft Command Center
               </h1>
-              <p className="mt-1 line-clamp-2 text-xs font-medium sm:text-sm" style={{ color: colors.purple }}>
+              <p className="mt-1 text-xs font-medium leading-snug sm:text-sm" style={{ color: colors.purple }}>
                 Live Sleeper sync, analyst boards, best values, roster build, and draft room context in one scroll-friendly workflow.
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border p-2" style={{ backgroundColor: `${colors.headingGreen}14`, borderColor: colors.headingGreen }}>
+          <div className="flex h-full flex-col rounded-2xl border p-2" style={{ backgroundColor: `${colors.headingGreen}14`, borderColor: colors.headingGreen }}>
             <div className="mb-2 flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: `${colors.headingGreen}24`, color: colors.textPrimary }}>
               <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.headingGreen }} aria-hidden="true" />
               <div className="min-w-0">
@@ -184,7 +184,7 @@ export function Header({
                 <p className="text-sm font-extrabold leading-tight">Paste each Sleeper draft URL into its own bar, then sync.</p>
               </div>
             </div>
-            <div className="grid gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
+            <div className="grid flex-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_7rem]">
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="h-10" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder, color: colors.textPrimary }}>
                   <SelectValue />
@@ -253,15 +253,15 @@ export function Header({
             )}
           </div>
 
-          <div className="flex flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: `${colors.purple}20`, color: colors.textPrimary }}>
+          <div className="flex h-full min-w-0 flex-col gap-2 rounded-2xl border p-2" style={{ backgroundColor: colors.darkBlue, borderColor: colors.cardBorder }}>
+            <div className="flex min-h-[3.75rem] items-start gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: `${colors.purple}20`, color: colors.textPrimary }}>
               <ArrowDown size={16} className="shrink-0 animate-bounce" style={{ color: colors.purple }} aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: colors.purple }}>Optional next step</p>
-                <p className="text-sm font-extrabold leading-tight">Upload a custom rankings CSV for another board.</p>
+                <p className="text-sm font-extrabold leading-tight sm:whitespace-nowrap xl:whitespace-normal 2xl:whitespace-nowrap">Upload a custom rankings CSV for another board.</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
+            <div className="flex flex-1 flex-wrap items-center justify-start gap-2 xl:justify-end">
               <Button
                 onClick={() => setShowFileManager(!showFileManager)}
                 className="h-10 gap-2 px-4 text-sm font-bold hover:opacity-90"
