@@ -260,17 +260,17 @@ export function Header({
           </div>
         </div>
         <div
-          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,0.58fr)_minmax(0,1fr)]"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(14rem,0.7fr)_minmax(0,1fr)]"
           aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
             <section
               key={group.id}
-              className="flex h-full min-w-0 flex-col gap-1.5 rounded-xl border p-2"
+              className="flex h-full min-w-0 flex-col gap-2 rounded-xl border p-2.5"
               style={{ borderColor: colors.cardBorder, backgroundColor: colors.darkBlue }}
             >
               <div
-                className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-center text-[11px] font-black uppercase tracking-wide"
+                className="flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-center text-[11px] font-black uppercase tracking-wide"
                 style={{
                   backgroundColor: detectedScoringGroupId === group.id ? `${colors.headingGreen}24` : colors.card,
                   border: `1px solid ${detectedScoringGroupId === group.id ? colors.headingGreen : "transparent"}`,
@@ -284,8 +284,8 @@ export function Header({
                   </span>
                 )}
               </div>
-              <div className="min-w-0 overflow-x-auto pb-1">
-                <div className={`grid min-w-max grid-flow-col gap-1.5 ${group.id === "best-ball" ? "auto-cols-[minmax(10rem,12rem)]" : "auto-cols-[minmax(12rem,1fr)] sm:auto-cols-[minmax(12rem,31%)]"}`}>
+              <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+                <div className={`grid h-full gap-2 ${group.id === "best-ball" ? "min-w-0 grid-cols-1" : "min-w-max grid-flow-col auto-cols-[minmax(13rem,1fr)] sm:auto-cols-[minmax(13rem,31%)]"}`}>
                   {group.presets.map((preset) => {
                     const isActive = preset.isCustom
                       ? rankings[activeRankingIndex]?.customSetId === preset.id
@@ -302,11 +302,11 @@ export function Header({
                             loadPreset(preset.id, activeRankingIndex)
                           }
                         }}
-                        className={`flex min-w-0 flex-col overflow-hidden rounded-xl border px-2.5 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-16" : "h-20"}`}
+                        className={`flex min-w-0 flex-col overflow-hidden rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-full min-h-24 w-full justify-between" : "h-[5.75rem]"}`}
                         style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                         aria-pressed={isActive}
                       >
-                        <div className="mb-0.5 flex items-center justify-between gap-1.5">
+                        <div className="mb-1 flex items-center justify-between gap-2">
                           <span className="truncate text-xs font-black uppercase tracking-wide" style={{ color: colors.headingGreen }}>
                             {preset.isCustom ? "Custom" : preset.accuracyType}
                           </span>
@@ -316,23 +316,23 @@ export function Header({
                             </span>
                           )}
                         </div>
-                        <div className="flex min-h-0 items-start justify-between gap-1.5">
+                        <div className="flex min-h-0 items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="truncate text-[13px] font-extrabold leading-tight sm:text-sm" style={{ color: colors.textPrimary }}>
+                            <div className="truncate text-sm font-extrabold leading-snug" style={{ color: colors.textPrimary }}>
                               {preset.analyst}
                             </div>
-                            <div className="truncate text-[11px] leading-tight" style={{ color: colors.textSecondary }}>{preset.isCustom ? `${preset.format} · Updated ${preset.updated} · ${preset.playerCount} players` : `${preset.source} · ${preset.updated}`}</div>
+                            <div className="truncate text-[11px] leading-snug" style={{ color: colors.textSecondary }}>{preset.isCustom ? `${preset.format} · Updated ${preset.updated} · ${preset.playerCount} players` : `${preset.source} · ${preset.updated}`}</div>
                           </div>
                           <span className="shrink-0 rounded-md border px-1.5 py-0.5 text-[11px] font-black" style={getAccuracyTypeStyle(preset.isCustom ? "Draft" : preset.accuracyType, colors)}>
                             {preset.isCustom ? "Mine" : `#${preset.accuracyRank}`}
                           </span>
                         </div>
                         {preset.accuracyRanks && (
-                          <div className="mt-1 grid grid-cols-4 gap-1 text-[9px]">
+                          <div className="mt-1.5 grid grid-cols-4 gap-1.5 text-[9px]">
                             {POSITION_RANKS.map((position) => (
                               <span
                                 key={position}
-                                className="inline-flex h-4 min-w-0 items-center justify-center rounded border px-1 text-center font-black leading-none"
+                                className="inline-flex h-5 min-w-0 items-center justify-center rounded border px-1 text-center font-black leading-none"
                                 style={getPositionAccuracyStyle(colors)}
                                 title={`${position} accuracy rank`}
                               >
