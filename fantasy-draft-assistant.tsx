@@ -120,8 +120,8 @@ export function FantasyDraftAssistant() {
   }
 
   const maximizedDraftBoardTopContent = (
-    <div className="grid max-h-[38vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-2">
-      <div className="min-h-0 lg:col-span-2">
+    <div className="grid max-h-[44vh] min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden">
+      <div className="min-h-0">
         <SuggestedPicksSection
           colors={colors}
           draftData={draftData}
@@ -135,63 +135,65 @@ export function FantasyDraftAssistant() {
           compact
         />
       </div>
-      <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
-        <button
-          type="button"
-          onClick={() => setIsMaximizedRosterOpen((value) => !value)}
-          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
-          style={{ background: colors.tableRow, color: colors.textPrimary }}
-          aria-expanded={isMaximizedRosterOpen}
-        >
-          <span>Selected roster</span>
-          <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
-        </button>
-        {isMaximizedRosterOpen && (
-          <div className="h-[18rem] min-h-0">
-            <TeamRosterSection
-              colors={colors}
-              draftData={draftData}
-              selectedTeamRosterId={selectedTeamRosterId}
-              setSelectedTeamRosterId={setSelectedTeamRosterId}
-              draftedPlayers={draftedPlayers}
-              platform={platform}
-              variant="compact"
-            />
-          </div>
-        )}
-      </div>
-      <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
-        <button
-          type="button"
-          onClick={() => setIsMaximizedBestValueOpen((value) => !value)}
-          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
-          style={{ background: colors.tableRow, color: colors.textPrimary }}
-          aria-expanded={isMaximizedBestValueOpen}
-        >
-          <span>Best value</span>
-          <span style={{ color: colors.headingGreen }}>{isMaximizedBestValueOpen ? "Minimize ↑" : "Expand ↓"}</span>
-        </button>
-        {isMaximizedBestValueOpen && (
-          <div className="h-[18rem] min-h-0">
-            <BestValueSection
-              colors={colors}
-              csvData={csvData}
-              draftData={draftData}
-              currentPick={currentPick}
-              bestValuePosition={bestValuePosition}
-              setBestValuePosition={setBestValuePosition}
-              lastUpdate={lastUpdate}
-              timeSinceUpdate={timeSinceUpdate}
-              getAvailablePlayers={getAvailablePlayers}
-              draftedPlayers={draftedPlayers}
-              selectedTeamRosterId={selectedTeamRosterId}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              compact
-              maxPlayers={30}
-            />
-          </div>
-        )}
+      <div className="grid min-h-0 gap-3 overflow-hidden lg:grid-cols-2">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+          <button
+            type="button"
+            onClick={() => setIsMaximizedRosterOpen((value) => !value)}
+            className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+            style={{ background: colors.tableRow, color: colors.textPrimary }}
+            aria-expanded={isMaximizedRosterOpen}
+          >
+            <span>Selected roster</span>
+            <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
+          </button>
+          {isMaximizedRosterOpen && (
+            <div className="h-[min(16rem,24vh)] min-h-0">
+              <TeamRosterSection
+                colors={colors}
+                draftData={draftData}
+                selectedTeamRosterId={selectedTeamRosterId}
+                setSelectedTeamRosterId={setSelectedTeamRosterId}
+                draftedPlayers={draftedPlayers}
+                platform={platform}
+                variant="compact"
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+          <button
+            type="button"
+            onClick={() => setIsMaximizedBestValueOpen((value) => !value)}
+            className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+            style={{ background: colors.tableRow, color: colors.textPrimary }}
+            aria-expanded={isMaximizedBestValueOpen}
+          >
+            <span>Best value</span>
+            <span style={{ color: colors.headingGreen }}>{isMaximizedBestValueOpen ? "Minimize ↑" : "Expand ↓"}</span>
+          </button>
+          {isMaximizedBestValueOpen && (
+            <div className="h-[min(16rem,24vh)] min-h-0">
+              <BestValueSection
+                colors={colors}
+                csvData={csvData}
+                draftData={draftData}
+                currentPick={currentPick}
+                bestValuePosition={bestValuePosition}
+                setBestValuePosition={setBestValuePosition}
+                lastUpdate={lastUpdate}
+                timeSinceUpdate={timeSinceUpdate}
+                getAvailablePlayers={getAvailablePlayers}
+                draftedPlayers={draftedPlayers}
+                selectedTeamRosterId={selectedTeamRosterId}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                compact
+                maxPlayers={30}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
