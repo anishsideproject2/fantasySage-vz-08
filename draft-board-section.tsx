@@ -232,7 +232,7 @@ export function DraftBoardSection({ colors, draftData, draftedPlayers = [], curr
         </div>
       </CardHeader>
       {isMaximized && maximizedTopContent && (
-        <div className="pointer-events-auto absolute bottom-4 right-4 z-20 max-h-[42vh] w-[min(58rem,calc(100vw-3rem))] overflow-hidden rounded-2xl">
+        <div className="min-h-0 px-3 pb-3">
           {maximizedTopContent}
         </div>
       )}

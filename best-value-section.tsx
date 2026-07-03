@@ -11,7 +11,7 @@ const FLEX_POSITIONS = ["RB", "WR", "TE"]
 
 const getAnalystRank = (player) => Number.parseFloat(player.expertRank ?? player.rank ?? player.ecr ?? player.adp)
 
-function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
+function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor, compact = false }) {
   const valueColor = getValueDiffColor(player.valueDiff)
   const firstName = player.first_name || player.firstName || String(player.name || "").trim().split(/\s+/)[0] || ""
   const lastName = player.last_name || player.lastName || String(player.name || "").trim().split(/\s+/).slice(1).join(" ") || ""
@@ -34,7 +34,7 @@ function ValueRow({ player, idx, isBestValue, colors, getValueDiffColor }) {
         color: colors.textPrimary,
       }}
     >
-      <div className="grid grid-cols-12 items-center gap-2 px-2.5 py-2 text-sm">
+      <div className={`grid grid-cols-12 items-center gap-2 px-2.5 ${compact ? "py-1.5 text-xs" : "py-2 text-sm"}`}>
         <button
           type="button"
           onClick={(e) => {
@@ -81,6 +81,9 @@ export function BestValueSection({
   selectedTeamRosterId,
   searchTerm = "",
   setSearchTerm,
+  compact = false,
+  className = "",
+  maxPlayers = 60,
 }) {
 
   const getBestValuePicks = () => {
@@ -122,7 +125,7 @@ export function BestValueSection({
         if (b.valueDiff === "--") return -1
         return Number.parseFloat(b.valueDiff) - Number.parseFloat(a.valueDiff)
       })
-      .slice(0, 60) // Only load 60 players to keep rendering fast
+      .slice(0, maxPlayers) // Keep rendering fast
   }
 
   const getValueDiffColor = (diff) => {
@@ -135,8 +138,8 @@ export function BestValueSection({
   const pickInRound = draftData?.numTeams ? ((currentPick - 1) % draftData.numTeams) + 1 : "-"
 
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden" style={{ background: `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue}44)`, border: `1px solid ${colors.lightBorder}` }}>
-      <CardHeader className="border-b px-3 py-3" style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
+    <Card className={`flex h-full min-h-0 flex-col overflow-hidden ${className}`} style={{ background: `linear-gradient(180deg, ${colors.card}, ${colors.darkBlue}44)`, border: `1px solid ${colors.lightBorder}` }}>
+      <CardHeader className={`border-b px-3 ${compact ? "py-2" : "py-3"}`} style={{ borderColor: colors.lightBorder, background: `linear-gradient(135deg, ${colors.tableRow}, ${colors.card})` }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {lastUpdate && (
@@ -151,7 +154,7 @@ export function BestValueSection({
                 <div>ago</div>
               </div>
             )}
-            <CardTitle className="flex items-center gap-2 text-base font-black tracking-wide" style={{ color: colors.gold }}>
+            <CardTitle className={`flex items-center gap-2 font-black tracking-wide ${compact ? "text-sm" : "text-base"}`} style={{ color: colors.gold }}>
               <Sparkles size={16} />
               BEST VALUE
             </CardTitle>
@@ -192,6 +195,7 @@ export function BestValueSection({
             </div>
           </div>
         </div>
+        {!compact && (
         <div className="mt-3 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: colors.textSecondary }} />
@@ -204,18 +208,19 @@ export function BestValueSection({
             />
           </div>
         </div>
+        )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-2 py-2">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder, background: `${colors.background}55` }}>
           <div className="flex items-center justify-between border-b px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ borderColor: colors.lightBorder, color: colors.textSecondary }}>
             <span className="flex items-center gap-1.5"><TrendingUp size={13} /> Sorted by current-pick value</span>
-            <span>Top 60 available</span>
+            <span>Top {maxPlayers} available</span>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
           <div className="space-y-1">
             {/* Header */}
             <div
-              className="grid grid-cols-12 gap-2 px-2 py-1 text-xs font-bold border-b-2"
+              className={`${compact ? "sr-only" : "grid"} grid-cols-12 gap-2 px-2 py-1 text-xs font-bold border-b-2`}
               style={{
                 color: colors.gold,
                 borderColor: colors.lightBorder,
@@ -236,6 +241,7 @@ export function BestValueSection({
                 isBestValue={idx === 0}
                 colors={colors}
                 getValueDiffColor={getValueDiffColor}
+                compact={compact}
               />
             ))}
           </div>

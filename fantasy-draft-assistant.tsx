@@ -74,6 +74,7 @@ export function FantasyDraftAssistant() {
   const [selectedStrategyOverride, setSelectedStrategyOverride] = useState("auto")
   const [isDraftBoardMaximized, setIsDraftBoardMaximized] = useState(false)
   const [isMaximizedRosterOpen, setIsMaximizedRosterOpen] = useState(true)
+  const [isMaximizedBestValueOpen, setIsMaximizedBestValueOpen] = useState(true)
 
   // Keep ranking drafted flags in sync with the active draft. This must also
   // clear flags when switching to a new draft with no picks yet.
@@ -117,6 +118,83 @@ export function FantasyDraftAssistant() {
       "https://www.reddit.com/r/fantasyfootball/comments/1m3gk5u/your_feedback_here_is_helping_me_build_a_better"
     window.open(redditUrl, "_blank", "width=600,height=400")
   }
+
+  const maximizedDraftBoardTopContent = (
+    <div className="grid max-h-[38vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-2">
+      <div className="min-h-0 lg:col-span-2">
+        <SuggestedPicksSection
+          colors={colors}
+          draftData={draftData}
+          currentPick={currentPick}
+          getAvailablePlayers={getAvailablePlayers}
+          draftedPlayers={draftedPlayers}
+          selectedTeamRosterId={selectedTeamRosterId}
+          layout="horizontal"
+          selectedStrategyOverride={selectedStrategyOverride}
+          setSelectedStrategyOverride={setSelectedStrategyOverride}
+          compact
+        />
+      </div>
+      <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <button
+          type="button"
+          onClick={() => setIsMaximizedRosterOpen((value) => !value)}
+          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+          style={{ background: colors.tableRow, color: colors.textPrimary }}
+          aria-expanded={isMaximizedRosterOpen}
+        >
+          <span>Selected roster</span>
+          <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
+        </button>
+        {isMaximizedRosterOpen && (
+          <div className="h-[18rem] min-h-0">
+            <TeamRosterSection
+              colors={colors}
+              draftData={draftData}
+              selectedTeamRosterId={selectedTeamRosterId}
+              setSelectedTeamRosterId={setSelectedTeamRosterId}
+              draftedPlayers={draftedPlayers}
+              platform={platform}
+              variant="compact"
+            />
+          </div>
+        )}
+      </div>
+      <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
+        <button
+          type="button"
+          onClick={() => setIsMaximizedBestValueOpen((value) => !value)}
+          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+          style={{ background: colors.tableRow, color: colors.textPrimary }}
+          aria-expanded={isMaximizedBestValueOpen}
+        >
+          <span>Best value</span>
+          <span style={{ color: colors.headingGreen }}>{isMaximizedBestValueOpen ? "Minimize ↑" : "Expand ↓"}</span>
+        </button>
+        {isMaximizedBestValueOpen && (
+          <div className="h-[18rem] min-h-0">
+            <BestValueSection
+              colors={colors}
+              csvData={csvData}
+              draftData={draftData}
+              currentPick={currentPick}
+              bestValuePosition={bestValuePosition}
+              setBestValuePosition={setBestValuePosition}
+              lastUpdate={lastUpdate}
+              timeSinceUpdate={timeSinceUpdate}
+              getAvailablePlayers={getAvailablePlayers}
+              draftedPlayers={draftedPlayers}
+              selectedTeamRosterId={selectedTeamRosterId}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              compact
+              maxPlayers={30}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <div
@@ -250,47 +328,7 @@ export function FantasyDraftAssistant() {
               isMaximized={isDraftBoardMaximized}
               onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
               selectedStrategyOverride={selectedStrategyOverride}
-              maximizedTopContent={(
-                <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(22rem,1fr)_minmax(20rem,0.95fr)]">
-                  <SuggestedPicksSection
-                    colors={colors}
-                    draftData={draftData}
-                    currentPick={currentPick}
-                    getAvailablePlayers={getAvailablePlayers}
-                    draftedPlayers={draftedPlayers}
-                    selectedTeamRosterId={selectedTeamRosterId}
-                    layout="horizontal"
-                    selectedStrategyOverride={selectedStrategyOverride}
-                    setSelectedStrategyOverride={setSelectedStrategyOverride}
-                    compact
-                  />
-                  <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
-                    <button
-                      type="button"
-                      onClick={() => setIsMaximizedRosterOpen((value) => !value)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
-                      style={{ background: colors.tableRow, color: colors.textPrimary }}
-                      aria-expanded={isMaximizedRosterOpen}
-                    >
-                      <span>Selected roster</span>
-                      <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
-                    </button>
-                    {isMaximizedRosterOpen && (
-                      <div className="h-[32rem] min-h-0">
-                        <TeamRosterSection
-                          colors={colors}
-                          draftData={draftData}
-                          selectedTeamRosterId={selectedTeamRosterId}
-                          setSelectedTeamRosterId={setSelectedTeamRosterId}
-                          draftedPlayers={draftedPlayers}
-                          platform={platform}
-                          variant="compact"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              maximizedTopContent={maximizedDraftBoardTopContent}
             />
           </div>
 
@@ -346,47 +384,7 @@ export function FantasyDraftAssistant() {
                   isMaximized={isDraftBoardMaximized}
                   onToggleMaximized={() => setIsDraftBoardMaximized((value) => !value)}
                   selectedStrategyOverride={selectedStrategyOverride}
-                  maximizedTopContent={(
-                    <div className="grid max-h-[70vh] min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(22rem,1fr)_minmax(20rem,0.95fr)]">
-                      <SuggestedPicksSection
-                        colors={colors}
-                        draftData={draftData}
-                        currentPick={currentPick}
-                        getAvailablePlayers={getAvailablePlayers}
-                        draftedPlayers={draftedPlayers}
-                        selectedTeamRosterId={selectedTeamRosterId}
-                        layout="horizontal"
-                        selectedStrategyOverride={selectedStrategyOverride}
-                        setSelectedStrategyOverride={setSelectedStrategyOverride}
-                        compact
-                      />
-                      <div className="min-h-0 overflow-hidden rounded-xl border" style={{ borderColor: colors.lightBorder }}>
-                        <button
-                          type="button"
-                          onClick={() => setIsMaximizedRosterOpen((value) => !value)}
-                          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-widest"
-                          style={{ background: colors.tableRow, color: colors.textPrimary }}
-                          aria-expanded={isMaximizedRosterOpen}
-                        >
-                          <span>Selected roster</span>
-                          <span style={{ color: colors.headingGreen }}>{isMaximizedRosterOpen ? "Minimize ↑" : "Expand ↓"}</span>
-                        </button>
-                        {isMaximizedRosterOpen && (
-                          <div className="h-[32rem] min-h-0">
-                            <TeamRosterSection
-                              colors={colors}
-                              draftData={draftData}
-                              selectedTeamRosterId={selectedTeamRosterId}
-                              setSelectedTeamRosterId={setSelectedTeamRosterId}
-                              draftedPlayers={draftedPlayers}
-                              platform={platform}
-                              variant="compact"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  maximizedTopContent={maximizedDraftBoardTopContent}
                 />
               </div>
             </div>
