@@ -260,7 +260,7 @@ export function Header({
           </div>
         </div>
         <div
-          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-3"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,0.58fr)_minmax(0,1fr)]"
           aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
@@ -285,7 +285,7 @@ export function Header({
                 )}
               </div>
               <div className="min-w-0 overflow-x-auto pb-1">
-                <div className="grid min-w-max grid-flow-col auto-cols-[minmax(12rem,1fr)] gap-1.5 sm:auto-cols-[minmax(12rem,31%)]">
+                <div className={`grid min-w-max grid-flow-col gap-1.5 ${group.id === "best-ball" ? "auto-cols-[minmax(10rem,12rem)]" : "auto-cols-[minmax(12rem,1fr)] sm:auto-cols-[minmax(12rem,31%)]"}`}>
                   {group.presets.map((preset) => {
                     const isActive = preset.isCustom
                       ? rankings[activeRankingIndex]?.customSetId === preset.id
@@ -302,7 +302,7 @@ export function Header({
                             loadPreset(preset.id, activeRankingIndex)
                           }
                         }}
-                        className="flex h-20 min-w-0 flex-col overflow-hidden rounded-xl border px-2.5 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95"
+                        className={`flex min-w-0 flex-col overflow-hidden rounded-xl border px-2.5 py-1.5 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-16" : "h-20"}`}
                         style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                         aria-pressed={isActive}
                       >
