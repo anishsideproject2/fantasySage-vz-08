@@ -260,7 +260,7 @@ export function Header({
           </div>
         </div>
         <div
-          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,0.45fr)_minmax(0,1fr)]"
+          className="grid w-full grid-cols-1 gap-2 xl:grid-cols-3"
           aria-label="Analyst ranking boards grouped by format"
         >
           {quickSwitchGroups.map((group: any) => (
@@ -285,7 +285,7 @@ export function Header({
                 )}
               </div>
               <div className="min-w-0 overflow-x-auto pb-1">
-                <div className={`grid min-w-max grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-2 ${group.id === "best-ball" ? "sm:auto-cols-[minmax(15rem,1fr)]" : "sm:auto-cols-[minmax(15rem,32%)]"}`}>
+                <div className={group.id === "best-ball" ? "grid w-full grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]" : "grid min-w-max grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-2 sm:auto-cols-[minmax(15rem,32%)]"}>
                   {group.presets.map((preset) => {
                     const isActive = preset.isCustom
                       ? rankings[activeRankingIndex]?.customSetId === preset.id
