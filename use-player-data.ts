@@ -5,7 +5,7 @@ import { findPresetById } from "./ranking-presets"
 
 const POSITIONS = ["All", "Flex", "QB", "RB", "WR", "TE"]
 const FLEX_POSITIONS = ["RB", "WR", "TE"]
-const DEFAULT_RANKING_PRESET_ID = "del-don-full-ppr"
+const DEFAULT_RANKING_PRESET_ID = "miller-boone-full-ppr"
 const CUSTOM_RANKING_LIBRARY_KEY = "fantasy-sage-custom-ranking-library"
 const LOADED_RANKINGS_KEY = "fantasy-sage-loaded-rankings"
 const CUSTOM_RANKING_LIBRARY_LIMIT = 25
