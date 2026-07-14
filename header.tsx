@@ -13,15 +13,7 @@ const getAccuracyTypeStyle = (type: string, colors: any) => ({
   borderColor: type === "Draft" ? colors.purple : type === "Hybrid" ? colors.headingGreen : colors.gold,
 })
 
-const POSITION_RANKS = ["QB", "RB", "WR", "TE"] as const
-const POSITION_RANK_GROUPS = new Set(["half-ppr"])
 const QUICK_SWITCH_GROUP_ORDER = ["full-ppr", "best-ball", "half-ppr"]
-
-const getPositionAccuracyStyle = (colors: any) => ({
-  backgroundColor: `${colors.headingGreen}18`,
-  borderColor: `${colors.headingGreen}88`,
-  color: colors.headingGreen,
-})
 
 const detectScoringGroupFromDraft = (draft: any) => {
   const scoringText = [draft?.metadata?.scoring_type, draft?.settings?.scoring_type, draft?.metadata?.name, draft?.metadata?.description]
@@ -46,9 +38,31 @@ const getAccuracyAwardLabel = (preset: any) => {
 }
 
 const getAnalystRankSummary = (preset: any) => {
-  if (preset.isCustom) return `${preset.format} · Updated ${preset.updated} · ${preset.playerCount} players`
-  if (preset.accuracyType === "Hybrid") return preset.accuracyNote
-  return `FantasyPros ${getAccuracyAwardLabel(preset)} #${preset.accuracyRank}`
+  if (preset.isCustom) return `${preset.format} · ${preset.playerCount} players`
+
+  const note = preset.accuracyNote || ""
+  const summaries: string[] = []
+  const seen = new Set<string>()
+  const addSummary = (rank: string, type: string, year: string) => {
+    const normalizedType = type.toLowerCase() === "in-season" ? "in-season" : "draft"
+    const summary = `#${rank} ${normalizedType} ${year} accuracy`
+    if (!seen.has(summary)) {
+      seen.add(summary)
+      summaries.push(summary)
+    }
+  }
+
+  for (const match of note.matchAll(/(20\d{2})\s+(draft|in-season) accuracy\s+#(\d+)/gi)) {
+    addSummary(match[3], match[2], match[1])
+  }
+  for (const match of note.matchAll(/#(\d+)(?:\s+and\s+#(\d+))?\s+(?:in\s+FantasyPros\s+)?(20\d{2})\s+(draft|in-season) accuracy/gi)) {
+    addSummary(match[1], match[4], match[3])
+    if (match[2]) addSummary(match[2], match[4], match[3])
+  }
+
+  if (summaries.length) return summaries.join(" + ")
+  if (preset.accuracyType === "Hybrid") return "Hybrid accuracy board"
+  return `#${preset.accuracyRank} ${String(preset.accuracyType || "accuracy").toLowerCase()} ${getAccuracyYear(preset)} accuracy`.trim()
 }
 
 export function Header({
@@ -309,7 +323,7 @@ export function Header({
                             loadPreset(preset.id, activeRankingIndex)
                           }
                         }}
-                        className={`flex min-w-0 flex-col rounded-xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-full min-h-32 w-full justify-between" : "min-h-[8.75rem]"}`}
+                        className={`flex min-w-0 flex-col rounded-xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-full min-h-24 w-full justify-between" : "min-h-[6.5rem]"}`}
                         style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
                         aria-pressed={isActive}
                       >
@@ -328,36 +342,14 @@ export function Header({
                             <div className="truncate text-sm font-extrabold leading-snug" style={{ color: colors.textPrimary }}>
                               {preset.analyst}
                             </div>
-                            <div className="text-[11px] font-semibold leading-snug" style={{ color: colors.textSecondary }}>{preset.isCustom ? `${preset.format} · Updated ${preset.updated} · ${preset.playerCount} players` : `${preset.source} · Updated ${preset.updated}`}</div>
                           </div>
                           <span className="shrink-0 rounded-md border px-1.5 py-0.5 text-[11px] font-black" style={getAccuracyTypeStyle(preset.isCustom ? "Draft" : preset.accuracyType, colors)}>
                             {preset.isCustom ? "Mine" : `#${preset.accuracyRank}`}
                           </span>
                         </div>
-                        {!preset.isCustom && (
-                          <p className="mt-1.5 text-[10px] font-bold leading-snug" style={{ color: colors.textPrimary }}>
-                            {getAnalystRankSummary(preset)}
-                          </p>
-                        )}
-                        {!preset.isCustom && preset.methodology && (
-                          <p className="mt-1 text-[9.5px] leading-snug" style={{ color: colors.textSecondary }}>
-                            {preset.methodology}
-                          </p>
-                        )}
-                        {POSITION_RANK_GROUPS.has(group.id) && preset.accuracyRanks && (
-                          <div className="mt-2 grid grid-cols-4 gap-1.5 text-[9px]">
-                            {POSITION_RANKS.map((position) => (
-                              <span
-                                key={position}
-                                className="inline-flex h-5 min-w-0 items-center justify-center rounded border px-1 text-center font-black leading-none"
-                                style={getPositionAccuracyStyle(colors)}
-                                title={`${position} accuracy rank`}
-                              >
-                                {position} {preset.accuracyRanks?.[position] ?? "—"}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <p className="mt-1.5 text-[10px] font-bold leading-snug" style={{ color: colors.textPrimary }}>
+                          {getAnalystRankSummary(preset)}
+                        </p>
                       </button>
                     )
                   })}
