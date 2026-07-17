@@ -44,8 +44,8 @@ const getAnalystRankSummary = (preset: any) => {
   const summaries: string[] = []
   const seen = new Set<string>()
   const addSummary = (rank: string, type: string, year: string) => {
-    const normalizedType = type.toLowerCase() === "in-season" ? "in-season" : "draft"
-    const summary = `#${rank} ${normalizedType} ${year} accuracy`
+    const normalizedType = type.toLowerCase() === "in-season" ? "in season" : "draft"
+    const summary = `# ${rank} ${normalizedType} ${year} accuracy`
     if (!seen.has(summary)) {
       seen.add(summary)
       summaries.push(summary)
@@ -62,8 +62,12 @@ const getAnalystRankSummary = (preset: any) => {
 
   if (summaries.length) return summaries.join(" + ")
   if (preset.accuracyType === "Hybrid") return "Hybrid accuracy board"
-  return `#${preset.accuracyRank} ${String(preset.accuracyType || "accuracy").toLowerCase()} ${getAccuracyYear(preset)} accuracy`.trim()
+  return `# ${preset.accuracyRank} ${String(preset.accuracyType || "accuracy").toLowerCase().replace("in-season", "in season")} ${getAccuracyYear(preset)} accuracy`.trim()
 }
+
+const getAnalystRankSummaryParts = (preset: any) => getAnalystRankSummary(preset).split(/\s+\+\s+/)
+
+const getUpdatedLabel = (preset: any) => preset.updated ? `Updated ${preset.updated}` : "Update date unavailable"
 
 export function Header({
   theme,
@@ -306,7 +310,7 @@ export function Header({
                 )}
               </div>
               <div className="min-w-0 flex-1 overflow-x-auto pb-1">
-                <div className={`grid h-full gap-2 ${group.id === "best-ball" ? "min-w-0 grid-cols-1" : "min-w-max grid-flow-col auto-cols-[minmax(13rem,1fr)] sm:auto-cols-[minmax(13rem,31%)]"}`}>
+                <div className={`grid h-full gap-2 ${group.id === "best-ball" ? "min-w-0 grid-cols-1" : "min-w-[42rem] grid-cols-2 lg:min-w-0 lg:grid-cols-3"}`}>
                   {group.presets.map((preset) => {
                     const isActive = preset.isCustom
                       ? rankings[activeRankingIndex]?.customSetId === preset.id
@@ -323,8 +327,8 @@ export function Header({
                             loadPreset(preset.id, activeRankingIndex)
                           }
                         }}
-                        className={`flex min-w-0 flex-col rounded-xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-full min-h-24 w-full justify-between" : "min-h-[6.5rem]"}`}
-                        style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card }}
+                        className={`flex min-w-0 flex-col rounded-xl border px-3 py-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:opacity-95 ${group.id === "best-ball" ? "h-full min-h-24 w-full justify-between" : "min-h-[7.25rem]"}`}
+                        style={{ borderColor: isActive ? colors.headingGreen : colors.cardBorder, backgroundColor: isActive ? `${colors.headingGreen}20` : colors.card, boxShadow: isActive ? `0 0 0 1px ${colors.headingGreen}44` : colors.shadow }}
                         aria-pressed={isActive}
                       >
                         <div className="mb-1 flex items-center justify-between gap-2">
@@ -342,14 +346,24 @@ export function Header({
                             <div className="truncate text-sm font-extrabold leading-snug" style={{ color: colors.textPrimary }}>
                               {preset.analyst}
                             </div>
+                            <div className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide" style={{ color: colors.textSecondary }}>
+                              {getUpdatedLabel(preset)}
+                            </div>
                           </div>
                           <span className="shrink-0 rounded-md border px-1.5 py-0.5 text-[11px] font-black" style={getAccuracyTypeStyle(preset.isCustom ? "Draft" : preset.accuracyType, colors)}>
                             {preset.isCustom ? "Mine" : `#${preset.accuracyRank}`}
                           </span>
                         </div>
-                        <p className="mt-1.5 text-[10px] font-bold leading-snug" style={{ color: colors.textPrimary }}>
-                          {getAnalystRankSummary(preset)}
-                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black leading-snug" style={{ color: colors.textPrimary }}>
+                          {getAnalystRankSummaryParts(preset).map((part, index) => (
+                            <span key={`${preset.id}-${part}`} className="inline-flex items-center gap-1">
+                              {index > 0 && <span style={{ color: colors.headingGreen }}>+</span>}
+                              <span className="rounded-md px-1.5 py-0.5" style={{ backgroundColor: `${colors.headingGreen}12`, color: colors.textPrimary }}>
+                                {part}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
                       </button>
                     )
                   })}
