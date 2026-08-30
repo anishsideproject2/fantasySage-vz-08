@@ -58,7 +58,11 @@ export function usePlayerData() {
       if (savedRankings) {
         const parsed = JSON.parse(savedRankings)
         const savedSlots = Array.isArray(parsed.rankings) ? parsed.rankings.slice(0, 2) : []
-        if (savedSlots.some((ranking) => ranking?.data?.length || ranking?.presetId || ranking?.customSetId)) {
+        const isLegacyDefaultOnly =
+          savedSlots.length === 1 &&
+          savedSlots[0]?.presetId === "miller-boone-full-ppr" &&
+          !savedSlots[0]?.customSetId
+        if (!isLegacyDefaultOnly && savedSlots.some((ranking) => ranking?.data?.length || ranking?.presetId || ranking?.customSetId)) {
           setRankings([0, 1].map((index) => ({ data: [], name: null, ...(savedSlots[index] || {}) })))
           if (Number.isInteger(parsed.activeRankingIndex)) {
             setActiveRankingIndex(Math.max(0, Math.min(1, parsed.activeRankingIndex)))
